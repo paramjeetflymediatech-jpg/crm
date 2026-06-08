@@ -34,3 +34,68 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+## ENV File
+
+
+# Server Configuration
+
+PORT=3000
+
+NODE_ENV=development
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Database Configuration
+
+DB_HOST=127.0.0.1
+
+DB_PORT=3306
+
+DB_USER=root
+
+DB_PASSWORD=Root@123
+
+DB_NAME=crm_saas
+
+# JWT Secrets
+
+JWT_SECRET=super_secret_crm_jwt_access_token_key_2026
+
+JWT_REFRESH_SECRET=super_secret_crm_jwt_refresh_token_key_2026
+
+# SMTP Email Configuration
+
+SMTP_HOST=smtp.mailtrap.io
+
+SMTP_PORT=2525
+
+SMTP_USER=
+
+SMTP_PASS=
+
+SMTP_FROM=no-reply@crmsaas.com
+
+# File Storage Configuration (Local or S3-Compatible)
+
+STORAGE_TYPE=local
+
+UPLOAD_DIR=public/uploads
+
+S3_ENDPOINT=
+
+S3_ACCESS_KEY=
+
+S3_SECRET_KEY=
+
+S3_BUCKET=
+
+S3_REGION=us-east-1
+
+# Redis Configuration (Optional for socket clustering, fallback to memory)
+
+REDIS_URL=redis://127.0.0.1:6379
+
+USE_REDIS=false
