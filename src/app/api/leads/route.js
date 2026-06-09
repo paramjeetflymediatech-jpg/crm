@@ -46,7 +46,12 @@ async function getHandler(request) {
     if (status && status !== '_all') where.status = status;
     if (source && source !== '_all') where.source = source;
     if (priority && priority !== '_all') where.priority = priority;
-    if (assignedTo && assignedTo !== '_all') where.assigned_to = assignedTo;
+    // Parse to integer — URL params are always strings but assigned_to is an INTEGER column
+    // Also skip if user is staff (their isolation is already set above and cannot be overridden)
+    if (assignedTo && assignedTo !== '_all' && user.role !== 'staff') {
+      const assignedToInt = parseInt(assignedTo, 10);
+      if (!isNaN(assignedToInt)) where.assigned_to = assignedToInt;
+    }
 
     // Date Range filter (using created_at)
     if (startDate || endDate) {

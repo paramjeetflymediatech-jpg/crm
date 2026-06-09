@@ -410,7 +410,11 @@ export default function LeadsPage() {
             {/* Assigned To Select */}
             <Select value={assignedTo} onValueChange={(val) => { setAssignedTo(val === '_all' ? '' : val); setCurrentPage(1); }}>
               <SelectTrigger className="border-slate-200 bg-white text-slate-700">
-                <SelectValue placeholder="All Representatives" />
+                <span className="truncate">
+                  {assignedTo
+                    ? (team.find(m => m.id.toString() === assignedTo)?.name || 'Representative')
+                    : 'All Representatives'}
+                </span>
               </SelectTrigger>
               <SelectContent className="border-slate-200 bg-white text-slate-800">
                 <SelectItem value="_all">All Representatives</SelectItem>

@@ -12,10 +12,14 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Building2, 
   Key, 
   User, 
+  Users,
   Copy, 
   Check, 
   Plus, 
@@ -24,14 +28,37 @@ import {
   Loader2,
   Volume2,
   VolumeX,
-  Play
+  Play,
+  Trash2,
+  Mail,
+  Shield
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
   const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Team Members tab state
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [teamLoading, setTeamLoading] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
+  const [memberForm, setMemberForm] = useState({ name: '', email: '', phone: '', password: '', role: 'staff' });
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [viewMemberOpen, setViewMemberOpen] = useState(false);
+  const [editMemberForm, setEditMemberForm] = useState({ name: '', email: '', phone: '', password: '', role: 'staff' });
+  const [editMemberSaving, setEditMemberSaving] = useState(false);
+
+  const refreshTeam = async () => {
+    const res = await fetch('/api/users');
+    if (res.ok) {
+      const d = await res.json();
+      setTeamMembers(d.users || []);
+    }
+  };
 
   // User States
   const [userProfile, setUserProfile] = useState({
@@ -127,9 +154,10 @@ export default function SettingsPage() {
         }
 
         // Fetch configurations
-        const [resStatuses, resSources] = await Promise.all([
+        const [resStatuses, resSources, resTeam] = await Promise.all([
           fetch('/api/leads/statuses'),
-          fetch('/api/leads/sources')
+          fetch('/api/leads/sources'),
+          fetch('/api/users')
         ]);
 
         if (resStatuses.ok) {
@@ -139,6 +167,10 @@ export default function SettingsPage() {
         if (resSources.ok) {
           const d = await resSources.json();
           setSources(d.sources || []);
+        }
+        if (resTeam.ok) {
+          const d = await resTeam.json();
+          setTeamMembers(d.users || []);
         }
       } catch (err) {
         console.error(err);
@@ -282,18 +314,23 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue={currentUser?.role === 'staff' ? 'profile' : 'company'} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 md:w-96 border border-slate-200 bg-slate-100 text-slate-500 rounded-lg h-10 p-0.5 mb-6">
+        <TabsList className="flex w-full md:w-auto border border-slate-200 bg-slate-100 text-slate-500 rounded-lg h-10 p-0.5 mb-6 gap-0.5">
           {currentUser?.role !== 'staff' && (
-            <TabsTrigger value="company" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+            <TabsTrigger value="company" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
               <Building2 className="h-4 w-4 mr-1.5" /> Company Profile
             </TabsTrigger>
           )}
           {currentUser?.role !== 'staff' && (
-            <TabsTrigger value="integration" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+            <TabsTrigger value="team" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
+              <Users className="h-4 w-4 mr-1.5" /> Team Members
+            </TabsTrigger>
+          )}
+          {currentUser?.role !== 'staff' && (
+            <TabsTrigger value="integration" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
               <Key className="h-4 w-4 mr-1.5" /> WP Integration
             </TabsTrigger>
           )}
-          <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+          <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
             <User className="h-4 w-4 mr-1.5" /> My Profile
           </TabsTrigger>
         </TabsList>
@@ -429,7 +466,325 @@ export default function SettingsPage() {
           </TabsContent>
         )}
 
-        {/* 2. WordPress Sync */}
+        {/* 2. Team Members Tab */}
+        {currentUser?.role !== 'staff' && (
+          <TabsContent value="team" className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Team Members</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Manage staff accounts for your CRM workspace</p>
+              </div>
+              <Button onClick={() => setAddMemberOpen(true)} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+                <Plus className="h-4 w-4 mr-2" /> Add Staff Member
+              </Button>
+            </div>
+
+            <Card className="border-slate-200 bg-white text-slate-700">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow className="border-slate-200">
+                    <TableHead className="text-slate-800 font-bold text-sm">Name</TableHead>
+                    <TableHead className="text-slate-800 font-bold text-sm">Email</TableHead>
+                    <TableHead className="text-slate-800 font-bold text-sm">Role</TableHead>
+                    <TableHead className="text-slate-800 font-bold text-sm">Phone</TableHead>
+                    <TableHead className="text-slate-800 font-bold text-sm">Joined</TableHead>
+                    <TableHead className="text-slate-800 font-bold text-sm text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teamMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-sm text-slate-400 py-12 italic">
+                        No team members yet. Add your first staff member.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    teamMembers.map(member => (
+                      <TableRow key={member.id} className="border-slate-200 hover:bg-slate-50">
+                        <TableCell className="text-sm font-bold text-black">
+                          <span className="flex items-center gap-2">
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold">
+                              {member.name?.charAt(0).toUpperCase()}
+                            </span>
+                            {member.name}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-black">
+                          <span className="flex items-center gap-1.5">
+                            <Mail className="h-3.5 w-3.5 text-slate-400" />
+                            {member.email}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
+                            member.role === 'super_admin' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                            member.role === 'company_admin' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                            'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}>
+                            <Shield className="h-3 w-3" />
+                            {member.role === 'company_admin' ? 'Admin' : member.role === 'super_admin' ? 'Super Admin' : 'Staff'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-black">{member.phone || <span className="text-slate-400 italic">—</span>}</TableCell>
+                        <TableCell className="text-sm text-black">
+                          {member.created_at || member.createdAt
+                            ? new Date(member.created_at || member.createdAt).toLocaleDateString()
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedMember(member);
+                                setEditMemberForm({ name: member.name, email: member.email, phone: member.phone || '', password: '', role: member.role });
+                                setViewMemberOpen(true);
+                              }}
+                              className="h-7 px-2.5 text-xs border-slate-200 text-slate-700 hover:bg-slate-100"
+                            >
+                              <User className="h-3 w-3 mr-1" /> View
+                            </Button>
+                            {currentUser?.id !== member.id && (
+                              <Button
+                                size="sm"
+                                onClick={async () => {
+                                  if (!window.confirm(`Delete ${member.name}? This cannot be undone.`)) return;
+                                  const res = await fetch(`/api/users/${member.id}`, { method: 'DELETE' });
+                                  if (res.ok) {
+                                    refreshTeam();
+                                  } else {
+                                    const err = await res.json();
+                                    alert(err.error || 'Failed to delete.');
+                                  }
+                                }}
+                                className="h-7 px-2.5 text-xs bg-red-50 border border-red-100 text-red-700 hover:bg-red-100"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" /> Delete
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+
+            {/* View / Edit Member Dialog */}
+            <Dialog open={viewMemberOpen} onOpenChange={setViewMemberOpen}>
+              <DialogContent className="border-slate-200 bg-white text-slate-800 max-w-md rounded-xl shadow-2xl">
+                <DialogHeader>
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-lg font-bold">
+                      {selectedMember?.name?.charAt(0).toUpperCase()}
+                    </span>
+                    <div>
+                      <DialogTitle className="text-lg font-bold text-slate-900">{selectedMember?.name}</DialogTitle>
+                      <p className="text-xs text-slate-500 mt-0.5">{selectedMember?.email}</p>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setEditMemberSaving(true);
+                  try {
+                    const res = await fetch(`/api/users/${selectedMember?.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(editMemberForm)
+                    });
+                    if (res.ok) {
+                      setViewMemberOpen(false);
+                      refreshTeam();
+                    } else {
+                      const err = await res.json();
+                      alert(err.error || 'Failed to update.');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setEditMemberSaving(false);
+                  }
+                }} className="space-y-4 pt-2">
+                  {/* Info row */}
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase tracking-wider">Member ID</p>
+                      <p className="text-slate-800 font-bold mt-0.5">#{selectedMember?.id}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase tracking-wider">Joined</p>
+                      <p className="text-slate-800 font-bold mt-0.5">
+                        {selectedMember?.created_at || selectedMember?.createdAt
+                          ? new Date(selectedMember.created_at || selectedMember.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+                          : '—'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500">Full Name</label>
+                      <Input
+                        required
+                        value={editMemberForm.name}
+                        onChange={(e) => setEditMemberForm({ ...editMemberForm, name: e.target.value })}
+                        className="border-slate-200 bg-slate-50 text-slate-900"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500">Phone</label>
+                      <Input
+                        value={editMemberForm.phone}
+                        onChange={(e) => setEditMemberForm({ ...editMemberForm, phone: e.target.value })}
+                        className="border-slate-200 bg-slate-50 text-slate-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Email Address</label>
+                    <Input
+                      required
+                      type="email"
+                      value={editMemberForm.email}
+                      onChange={(e) => setEditMemberForm({ ...editMemberForm, email: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Role</label>
+                    <Select value={editMemberForm.role} onValueChange={(val) => setEditMemberForm({ ...editMemberForm, role: val })}>
+                      <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-200 bg-white text-slate-800">
+                        <SelectItem value="staff">Staff (Limited Access)</SelectItem>
+                        <SelectItem value="company_admin">Admin (Full Access)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">New Password <span className="text-slate-400 font-normal">(leave blank to keep current)</span></label>
+                    <Input
+                      type="password"
+                      placeholder="Enter new password..."
+                      value={editMemberForm.password}
+                      onChange={(e) => setEditMemberForm({ ...editMemberForm, password: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <DialogFooter className="pt-4 border-t border-slate-100">
+                    <Button type="button" variant="ghost" onClick={() => setViewMemberOpen(false)} className="text-slate-500">
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={editMemberSaving} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+                      {editMemberSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</> : 'Save Changes'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Add Member Dialog */}
+            <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+              <DialogContent className="border-slate-200 bg-white text-slate-800 max-w-md rounded-xl shadow-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-bold text-slate-900">Add Staff Member</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  setMemberSaving(true);
+                  try {
+                    const res = await fetch('/api/users', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(memberForm)
+                    });
+                    if (res.ok) {
+                      setAddMemberOpen(false);
+                      setMemberForm({ name: '', email: '', phone: '', password: '', role: 'staff' });
+                      refreshTeam();
+                    } else {
+                      const err = await res.json();
+                      alert(err.error || 'Failed to create user.');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setMemberSaving(false);
+                  }
+                }} className="space-y-4 pt-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500">Full Name *</label>
+                      <Input
+                        required
+                        placeholder="e.g. Jane Doe"
+                        value={memberForm.name}
+                        onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
+                        className="border-slate-200 bg-slate-50 text-slate-900"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-500">Phone</label>
+                      <Input
+                        placeholder="+1 555 0199"
+                        value={memberForm.phone}
+                        onChange={(e) => setMemberForm({ ...memberForm, phone: e.target.value })}
+                        className="border-slate-200 bg-slate-50 text-slate-900"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Email Address *</label>
+                    <Input
+                      required
+                      type="email"
+                      placeholder="jane@company.com"
+                      value={memberForm.email}
+                      onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Login Password *</label>
+                    <Input
+                      required
+                      type="password"
+                      placeholder="Minimum 6 characters"
+                      value={memberForm.password}
+                      onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Role</label>
+                    <Select value={memberForm.role} onValueChange={(val) => setMemberForm({ ...memberForm, role: val })}>
+                      <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-700">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="border-slate-200 bg-white text-slate-800">
+                        <SelectItem value="staff">Staff (Limited Access)</SelectItem>
+                        <SelectItem value="company_admin">Admin (Full Access)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter className="pt-4 border-t border-slate-100">
+                    <Button type="button" variant="ghost" onClick={() => setAddMemberOpen(false)} className="text-slate-500">
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={memberSaving} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+                      {memberSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Creating...</> : 'Add Member'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+        )}
+
+        {/* 3. WordPress Sync */}
         {currentUser?.role !== 'staff' && (
           <TabsContent value="integration">
             <Card className="border-slate-200 bg-white text-slate-700 max-w-3xl">
