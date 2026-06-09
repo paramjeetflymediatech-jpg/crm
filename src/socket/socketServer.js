@@ -2,11 +2,14 @@ let ioInstance = null;
 
 function setIo(io) {
   ioInstance = io;
-  console.log('Socket.IO global instance registered.');
+  if (typeof global !== 'undefined') {
+    global.ioInstance = io;
+  }
+  console.log('Socket.IO global instance registered on global object.');
 }
 
 function getIo() {
-  return ioInstance;
+  return ioInstance || (typeof global !== 'undefined' ? global.ioInstance : null);
 }
 
 /**
@@ -16,9 +19,10 @@ function getIo() {
  * @param {object} data - The payload
  */
 function emitToCompany(companyId, eventName, data) {
-  if (ioInstance) {
+  const io = getIo();
+  if (io) {
     const roomName = `company_${companyId}`;
-    ioInstance.to(roomName).emit(eventName, data);
+    io.to(roomName).emit(eventName, data);
     console.log(`Socket.IO event "${eventName}" broadcasted to room: ${roomName}`);
   } else {
     console.warn(`Socket.IO event "${eventName}" could not be sent. Socket server not initialized yet.`);
