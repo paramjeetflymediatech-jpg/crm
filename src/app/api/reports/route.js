@@ -42,7 +42,7 @@ async function handler(request) {
     // We only retrieve needed fields for optimization
     const leads = await Lead.findAll({
       where,
-      attributes: ['id', 'status', 'source', 'created_at', 'assigned_to']
+      attributes: ['id', 'status', 'source', 'created_at', 'updated_at', 'assigned_to']
     });
 
     // 3. Aggregate Leads by Month (Last 6 Months)
@@ -58,12 +58,19 @@ async function handler(request) {
     }
 
     leads.forEach(lead => {
-      const date = new Date(lead.created_at);
-      const key = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-      if (leadsByMonthMap[key]) {
-        leadsByMonthMap[key].count++;
-        if (lead.status === 'Converted') {
-          leadsByMonthMap[key].converted++;
+      // Count lead in the month it was CREATED
+      const createdDate = new Date(lead.created_at);
+      const createdKey = `${monthNames[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
+      if (leadsByMonthMap[createdKey]) {
+        leadsByMonthMap[createdKey].count++;
+      }
+
+      // Count conversion in the month it was CONVERTED (updated_at)
+      if (lead.status === 'Converted') {
+        const convertedDate = new Date(lead.updated_at || lead.created_at);
+        const convertedKey = `${monthNames[convertedDate.getMonth()]} ${convertedDate.getFullYear()}`;
+        if (leadsByMonthMap[convertedKey]) {
+          leadsByMonthMap[convertedKey].converted++;
         }
       }
     });

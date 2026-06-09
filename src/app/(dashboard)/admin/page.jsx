@@ -284,7 +284,7 @@ export default function AdminPage() {
                     <TableCell className="text-slate-800 leading-normal">{log.action}</TableCell>
                     <TableCell className="font-mono text-slate-500">{log.ip_address || '127.0.0.1'}</TableCell>
                     <TableCell className="text-right text-slate-500">
-                      {new Date(log.created_at).toLocaleString()}
+                      {log.created_at || log.createdAt ? new Date(log.created_at || log.createdAt).toLocaleString() : 'N/A'}
                     </TableCell>
                   </TableRow>
                 ))

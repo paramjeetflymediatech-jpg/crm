@@ -570,7 +570,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-semibold text-slate-500">Ringtone Volume</label>
-                    <span className="text-sm font-mono text-slate-650">{Math.round(soundVolume * 100)}%</span>
+                    <span className="text-sm font-mono text-slate-600">{Math.round(soundVolume * 100)}%</span>
                   </div>
                   <div className="flex items-center gap-3">
                     {soundVolume === 0 || !soundEnabled ? (

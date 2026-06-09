@@ -302,7 +302,7 @@ export default function LeadsPage() {
       l.status,
       l.priority,
       l.AssignedUser ? l.AssignedUser.name : 'Unassigned',
-      new Date(l.created_at).toLocaleDateString()
+      l.created_at || l.createdAt ? new Date(l.created_at || l.createdAt).toLocaleDateString() : 'N/A'
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -481,13 +481,13 @@ export default function LeadsPage() {
                       className="rounded border-slate-350 bg-white text-indigo-650 cursor-pointer"
                     />
                   </TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Name</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Contact</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Source</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Priority</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Status</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Assignee</TableHead>
-                  <TableHead className="text-slate-500 font-semibold">Date</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Name</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Contact</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Source</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Priority</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Status</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Assignee</TableHead>
+                  <TableHead className="text-slate-800 font-bold text-sm">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -505,19 +505,19 @@ export default function LeadsPage() {
                         type="checkbox" 
                         checked={selectedLeads.includes(lead.id)} 
                         onChange={() => toggleSelectRow(lead.id)}
-                        className="rounded border-slate-350 bg-white text-indigo-600 cursor-pointer"
+                        className="rounded border-slate-350 bg-white text-indigo-650 cursor-pointer"
                       />
                     </TableCell>
-                    <TableCell className="font-semibold text-slate-900">
+                    <TableCell className="text-base font-bold text-black">
                       {lead.first_name} {lead.last_name || ''}
                     </TableCell>
-                    <TableCell className="text-xs">
-                      <div className="text-slate-800">{lead.email || 'N/A'}</div>
-                      <div className="text-slate-450 mt-0.5">{lead.phone || 'N/A'}</div>
+                    <TableCell className="text-sm">
+                      <div className="text-black font-medium">{lead.email || 'N/A'}</div>
+                      <div className="text-black mt-0.5">{lead.phone || 'N/A'}</div>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600">{lead.source}</TableCell>
+                    <TableCell className="text-sm text-black font-medium">{lead.source}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                         lead.priority === 'High' ? 'bg-red-50 text-red-700 border border-red-100' :
                         lead.priority === 'Medium' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                         'bg-slate-100 text-slate-600 border border-slate-150'
@@ -526,22 +526,22 @@ export default function LeadsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex rounded px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
+                      <span className="inline-flex rounded px-2.5 py-0.5 text-sm font-semibold bg-slate-50 text-slate-700 border border-slate-200">
                         {lead.status}
                       </span>
                     </TableCell>
-                    <TableCell className="text-xs font-medium text-slate-600">
+                    <TableCell className="text-sm font-semibold text-black">
                       {lead.AssignedUser ? (
                         <span className="flex items-center gap-1.5">
-                          <User className="h-3 w-3 text-slate-400" />
+                          <User className="h-3.5 w-3.5 text-slate-500" />
                           {lead.AssignedUser.name}
                         </span>
                       ) : (
-                        <span className="text-slate-400 italic">Unassigned</span>
+                        <span className="text-slate-500 italic font-normal">Unassigned</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-400 font-medium">
-                      {new Date(lead.created_at).toLocaleDateString()}
+                    <TableCell className="text-sm text-black font-semibold">
+                      {lead.created_at || lead.createdAt ? new Date(lead.created_at || lead.createdAt).toLocaleDateString() : 'N/A'}
                     </TableCell>
                   </TableRow>
                 ))}

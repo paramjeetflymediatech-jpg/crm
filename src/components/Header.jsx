@@ -81,24 +81,24 @@ export default function Header({
         
         {/* Notification Bell Dropdown */}
         <DropdownMenu open={open} onOpenChange={setOpen}>
-          <DropdownMenuTrigger className="relative rounded-lg border border-slate-200 bg-slate-550/5 p-2 text-slate-500 hover:text-slate-800 transition duration-200 focus:outline-none cursor-pointer">
+          <DropdownMenuTrigger className="relative rounded-lg border border-slate-200 bg-slate-100 p-2 text-slate-600 hover:text-slate-800 transition duration-200 focus:outline-none cursor-pointer">
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-650 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-700 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
                 {unreadCount}
               </span>
             )}
           </DropdownMenuTrigger>
           
-          <DropdownMenuContent align="end" className="w-80 border-slate-200 bg-white text-slate-700 shadow-xl rounded-lg">
+          <DropdownMenuContent align="end" className="w-80 border-slate-200 bg-white text-slate-800 shadow-xl rounded-lg">
             <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
-              <div className="text-sm font-semibold text-slate-800 px-1.5 py-1">Notifications</div>
+              <div className="text-sm font-semibold text-slate-900 px-1.5 py-1">Notifications</div>
               {unreadCount > 0 && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={onMarkAllRead}
-                  className="h-7 text-xs text-indigo-650 hover:text-indigo-700 hover:bg-slate-50 flex items-center gap-1 px-2"
+                  className="h-7 text-xs text-indigo-700 hover:text-indigo-800 hover:bg-slate-50 flex items-center gap-1 px-2"
                 >
                   <CheckCheck className="h-3 w-3" /> Mark all read
                 </Button>
@@ -107,7 +107,7 @@ export default function Header({
 
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="py-8 text-center text-sm text-slate-400">
+                <div className="py-8 text-center text-sm text-slate-500">
                   No notifications yet.
                 </div>
               ) : (
@@ -116,23 +116,23 @@ export default function Header({
                     key={n.id}
                     onClick={() => handleNotificationClick(n)}
                     className={cn(
-                      "flex items-start gap-3 px-4 py-3 cursor-pointer transition border-b border-slate-50 hover:bg-slate-50 focus:bg-slate-50 focus:text-slate-900 text-slate-700",
-                      !n.is_read ? "bg-indigo-50/40 font-medium text-slate-900" : "opacity-75"
+                      "flex items-start gap-3 px-4 py-3 cursor-pointer transition border-b border-slate-50 hover:bg-slate-50 focus:bg-slate-50 focus:text-slate-900 text-slate-800",
+                      !n.is_read ? "bg-indigo-50/40 font-semibold text-slate-900" : "text-slate-600"
                     )}
                   >
-                    <div className="mt-0.5 rounded bg-slate-50 p-1 shrink-0">
+                    <div className="mt-0.5 rounded bg-slate-100 p-1 shrink-0">
                       {getIcon(n.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{n.title}</p>
-                        <span className="text-xs text-slate-400 shrink-0">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{n.title}</p>
+                        <span className="text-xs text-slate-500 shrink-0">
                           {new Date(n.created_at || n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                      <p className="text-sm text-slate-700 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
                       {n.lead_id && (
-                        <span className="inline-flex items-center gap-0.5 text-xs text-indigo-650 font-semibold mt-1">
+                        <span className="inline-flex items-center gap-0.5 text-xs text-indigo-700 font-semibold mt-1">
                           View details <ExternalLink className="h-2 w-2" />
                         </span>
                       )}

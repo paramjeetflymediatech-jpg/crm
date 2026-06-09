@@ -228,7 +228,7 @@ export default function DashboardLayout({ children }) {
       <div className="flex h-screen w-screen items-center justify-center bg-slate-50 text-slate-800">
         <div className="text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-indigo-500 mb-4" />
-          <p className="text-sm font-medium text-slate-505">Loading Portal...</p>
+          <p className="text-sm font-medium text-slate-600">Loading Portal...</p>
         </div>
       </div>
     );
@@ -266,7 +266,7 @@ export default function DashboardLayout({ children }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-base font-semibold text-slate-900 tracking-wide">{toastAlert.title}</p>
-              <p className="text-sm text-slate-505 mt-1 leading-relaxed">{toastAlert.message}</p>
+              <p className="text-sm text-slate-600 mt-1 leading-relaxed">{toastAlert.message}</p>
               {toastAlert.leadId && (
                 <button 
                   onClick={() => {

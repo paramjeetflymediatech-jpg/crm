@@ -273,7 +273,7 @@ export default function LeadDetailPage({ params: paramsPromise }) {
               </div>
               <div className="flex items-center gap-3 text-xs">
                 <Calendar className="h-4 w-4 text-slate-500" />
-                <span>Sync Date: {new Date(lead.created_at).toLocaleDateString()}</span>
+                <span>Sync Date: {lead.created_at || lead.createdAt ? new Date(lead.created_at || lead.createdAt).toLocaleDateString() : 'N/A'}</span>
               </div>
             </div>
 
@@ -307,6 +307,20 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                   <SelectItem value="High">High</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Follow-up Date Picker */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scheduled Follow-up Date</label>
+              <Input
+                type="datetime-local"
+                value={lead.follow_up_date ? new Date(new Date(lead.follow_up_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleFieldChange('follow_up_date', val ? new Date(val).toISOString() : null);
+                }}
+                className="border-slate-200 bg-slate-50 text-slate-700"
+              />
             </div>
 
             {/* Assign User Select */}
@@ -370,8 +384,8 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                         <div>
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-semibold text-slate-800">{act.action}</span>
-                            <span className="text-[10px] text-slate-500">
-                              {new Date(act.created_at).toLocaleString()}
+                            <span className="text-[10px] text-slate-505">
+                              {act.created_at || act.createdAt ? new Date(act.created_at || act.createdAt).toLocaleString() : 'N/A'}
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-1 leading-relaxed">{act.description}</p>
@@ -416,7 +430,7 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                         <div className="flex items-center justify-between text-xs border-b border-slate-100 pb-1.5">
                           <span className="font-semibold text-indigo-650">{note.User?.name}</span>
                           <span className="text-[10px] text-slate-505">
-                            {new Date(note.created_at).toLocaleString()}
+                            {note.created_at || note.createdAt ? new Date(note.created_at || note.createdAt).toLocaleString() : 'N/A'}
                           </span>
                         </div>
                         <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{note.note}</p>

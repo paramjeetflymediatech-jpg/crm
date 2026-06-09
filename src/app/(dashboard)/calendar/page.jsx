@@ -26,19 +26,23 @@ export default function CalendarPage() {
         const resLeads = await fetch('/api/leads?limit=100');
         if (resLeads.ok) {
           const d = await resLeads.json();
-          // Filter leads that have follow-up dates set
+          // Filter leads that have follow-up dates set OR are in "Follow-up" status
           const followUpTasks = d.leads
-            .filter(l => l.follow_up_date)
-            .map(l => ({
-              id: `lead-${l.id}`,
-              title: `Follow-up with ${l.first_name} ${l.last_name || ''}`,
-              date: new Date(l.follow_up_date),
-              leadId: l.id,
-              description: l.subject || 'Follow-up discussion',
-              assignee: l.AssignedUser?.name || 'Unassigned',
-              status: l.status,
-              priority: l.priority
-            }));
+            .filter(l => l.follow_up_date || l.status === 'Follow-up' || l.status?.toLowerCase() === 'follow-up')
+            .map(l => {
+              const dateVal = l.follow_up_date || l.updated_at || l.updatedAt || l.created_at || l.createdAt;
+              const hasExplicitDate = !!l.follow_up_date;
+              return {
+                id: `lead-${l.id}`,
+                title: `Follow-up with ${l.first_name} ${l.last_name || ''}${!hasExplicitDate ? ' (Unscheduled)' : ''}`,
+                date: new Date(dateVal),
+                leadId: l.id,
+                description: l.subject || 'Follow-up discussion',
+                assignee: l.AssignedUser?.name || 'Unassigned',
+                status: l.status,
+                priority: l.priority
+              };
+            });
 
           setTasks(followUpTasks);
         }

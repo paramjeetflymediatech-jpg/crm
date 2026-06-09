@@ -32,7 +32,7 @@ export default function Sidebar({ user, onLogout }) {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 flex h-full w-64 flex-col border-r border-slate-200 bg-white text-slate-650">
+    <aside className="fixed inset-y-0 left-0 z-20 flex h-full w-64 flex-col border-r border-slate-200 bg-white text-slate-600">
       {/* Brand Header */}
       <div className="flex h-16 items-center gap-2 border-b border-slate-100 px-6">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-650 text-white font-bold">
