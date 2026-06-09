@@ -21,7 +21,10 @@ import {
   Plus, 
   Settings,
   RefreshCw,
-  Loader2
+  Loader2,
+  Volume2,
+  VolumeX,
+  Play
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
 
@@ -38,6 +41,11 @@ export default function SettingsPage() {
     password: ''
   });
   const [userLoading, setUserLoading] = useState(false);
+
+  // Sound settings states
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundVolume, setSoundVolume] = useState(0.8);
+  const [isPlayingTest, setIsPlayingTest] = useState(false);
 
   // Company States
   const [company, setCompany] = useState({
@@ -58,6 +66,36 @@ export default function SettingsPage() {
 
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Sound settings handlers
+  const handleToggleSound = (enabled) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem('crm_sound_enabled', enabled ? 'true' : 'false');
+  };
+
+  const handleVolumeChange = (val) => {
+    const vol = parseFloat(val);
+    setSoundVolume(vol);
+    localStorage.setItem('crm_sound_volume', vol.toString());
+  };
+
+  const handlePlayTestSound = () => {
+    if (isPlayingTest) return;
+    setIsPlayingTest(true);
+    try {
+      const audio = new Audio('/sounds/ringtone.wav');
+      audio.volume = soundVolume;
+      audio.play().catch(err => {
+        console.warn('Test playback blocked or failed:', err);
+      });
+      audio.onended = () => {
+        setIsPlayingTest(false);
+      };
+    } catch (err) {
+      console.warn('Test playback exception:', err);
+      setIsPlayingTest(false);
+    }
+  };
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -71,6 +109,14 @@ export default function SettingsPage() {
             phone: u.phone || '',
             password: ''
           });
+        }
+
+        // Initialize sound preferences from localStorage
+        const enabled = localStorage.getItem('crm_sound_enabled') !== 'false';
+        const vol = localStorage.getItem('crm_sound_volume');
+        setSoundEnabled(enabled);
+        if (vol !== null) {
+          setSoundVolume(parseFloat(vol));
         }
 
         // Fetch company settings if admin level
@@ -436,59 +482,139 @@ export default function SettingsPage() {
 
         {/* 3. My Profile Tab */}
         <TabsContent value="profile">
-          <Card className="border-slate-200 bg-white text-slate-700 max-w-lg">
-            <CardHeader>
-              <CardTitle className="text-base text-slate-900">My Profile Credentials</CardTitle>
-              <CardDescription className="text-xs text-slate-500">Edit your user metadata and login passwords</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleUserSubmit}>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Full Name</label>
-                  <Input
-                    required
-                    value={userProfile.name}
-                    onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
-                    className="border-slate-200 bg-slate-50 text-slate-900"
-                  />
+          <div className="grid gap-6 md:grid-cols-2 items-start max-w-5xl">
+            {/* My Profile Credentials */}
+            <Card className="border-slate-200 bg-white text-slate-700 w-full">
+              <CardHeader>
+                <CardTitle className="text-base text-slate-900">My Profile Credentials</CardTitle>
+                <CardDescription className="text-xs text-slate-500">Edit your user metadata and login passwords</CardDescription>
+              </CardHeader>
+              <form onSubmit={handleUserSubmit}>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Full Name</label>
+                    <Input
+                      required
+                      value={userProfile.name}
+                      onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Email Login</label>
+                    <Input
+                      required
+                      type="email"
+                      value={userProfile.email}
+                      onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Contact Phone</label>
+                    <Input
+                      value={userProfile.phone}
+                      onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                  <hr className="border-slate-100 my-2" />
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-400">Change Password (Optional)</label>
+                    <Input
+                      type="password"
+                      placeholder="Leave empty to keep existing"
+                      value={userProfile.password}
+                      onChange={(e) => setUserProfile({ ...userProfile, password: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900"
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t border-slate-100 pt-4">
+                  <Button type="submit" disabled={userLoading} className="bg-indigo-650 hover:bg-indigo-500 text-white">
+                    {userLoading ? 'Saving...' : 'Update Profile'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+
+            {/* Notification & Sound Settings */}
+            <Card className="border-slate-200 bg-white text-slate-700 w-full">
+              <CardHeader>
+                <CardTitle className="text-base text-slate-900">Notification Sound Settings</CardTitle>
+                <CardDescription className="text-xs text-slate-500">Configure lead notification alert tones and volumes</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Sound Toggle */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-800">Lead Alert Ringtone</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">Play a ringtone sound when a new lead notification is received</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSound(!soundEnabled)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      soundEnabled ? 'bg-indigo-650' : 'bg-slate-200'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        soundEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Email Login</label>
-                  <Input
-                    required
-                    type="email"
-                    value={userProfile.email}
-                    onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
-                    className="border-slate-200 bg-slate-50 text-slate-900"
-                  />
+
+                {/* Volume Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-400">Ringtone Volume</label>
+                    <span className="text-xs font-mono text-slate-500">{Math.round(soundVolume * 100)}%</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {soundVolume === 0 || !soundEnabled ? (
+                      <VolumeX className="h-4 w-4 text-slate-400" />
+                    ) : (
+                      <Volume2 className="h-4 w-4 text-indigo-500" />
+                    )}
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      disabled={!soundEnabled}
+                      value={soundVolume}
+                      onChange={(e) => handleVolumeChange(e.target.value)}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Contact Phone</label>
-                  <Input
-                    value={userProfile.phone}
-                    onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
-                    className="border-slate-200 bg-slate-50 text-slate-900"
-                  />
-                </div>
-                <hr className="border-slate-100 my-2" />
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Change Password (Optional)</label>
-                  <Input
-                    type="password"
-                    placeholder="Leave empty to keep existing"
-                    value={userProfile.password}
-                    onChange={(e) => setUserProfile({ ...userProfile, password: e.target.value })}
-                    className="border-slate-200 bg-slate-50 text-slate-900"
-                  />
+
+                {/* Test Sound Button */}
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    onClick={handlePlayTestSound}
+                    disabled={!soundEnabled || isPlayingTest}
+                    className="w-full flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 py-2 rounded-lg font-medium text-xs transition disabled:opacity-50"
+                  >
+                    {isPlayingTest ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-500" />
+                        Playing Ringtone...
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-3.5 w-3.5 text-indigo-500 fill-indigo-500/20" />
+                        Test Play Ringtone
+                      </>
+                    )}
+                  </Button>
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-slate-100 pt-4">
-                <Button type="submit" disabled={userLoading} className="bg-indigo-650 hover:bg-indigo-500 text-white">
-                  {userLoading ? 'Saving...' : 'Update Profile'}
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

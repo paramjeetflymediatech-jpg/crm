@@ -17,10 +17,11 @@ export default function DashboardLayout({ children }) {
   const [toastAlert, setToastAlert] = useState(null);
   const [socket, setSocket] = useState(null);
 
-  // Synthesize double ding chime using Web Audio API
-  const playAlertSound = () => {
+  // Synthesizes a double-ding chime as a fallback if HTML5 Audio is blocked
+  const playSynthesizedBeep = (volume = 0.8) => {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') return;
       
       // First high tone
       const osc1 = audioCtx.createOscillator();
@@ -29,7 +30,7 @@ export default function DashboardLayout({ children }) {
       gain1.connect(audioCtx.destination);
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
-      gain1.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain1.gain.setValueAtTime(volume * 0.08, audioCtx.currentTime);
       osc1.start();
       gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
       
@@ -41,7 +42,7 @@ export default function DashboardLayout({ children }) {
         gain2.connect(audioCtx.destination);
         osc2.type = 'sine';
         osc2.frequency.setValueAtTime(1046.5, audioCtx.currentTime); // C6 note
-        gain2.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain2.gain.setValueAtTime(volume * 0.08, audioCtx.currentTime);
         osc2.start();
         gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.28);
         setTimeout(() => osc2.stop(), 300);
@@ -52,6 +53,60 @@ export default function DashboardLayout({ children }) {
       console.warn('Audio tone synthesis failed:', err);
     }
   };
+
+  // Play custom ringtone WAV file with browser autoplay fallback
+  const playAlertSound = (notificationType = '') => {
+    try {
+      const soundEnabled = localStorage.getItem('crm_sound_enabled') !== 'false';
+      const rawVolume = localStorage.getItem('crm_sound_volume');
+      const soundVolume = rawVolume !== null ? parseFloat(rawVolume) : 0.8;
+
+      if (!soundEnabled) return;
+
+      const audio = new Audio('/sounds/ringtone.wav');
+      audio.volume = soundVolume;
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('Audio play blocked by autoplay policy. Falling back to synth chime.', err);
+          playSynthesizedBeep(soundVolume);
+        });
+      }
+    } catch (err) {
+      console.warn('Audio playback failed:', err);
+    }
+  };
+
+  // Unlock audio capability on first user click or keydown
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        const audio = new Audio('/sounds/ringtone.wav');
+        audio.volume = 0;
+        audio.play()
+          .then(() => {
+            console.log('Audio playback unlocked successfully.');
+            window.removeEventListener('click', unlockAudio);
+            window.removeEventListener('keydown', unlockAudio);
+          })
+          .catch(() => {
+            // Keep listening until permission allowed
+          });
+      } catch (err) {
+        console.warn('Audio unlock failed:', err);
+      }
+    };
+
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
+
 
   useEffect(() => {
     // 1. Session verification
@@ -113,7 +168,7 @@ export default function DashboardLayout({ children }) {
 
       // Pop toast and play synthesis tone
       setToastAlert(notif);
-      playAlertSound();
+      playAlertSound(notif.type);
 
       // Automatically hide banner after 8 seconds
       setTimeout(() => {
