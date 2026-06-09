@@ -107,7 +107,7 @@ export default function Header({
 
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400">
+                <div className="py-8 text-center text-sm text-slate-400">
                   No notifications yet.
                 </div>
               ) : (
@@ -125,14 +125,14 @@ export default function Header({
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <p className="text-xs font-semibold text-slate-800 truncate">{n.title}</p>
-                        <span className="text-[10px] text-slate-400 shrink-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{n.title}</p>
+                        <span className="text-xs text-slate-400 shrink-0">
                           {new Date(n.created_at || n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                      <p className="text-sm text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
                       {n.lead_id && (
-                        <span className="inline-flex items-center gap-0.5 text-[9px] text-indigo-650 font-semibold mt-1">
+                        <span className="inline-flex items-center gap-0.5 text-xs text-indigo-650 font-semibold mt-1">
                           View details <ExternalLink className="h-2 w-2" />
                         </span>
                       )}

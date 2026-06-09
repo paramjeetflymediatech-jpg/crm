@@ -486,52 +486,52 @@ export default function SettingsPage() {
             {/* My Profile Credentials */}
             <Card className="border-slate-200 bg-white text-slate-700 w-full">
               <CardHeader>
-                <CardTitle className="text-base text-slate-900">My Profile Credentials</CardTitle>
-                <CardDescription className="text-xs text-slate-500">Edit your user metadata and login passwords</CardDescription>
+                <CardTitle className="text-lg text-slate-900">My Profile Credentials</CardTitle>
+                <CardDescription className="text-sm text-slate-500">Edit your user metadata and login passwords</CardDescription>
               </CardHeader>
               <form onSubmit={handleUserSubmit}>
                 <CardContent className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400">Full Name</label>
+                    <label className="text-sm font-semibold text-slate-500">Full Name</label>
                     <Input
                       required
                       value={userProfile.name}
                       onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900"
+                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400">Email Login</label>
+                    <label className="text-sm font-semibold text-slate-500">Email Login</label>
                     <Input
                       required
                       type="email"
                       value={userProfile.email}
                       onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900"
+                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400">Contact Phone</label>
+                    <label className="text-sm font-semibold text-slate-500">Contact Phone</label>
                     <Input
                       value={userProfile.phone}
                       onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900"
+                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
                     />
                   </div>
                   <hr className="border-slate-100 my-2" />
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-400">Change Password (Optional)</label>
+                    <label className="text-sm font-semibold text-slate-500">Change Password (Optional)</label>
                     <Input
                       type="password"
                       placeholder="Leave empty to keep existing"
                       value={userProfile.password}
                       onChange={(e) => setUserProfile({ ...userProfile, password: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900"
+                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
                     />
                   </div>
                 </CardContent>
                 <CardFooter className="border-t border-slate-100 pt-4">
-                  <Button type="submit" disabled={userLoading} className="bg-indigo-650 hover:bg-indigo-500 text-white">
+                  <Button type="submit" disabled={userLoading} className="bg-indigo-650 hover:bg-indigo-500 text-white text-sm">
                     {userLoading ? 'Saving...' : 'Update Profile'}
                   </Button>
                 </CardFooter>
@@ -541,15 +541,15 @@ export default function SettingsPage() {
             {/* Notification & Sound Settings */}
             <Card className="border-slate-200 bg-white text-slate-700 w-full">
               <CardHeader>
-                <CardTitle className="text-base text-slate-900">Notification Sound Settings</CardTitle>
-                <CardDescription className="text-xs text-slate-500">Configure lead notification alert tones and volumes</CardDescription>
+                <CardTitle className="text-lg text-slate-900">Notification Sound Settings</CardTitle>
+                <CardDescription className="text-sm text-slate-500">Configure lead notification alert tones and volumes</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Sound Toggle */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <div>
-                    <h4 className="text-sm font-semibold text-slate-800">Lead Alert Ringtone</h4>
-                    <p className="text-xs text-slate-400 mt-0.5">Play a ringtone sound when a new lead notification is received</p>
+                    <h4 className="text-base font-semibold text-slate-800">Lead Alert Ringtone</h4>
+                    <p className="text-sm text-slate-500 mt-0.5">Play a ringtone sound when a new lead notification is received</p>
                   </div>
                   <button
                     type="button"
@@ -569,8 +569,8 @@ export default function SettingsPage() {
                 {/* Volume Slider */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-400">Ringtone Volume</label>
-                    <span className="text-xs font-mono text-slate-500">{Math.round(soundVolume * 100)}%</span>
+                    <label className="text-sm font-semibold text-slate-500">Ringtone Volume</label>
+                    <span className="text-sm font-mono text-slate-650">{Math.round(soundVolume * 100)}%</span>
                   </div>
                   <div className="flex items-center gap-3">
                     {soundVolume === 0 || !soundEnabled ? (
@@ -597,7 +597,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={handlePlayTestSound}
                     disabled={!soundEnabled || isPlayingTest}
-                    className="w-full flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 py-2 rounded-lg font-medium text-xs transition disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 py-2 rounded-lg font-medium text-sm transition disabled:opacity-50"
                   >
                     {isPlayingTest ? (
                       <>

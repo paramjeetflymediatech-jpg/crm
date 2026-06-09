@@ -265,15 +265,15 @@ export default function DashboardLayout({ children }) {
               <Volume2 className="h-5 w-5 animate-bounce" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 tracking-wide">{toastAlert.title}</p>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">{toastAlert.message}</p>
+              <p className="text-base font-semibold text-slate-900 tracking-wide">{toastAlert.title}</p>
+              <p className="text-sm text-slate-505 mt-1 leading-relaxed">{toastAlert.message}</p>
               {toastAlert.leadId && (
                 <button 
                   onClick={() => {
                     router.push(`/leads/${toastAlert.leadId}`);
                     setToastAlert(null);
                   }}
-                  className="mt-2.5 inline-flex items-center justify-center rounded-md bg-indigo-650 px-3 py-1 text-xs font-semibold text-white hover:bg-indigo-500 transition duration-150 cursor-pointer"
+                  className="mt-2.5 inline-flex items-center justify-center rounded-md bg-indigo-650 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 transition duration-150 cursor-pointer"
                 >
                   View Lead
                 </button>
