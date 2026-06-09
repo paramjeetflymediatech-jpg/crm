@@ -42,11 +42,11 @@ async function getHandler(request) {
       where.assigned_to = user.id;
     }
 
-    // 2. Field Filters
-    if (status) where.status = status;
-    if (source) where.source = source;
-    if (priority) where.priority = priority;
-    if (assignedTo) where.assigned_to = assignedTo;
+    // 2. Field Filters (ignore the '_all' sentinel used by frontend dropdowns)
+    if (status && status !== '_all') where.status = status;
+    if (source && source !== '_all') where.source = source;
+    if (priority && priority !== '_all') where.priority = priority;
+    if (assignedTo && assignedTo !== '_all') where.assigned_to = assignedTo;
 
     // Date Range filter (using created_at)
     if (startDate || endDate) {

@@ -369,7 +369,7 @@ export default function LeadsPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
             {/* Status Select */}
-            <Select value={status} onValueChange={(val) => { setStatus(val); setCurrentPage(1); }}>
+            <Select value={status} onValueChange={(val) => { setStatus(val === '_all' ? '' : val); setCurrentPage(1); }}>
               <SelectTrigger className="border-slate-200 bg-white text-slate-700">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
@@ -382,7 +382,7 @@ export default function LeadsPage() {
             </Select>
 
             {/* Source Select */}
-            <Select value={source} onValueChange={(val) => { setSource(val); setCurrentPage(1); }}>
+            <Select value={source} onValueChange={(val) => { setSource(val === '_all' ? '' : val); setCurrentPage(1); }}>
               <SelectTrigger className="border-slate-200 bg-white text-slate-700">
                 <SelectValue placeholder="All Sources" />
               </SelectTrigger>
@@ -395,7 +395,7 @@ export default function LeadsPage() {
             </Select>
 
             {/* Priority Select */}
-            <Select value={priority} onValueChange={(val) => { setPriority(val); setCurrentPage(1); }}>
+            <Select value={priority} onValueChange={(val) => { setPriority(val === '_all' ? '' : val); setCurrentPage(1); }}>
               <SelectTrigger className="border-slate-200 bg-white text-slate-700">
                 <SelectValue placeholder="All Priorities" />
               </SelectTrigger>
@@ -408,7 +408,7 @@ export default function LeadsPage() {
             </Select>
 
             {/* Assigned To Select */}
-            <Select value={assignedTo} onValueChange={(val) => { setAssignedTo(val); setCurrentPage(1); }}>
+            <Select value={assignedTo} onValueChange={(val) => { setAssignedTo(val === '_all' ? '' : val); setCurrentPage(1); }}>
               <SelectTrigger className="border-slate-200 bg-white text-slate-700">
                 <SelectValue placeholder="All Representatives" />
               </SelectTrigger>
