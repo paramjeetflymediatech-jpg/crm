@@ -128,7 +128,7 @@ export default function LoginPage() {
               )}
             </Button>
             <div className="text-center text-xs text-slate-400">
-              Secured tenant connection. Default accounts: admin@acme.com / admin123
+             
             </div>
           </CardFooter>
         </form>
