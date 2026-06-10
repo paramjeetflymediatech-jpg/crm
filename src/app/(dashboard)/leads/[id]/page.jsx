@@ -373,26 +373,28 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                 )}
 
                 {/* Timeline trail */}
-                <div className="relative border-l border-slate-200 pl-4 space-y-6">
-                  {lead.Activities && lead.Activities.length === 0 ? (
-                    <p className="text-xs text-slate-500">No activity trail recorded.</p>
-                  ) : (
-                    lead.Activities?.map((act) => (
-                      <div key={act.id} className="relative">
-                        {/* Dot indicator */}
-                        <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-indigo-500 border-2 border-white" />
-                        <div>
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-semibold text-slate-800">{act.action}</span>
-                            <span className="text-[10px] text-slate-505">
-                              {act.created_at || act.createdAt ? new Date(act.created_at || act.createdAt).toLocaleString() : 'N/A'}
-                            </span>
+                <div className="overflow-y-auto max-h-[420px] pr-1">
+                  <div className="relative border-l border-slate-200 pl-4 space-y-6">
+                    {lead.Activities && lead.Activities.length === 0 ? (
+                      <p className="text-xs text-slate-500">No activity trail recorded.</p>
+                    ) : (
+                      lead.Activities?.map((act) => (
+                        <div key={act.id} className="relative">
+                          {/* Dot indicator */}
+                          <div className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-indigo-500 border-2 border-white" />
+                          <div>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-semibold text-slate-800">{act.action}</span>
+                              <span className="text-[10px] text-slate-505">
+                                {act.created_at || act.createdAt ? new Date(act.created_at || act.createdAt).toLocaleString() : 'N/A'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 leading-relaxed">{act.description}</p>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">{act.description}</p>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </Card>
             </TabsContent>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, 
@@ -145,12 +145,16 @@ export default function LeadsPage() {
     setSelectedLeads([]);
   }, [currentPage, status, source, priority, assignedTo]);
 
-  // Handle Search submit
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    fetchLeads();
-  };
+  // Debounced live search — fires 300ms after the user stops typing
+  const searchDebounceRef = useRef(null);
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setCurrentPage(1);
+      fetchLeads();
+    }, 300);
+    return () => clearTimeout(searchDebounceRef.current);
+  }, [search]);
 
   const handleClearFilters = () => {
     setSearch('');
@@ -345,7 +349,7 @@ export default function LeadsPage() {
       {/* Filter Drawer */}
       <Card className="border-slate-200 bg-white text-slate-700 shadow-sm">
         <CardContent className="p-4 space-y-4">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2 flex-col sm:flex-row">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <div className="relative flex-1">
               <Input
                 placeholder="Search by first name, last name, phone, email..."
@@ -354,9 +358,6 @@ export default function LeadsPage() {
                 className="border-slate-200 bg-slate-50/20 text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-indigo-500"
               />
             </div>
-            <Button type="submit" className="bg-slate-800 hover:bg-slate-700 text-white">
-              Search
-            </Button>
             <Button 
               type="button" 
               onClick={handleClearFilters} 
@@ -365,7 +366,7 @@ export default function LeadsPage() {
             >
               Clear
             </Button>
-          </form>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
             {/* Status Select */}
@@ -487,6 +488,9 @@ export default function LeadsPage() {
                   </TableHead>
                   <TableHead className="text-slate-800 font-bold text-sm">Name</TableHead>
                   <TableHead className="text-slate-800 font-bold text-sm">Contact</TableHead>
+                  {currentUser?.role === 'super_admin' && (
+                    <TableHead className="text-slate-800 font-bold text-sm">Company</TableHead>
+                  )}
                   <TableHead className="text-slate-800 font-bold text-sm">Source</TableHead>
                   <TableHead className="text-slate-800 font-bold text-sm">Priority</TableHead>
                   <TableHead className="text-slate-800 font-bold text-sm">Status</TableHead>
@@ -519,6 +523,11 @@ export default function LeadsPage() {
                       <div className="text-black font-medium">{lead.email || 'N/A'}</div>
                       <div className="text-black mt-0.5">{lead.phone || 'N/A'}</div>
                     </TableCell>
+                    {currentUser?.role === 'super_admin' && (
+                      <TableCell className="text-sm font-medium text-indigo-700">
+                        {lead.Company?.company_name || <span className="text-slate-400 italic font-normal">—</span>}
+                      </TableCell>
+                    )}
                     <TableCell className="text-sm text-black font-medium">{lead.source}</TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
