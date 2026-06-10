@@ -329,7 +329,7 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Leads Panel</h1>
           <p className="text-sm text-slate-500 mt-1">Found {totalCount} lead records in system</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             onClick={handleExportCSV} 
             variant="outline" 
@@ -474,7 +474,7 @@ export default function LeadsPage() {
             No leads found. Sync your WordPress forms or create leads manually.
           </div>
         ) : (
-          <div>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-slate-50">
                 <TableRow className="border-slate-200">

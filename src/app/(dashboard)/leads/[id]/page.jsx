@@ -331,7 +331,11 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                 onValueChange={(val) => handleFieldChange('assigned_to', val)}
               >
                 <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-700">
-                  <SelectValue />
+                  <span>
+                    {lead.assigned_to
+                      ? (team.find(m => m.id === lead.assigned_to || m.id.toString() === lead.assigned_to?.toString())?.name || 'Unassigned')
+                      : 'Unassigned'}
+                  </span>
                 </SelectTrigger>
                 <SelectContent className="border-slate-200 bg-white text-slate-800">
                   <SelectItem value="unassigned">Unassigned</SelectItem>

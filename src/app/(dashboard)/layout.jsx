@@ -16,6 +16,7 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [toastAlert, setToastAlert] = useState(null);
   const [socket, setSocket] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Synthesizes a double-ding chime as a fallback if HTML5 Audio is blocked
   const playSynthesizedBeep = (volume = 0.8) => {
@@ -237,10 +238,10 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex">
       {/* Sidebar navigation */}
-      <Sidebar user={user} onLogout={handleLogout} />
+      <Sidebar user={user} onLogout={handleLogout} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main body area */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
         {/* Top header navigation */}
         <Header 
           user={user} 
@@ -249,17 +250,18 @@ export default function DashboardLayout({ children }) {
           onMarkAllRead={handleMarkAllRead}
           onSearchChange={setSearchVal}
           searchValue={searchVal}
+          onMenuToggle={() => setSidebarOpen(prev => !prev)}
         />
 
         {/* Content Panel */}
-        <main className="flex-1 pt-16 px-8 py-8 overflow-y-auto">
+        <main className="flex-1 pt-16 px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
           {children}
         </main>
       </div>
 
       {/* Floating Dynamic WebSocket Alert Banner */}
       {toastAlert && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 rounded-xl border border-slate-200 bg-white/95 text-slate-800 shadow-xl backdrop-blur-md p-4 animate-in slide-in-from-bottom duration-300">
+        <div className="fixed bottom-6 right-6 z-50 w-[calc(100vw-3rem)] max-w-sm sm:max-w-sm rounded-xl border border-slate-200 bg-white/95 text-slate-800 shadow-xl backdrop-blur-md p-4 animate-in slide-in-from-bottom duration-300">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-lg bg-indigo-650 p-2 text-white shadow-md">
               <Volume2 className="h-5 w-5 animate-bounce" />

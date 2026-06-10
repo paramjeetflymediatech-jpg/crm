@@ -9,7 +9,8 @@ import {
   User,
   ShieldCheck,
   ExternalLink,
-  Info
+  Info,
+  Menu
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -29,7 +30,8 @@ export default function Header({
   onMarkRead, 
   onMarkAllRead,
   onSearchChange,
-  searchValue 
+  searchValue,
+  onMenuToggle
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -57,14 +59,23 @@ export default function Header({
   };
 
   return (
-    <header className="fixed top-0 right-0 z-10 flex h-16 w-[calc(100%-16rem)] items-center justify-between border-b border-slate-200 bg-white px-8 text-slate-800">
+    <header className="fixed top-0 right-0 z-10 flex h-16 w-full lg:w-[calc(100%-16rem)] items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6 lg:px-8 text-slate-800 gap-3">
       
+      {/* Hamburger — mobile only */}
+      <button
+        onClick={onMenuToggle}
+        className="lg:hidden flex items-center justify-center rounded-lg border border-slate-200 bg-slate-100 p-2 text-slate-600 hover:text-slate-900 transition shrink-0"
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
       {/* Global Search Bar */}
-      <div className="relative w-80">
+      <div className="relative flex-1 min-w-0 sm:max-w-xs lg:max-w-sm">
         <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
         <input
           type="text"
-          placeholder="Global search leads, email..."
+          placeholder="Search leads, email..."
           value={searchValue || ''}
           onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           onKeyDown={(e) => {
@@ -77,7 +88,7 @@ export default function Header({
       </div>
 
       {/* Action Controls */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 shrink-0">
         
         {/* Notification Bell Dropdown */}
         <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -147,7 +158,7 @@ export default function Header({
         {/* User Identity */}
         <div className="h-6 w-px bg-slate-200" />
         <div className="flex items-center gap-3">
-          <div className="flex flex-col text-right hidden md:flex">
+          <div className="hidden md:flex flex-col text-right">
             <span className="text-xs font-semibold text-slate-800">{user?.name}</span>
             <span className="text-[10px] text-slate-400 font-medium capitalize">{user?.role?.replace('_', ' ')}</span>
           </div>

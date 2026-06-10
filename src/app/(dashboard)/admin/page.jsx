@@ -182,68 +182,70 @@ export default function AdminPage() {
           <CardTitle className="text-base text-slate-900 font-semibold">Active Client Companies</CardTitle>
           <CardDescription className="text-xs text-slate-500">Monitor subscriptions, states, and WordPress endpoints</CardDescription>
         </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow className="border-slate-200 bg-slate-50/50">
-              <TableHead className="text-slate-500 font-semibold">Company Name</TableHead>
-              <TableHead className="text-slate-500 font-semibold">Contact Domain</TableHead>
-              <TableHead className="text-slate-500 font-semibold">Plan Tier</TableHead>
-              <TableHead className="text-slate-500 font-semibold">Status</TableHead>
-              <TableHead className="text-slate-500 font-semibold">API Key</TableHead>
-              <TableHead className="text-slate-500 font-semibold text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {companies.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-slate-500">
-                  No company records found in system database.
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-slate-200 bg-slate-50/50">
+                <TableHead className="text-slate-500 font-semibold">Company Name</TableHead>
+                <TableHead className="text-slate-500 font-semibold">Contact Domain</TableHead>
+                <TableHead className="text-slate-500 font-semibold">Plan Tier</TableHead>
+                <TableHead className="text-slate-500 font-semibold">Status</TableHead>
+                <TableHead className="text-slate-500 font-semibold">API Key</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              companies.map((c) => (
-                <TableRow key={c.id} className="border-slate-100">
-                  <TableCell className="font-semibold text-slate-900">{c.company_name}</TableCell>
-                  <TableCell className="text-xs">
-                    <div>{c.email || 'N/A'}</div>
-                    <div className="text-slate-505 mt-0.5">{c.website || 'N/A'}</div>
-                  </TableCell>
-                  <TableCell className="text-xs font-semibold capitalize text-indigo-650">
-                    {c.subscription_plan}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
-                      c.status === 'active' 
-                        ? 'bg-emerald-50 text-emerald-650 border border-emerald-100' 
-                        : 'bg-red-50 text-red-650 border border-red-100'
-                    }`}>
-                      {c.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="font-mono text-[10px] text-slate-500 truncate max-w-[120px]" title={c.api_key}>
-                    {c.api_key.substring(0, 15)}...
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleToggleSuspend(c)}
-                      className={c.status === 'active' 
-                        ? "bg-red-50 border border-red-100 hover:bg-red-100 text-xs text-red-650"
-                        : "bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 text-xs text-emerald-655"
-                      }
-                    >
-                      {c.status === 'active' ? (
-                        <><Ban className="h-3.5 w-3.5 mr-1" /> Suspend</>
-                      ) : (
-                        <><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Activate</>
-                      )}
-                    </Button>
+            </TableHeader>
+            <TableBody>
+              {companies.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 text-slate-500">
+                    No company records found in system database.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                companies.map((c) => (
+                  <TableRow key={c.id} className="border-slate-100">
+                    <TableCell className="font-semibold text-slate-900">{c.company_name}</TableCell>
+                    <TableCell className="text-xs">
+                      <div>{c.email || 'N/A'}</div>
+                      <div className="text-slate-505 mt-0.5">{c.website || 'N/A'}</div>
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold capitalize text-indigo-650">
+                      {c.subscription_plan}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex rounded px-2 py-0.5 text-xs font-semibold ${
+                        c.status === 'active' 
+                          ? 'bg-emerald-50 text-emerald-650 border border-emerald-100' 
+                          : 'bg-red-50 text-red-650 border border-red-100'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="font-mono text-[10px] text-slate-500 truncate max-w-[120px]" title={c.api_key}>
+                      {c.api_key.substring(0, 15)}...
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleToggleSuspend(c)}
+                        className={c.status === 'active' 
+                          ? "bg-red-50 border border-red-100 hover:bg-red-100 text-xs text-red-650"
+                          : "bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 text-xs text-emerald-655"
+                        }
+                      >
+                        {c.status === 'active' ? (
+                          <><Ban className="h-3.5 w-3.5 mr-1" /> Suspend</>
+                        ) : (
+                          <><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Activate</>
+                        )}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       {/* Global Audit Logs List */}
@@ -255,42 +257,44 @@ export default function AdminPage() {
           <CardDescription className="text-xs text-slate-500">Global tracking of login actions and updates across all tenants</CardDescription>
         </CardHeader>
         <CardContent className="p-0 max-h-[400px] overflow-y-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-slate-200 bg-slate-50/50">
-                <TableHead className="text-slate-500 font-semibold">Tenant</TableHead>
-                <TableHead className="text-slate-500 font-semibold">Representative</TableHead>
-                <TableHead className="text-slate-500 font-semibold">Module</TableHead>
-                <TableHead className="text-slate-500 font-semibold">Action Logged</TableHead>
-                <TableHead className="text-slate-500 font-semibold">IP Address</TableHead>
-                <TableHead className="text-slate-500 font-semibold text-right">Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
-                    No actions logged.
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-slate-200 bg-slate-50/50">
+                  <TableHead className="text-slate-500 font-semibold">Tenant</TableHead>
+                  <TableHead className="text-slate-500 font-semibold">Representative</TableHead>
+                  <TableHead className="text-slate-500 font-semibold">Module</TableHead>
+                  <TableHead className="text-slate-500 font-semibold">Action Logged</TableHead>
+                  <TableHead className="text-slate-500 font-semibold">IP Address</TableHead>
+                  <TableHead className="text-slate-500 font-semibold text-right">Date</TableHead>
                 </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow key={log.id} className="border-slate-100 text-xs">
-                    <TableCell className="font-semibold text-slate-800">
-                      {log.Company?.company_name || <span className="text-indigo-650 italic">System Core</span>}
-                    </TableCell>
-                    <TableCell className="text-slate-700">{log.User?.name || 'Automated / System'}</TableCell>
-                    <TableCell className="font-medium text-slate-600">{log.module}</TableCell>
-                    <TableCell className="text-slate-800 leading-normal">{log.action}</TableCell>
-                    <TableCell className="font-mono text-slate-500">{log.ip_address || '127.0.0.1'}</TableCell>
-                    <TableCell className="text-right text-slate-500">
-                      {log.created_at || log.createdAt ? new Date(log.created_at || log.createdAt).toLocaleString() : 'N/A'}
+              </TableHeader>
+              <TableBody>
+                {logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                      No actions logged.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id} className="border-slate-100 text-xs">
+                      <TableCell className="font-semibold text-slate-800">
+                        {log.Company?.company_name || <span className="text-indigo-650 italic">System Core</span>}
+                      </TableCell>
+                      <TableCell className="text-slate-700">{log.User?.name || 'Automated / System'}</TableCell>
+                      <TableCell className="font-medium text-slate-600">{log.module}</TableCell>
+                      <TableCell className="text-slate-800 leading-normal">{log.action}</TableCell>
+                      <TableCell className="font-mono text-slate-500">{log.ip_address || '127.0.0.1'}</TableCell>
+                      <TableCell className="text-right text-slate-500">
+                        {log.created_at || log.createdAt ? new Date(log.created_at || log.createdAt).toLocaleString() : 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -307,7 +311,7 @@ export default function AdminPage() {
             {/* Company setup section */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-indigo-650 uppercase tracking-wider">Company Workspace Details</h4>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500">Company Name</label>
                   <Input 
@@ -331,7 +335,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500">Workspace Phone</label>
                   <Input 
@@ -372,7 +376,7 @@ export default function AdminPage() {
                   className="border-slate-200 bg-slate-50 text-slate-900"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold text-slate-500">Admin Email Login</label>
                   <div className="relative">
