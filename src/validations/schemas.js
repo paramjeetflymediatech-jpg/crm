@@ -34,7 +34,23 @@ const createLeadSchema = z.object({
   follow_up_date: z.string().datetime().optional().nullable().or(z.literal(''))
 });
 
-const updateLeadSchema = createLeadSchema.partial();
+// Use a dedicated update schema that strips defaults, so partial updates
+// (e.g. only changing follow_up_date) don't accidentally overwrite other
+// fields with their default values (e.g. status → 'New').
+const updateLeadSchema = z.object({
+  first_name: z.string().min(1, 'First name is required').optional(),
+  last_name: z.string().optional(),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  subject: z.string().optional().or(z.literal('')),
+  message: z.string().optional().or(z.literal('')),
+  source: z.string().optional(),
+  status: z.string().optional(),
+  priority: z.enum(['Low', 'Medium', 'High']).optional(),
+  assigned_to: z.number().int().optional().nullable(),
+  lead_score: z.number().int().min(0).max(100).optional(),
+  follow_up_date: z.string().datetime().optional().nullable().or(z.literal(''))
+});
 
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Task title is required'),
