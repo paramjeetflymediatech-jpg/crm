@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  View, 
-  ActivityIndicator, 
-  KeyboardAvoidingView, 
-  Platform, 
-  ScrollView 
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -71,7 +71,7 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
@@ -95,7 +95,7 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
             <Text style={styles.label}>Email Address</Text>
             <View style={styles.inputWrapper}>
               <Mail size={18} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 placeholder="you@company.com"
                 placeholderTextColor="#64748b"
@@ -112,7 +112,7 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputWrapper}>
               <Lock size={18} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput 
+              <TextInput
                 style={styles.input}
                 placeholder="Enter password"
                 placeholderTextColor="#64748b"
@@ -124,7 +124,7 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
             </View>
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.forgotButton}
             onPress={onForgotPassword}
             activeOpacity={0.7}
@@ -132,8 +132,8 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.loginButton} 
+          <TouchableOpacity
+            style={styles.loginButton}
             onPress={handleLogin}
             disabled={loading}
             activeOpacity={0.8}

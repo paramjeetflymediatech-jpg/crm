@@ -71,7 +71,7 @@ Task.belongsTo(Lead, { foreignKey: 'lead_id' });
 async function syncDatabase(force = false) {
   try {
     await testConnection();
-    await sequelize.sync({ force });
+    await sequelize.sync({ alter: true });
     console.log('Database synced successfully.');
 
     // Seed default entities if table is empty
