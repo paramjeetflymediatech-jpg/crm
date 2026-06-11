@@ -53,7 +53,7 @@ async function putHandler(request) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
-    const { company_name, website, email, phone, logo } = validation.data;
+    const { company_name, website, email, phone, logo, facebook_page_id, facebook_access_token } = validation.data;
 
     // Update fields
     await company.update({
@@ -61,7 +61,9 @@ async function putHandler(request) {
       website: website || null,
       email: email || null,
       phone: phone || null,
-      logo: logo || company.logo
+      logo: logo || company.logo,
+      facebook_page_id: facebook_page_id !== undefined ? (facebook_page_id || null) : company.facebook_page_id,
+      facebook_access_token: facebook_access_token !== undefined ? (facebook_access_token || null) : company.facebook_access_token
     });
 
     // Write audit log

@@ -90,6 +90,8 @@ export async function POST(request) {
 
     const response = NextResponse.json({
       message: 'Login successful.',
+      token: accessToken,
+      refreshToken: refreshToken,
       user: {
         id: user.id,
         name: user.name,

@@ -1,5 +1,5 @@
 const { NextResponse } = require('next/server');
-const { Company, User, LeadStatus, LeadSource, AuditLog } = require('@/models');
+const { Company, User, Lead, LeadStatus, LeadSource, AuditLog } = require('@/models');
 const { withApiAuth } = require('@/lib/apiGuard');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -14,15 +14,34 @@ async function getHandler(request) {
     }
 
     const companies = await Company.findAll({
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
+      include: [
+        {
+          model: User,
+          attributes: ['id'],
+          required: false
+        }
+      ]
     });
 
-    return NextResponse.json({ companies });
+    // Enrich with lead counts
+    const enriched = await Promise.all(companies.map(async (c) => {
+      const leadCount = await Lead.count({ where: { company_id: c.id } });
+      const userCount = c.Users ? c.Users.length : 0;
+      return {
+        ...c.toJSON(),
+        lead_count: leadCount,
+        user_count: userCount
+      };
+    }));
+
+    return NextResponse.json({ companies: enriched });
   } catch (error) {
     console.error('GET Admin Companies Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
 
 async function postHandler(request) {
   try {

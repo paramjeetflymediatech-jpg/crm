@@ -1,0 +1,122 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Mail, ArrowLeft, Loader2, CheckCircle2, ShieldAlert } from 'lucide-react';
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email.');
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-tr from-slate-50 via-indigo-50/40 to-sky-50 px-4">
+      {/* Decorative blurs */}
+      <div className="absolute top-1/4 left-1/4 h-72 w-72 rounded-full bg-indigo-500/5 blur-3xl" />
+      <div className="absolute bottom-1/4 right-1/4 h-72 w-72 rounded-full bg-blue-500/5 blur-3xl" />
+
+      <Card className="relative w-full max-w-md border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-xl text-slate-800">
+        <CardHeader className="space-y-2 text-center pb-4">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <Mail className="h-6 w-6" />
+          </div>
+          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+            Forgot Password?
+          </CardTitle>
+          <CardDescription className="text-slate-500">
+            Enter your email and we&apos;ll send you a reset link.
+          </CardDescription>
+        </CardHeader>
+
+        {sent ? (
+          <CardContent className="space-y-4 pb-6">
+            <div className="flex flex-col items-center text-center gap-4 py-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 border border-emerald-100">
+                <CheckCircle2 className="h-7 w-7 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 text-base">Check your inbox!</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  If <span className="font-medium text-slate-700">{email}</span> is registered, a password reset link has been sent. It expires in 1 hour.
+                </p>
+              </div>
+              <Link href="/login">
+                <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50 mt-2">
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Back to Login
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <ShieldAlert className="h-5 w-5 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-600">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="pl-10 border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-3 pt-2">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition duration-200"
+              >
+                {loading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending Link...</>
+                ) : (
+                  'Send Reset Link'
+                )}
+              </Button>
+              <Link
+                href="/login"
+                className="flex items-center justify-center gap-1.5 text-sm text-slate-500 hover:text-indigo-600 transition duration-150"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
+              </Link>
+            </CardFooter>
+          </form>
+        )}
+      </Card>
+    </div>
+  );
+}

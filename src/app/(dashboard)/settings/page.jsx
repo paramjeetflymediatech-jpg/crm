@@ -31,6 +31,11 @@ import {
   Play,
   Trash2,
   Mail,
+  Facebook,
+  Link2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
   Shield
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
@@ -84,6 +89,12 @@ export default function SettingsPage() {
     subscription_plan: ''
   });
   const [companyLoading, setCompanyLoading] = useState(false);
+
+  // Facebook Ads integration states
+  const [fbSettings, setFbSettings] = useState({ facebook_page_id: '', facebook_access_token: '' });
+  const [fbLoading, setFbLoading] = useState(false);
+  const [fbSaved, setFbSaved] = useState(false);
+  const [showFbToken, setShowFbToken] = useState(false);
 
   // Custom configuration states
   const [statuses, setStatuses] = useState([]);
@@ -160,6 +171,16 @@ export default function SettingsPage() {
           fetch('/api/users')
         ]);
 
+        // Pre-fill Facebook settings from company data
+        const resC2 = await fetch('/api/settings/company');
+        if (resC2.ok) {
+          const d2 = await resC2.json();
+          setFbSettings({
+            facebook_page_id: d2.company?.facebook_page_id || '',
+            facebook_access_token: d2.company?.facebook_access_token || ''
+          });
+        }
+
         if (resStatuses.ok) {
           const d = await resStatuses.json();
           setStatuses(d.statuses || []);
@@ -203,6 +224,31 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Save Facebook Ads settings
+  const handleFbSubmit = async (e) => {
+    e.preventDefault();
+    setFbLoading(true);
+    setFbSaved(false);
+    try {
+      const res = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...company, ...fbSettings })
+      });
+      if (res.ok) {
+        setFbSaved(true);
+        setTimeout(() => setFbSaved(false), 3000);
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save Facebook settings.');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setFbLoading(false);
     }
   };
 
@@ -328,6 +374,11 @@ export default function SettingsPage() {
           {currentUser?.role !== 'staff' && (
             <TabsTrigger value="integration" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
               <Key className="h-4 w-4 mr-1.5" /> WP Integration
+            </TabsTrigger>
+          )}
+          {currentUser?.role !== 'staff' && (
+            <TabsTrigger value="facebook" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
+              <Link2 className="h-4 w-4 mr-1.5" /> Facebook Ads
             </TabsTrigger>
           )}
           <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
@@ -835,7 +886,124 @@ export default function SettingsPage() {
           </TabsContent>
         )}
 
-        {/* 3. My Profile Tab */}
+        {/* 4. Facebook Lead Ads Tab */}
+        {currentUser?.role !== 'staff' && (
+          <TabsContent value="facebook" className="space-y-6">
+            <Card className="border-slate-200 bg-white text-slate-700 max-w-2xl">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 border border-blue-100">
+                    <Link2 className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-slate-900">Facebook Lead Ads Integration</CardTitle>
+                    <CardDescription className="text-xs text-slate-500">Connect your Facebook Page to automatically import lead ad submissions</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <form onSubmit={handleFbSubmit}>
+                <CardContent className="space-y-6">
+
+                  {/* How it works info box */}
+                  <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-xs text-blue-700 space-y-2">
+                    <p className="font-bold text-blue-800">🔌 How It Works</p>
+                    <ol className="list-decimal pl-4 space-y-1 leading-relaxed">
+                      <li>Create a Facebook App at <strong>developers.facebook.com</strong></li>
+                      <li>Add the <strong>Leads Access</strong> product to your app</li>
+                      <li>Set the webhook URL below in your Facebook App webhook settings</li>
+                      <li>Use verify token: <code className="bg-blue-100 px-1 rounded">crm_fb_webhook_verify_2026</code></li>
+                      <li>Subscribe to <strong>leadgen</strong> events on your page</li>
+                      <li>Enter your Page ID and Page Access Token below</li>
+                    </ol>
+                  </div>
+
+                  {/* Webhook URL */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Your CRM Webhook URL</label>
+                    <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5">
+                      <span className="font-mono text-xs text-indigo-700 select-all flex-1 break-all">
+                        {typeof window !== 'undefined' ? `${window.location.origin}/api/leads/facebook` : 'https://yourcrm.com/api/leads/facebook'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = `${window.location.origin}/api/leads/facebook`;
+                          navigator.clipboard.writeText(url);
+                        }}
+                        className="text-slate-400 hover:text-slate-700 shrink-0"
+                        title="Copy webhook URL"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Paste this URL in your Facebook App → Webhooks → Callback URL</p>
+                  </div>
+
+                  <hr className="border-slate-100" />
+
+                  {/* Facebook Page ID */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500">Facebook Page ID</label>
+                    <Input
+                      placeholder="e.g. 123456789012345"
+                      value={fbSettings.facebook_page_id}
+                      onChange={(e) => setFbSettings({ ...fbSettings, facebook_page_id: e.target.value })}
+                      className="border-slate-200 bg-slate-50 text-slate-900 font-mono"
+                    />
+                    <p className="text-[10px] text-slate-400">Find this in your Facebook Page settings → About → Page ID</p>
+                  </div>
+
+                  {/* Page Access Token */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500">Page Access Token</label>
+                    <div className="relative">
+                      <Input
+                        type={showFbToken ? 'text' : 'password'}
+                        placeholder="Enter long-lived page access token"
+                        value={fbSettings.facebook_access_token}
+                        onChange={(e) => setFbSettings({ ...fbSettings, facebook_access_token: e.target.value })}
+                        className="border-slate-200 bg-slate-50 text-slate-900 pr-10 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowFbToken(v => !v)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700"
+                      >
+                        {showFbToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-400">Generate via Facebook Graph API Explorer or your app's Access Token settings. Use a <strong>long-lived token</strong> for production.</p>
+                  </div>
+
+                  {/* Current status indicator */}
+                  <div className={`rounded-lg border p-3 text-xs flex items-center gap-2 ${
+                    fbSettings.facebook_page_id && fbSettings.facebook_access_token
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                      : 'bg-amber-50 border-amber-100 text-amber-700'
+                  }`}>
+                    {fbSettings.facebook_page_id && fbSettings.facebook_access_token ? (
+                      <><CheckCircle2 className="h-4 w-4 shrink-0" /> <span>Facebook integration is <strong>configured</strong>. Leads will be imported automatically from webhook events.</span></>
+                    ) : (
+                      <><Link2 className="h-4 w-4 shrink-0" /> <span>Enter your Page ID and Access Token above to activate Facebook Lead Ads import.</span></>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="border-t border-slate-100 pt-4 flex items-center gap-3">
+                  <Button type="submit" disabled={fbLoading} className="bg-blue-600 hover:bg-blue-500 text-white">
+                    {fbLoading ? 'Saving...' : 'Save Facebook Settings'}
+                  </Button>
+                  {fbSaved && (
+                    <span className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
+                      <CheckCircle2 className="h-4 w-4" /> Saved!
+                    </span>
+                  )}
+                </CardFooter>
+              </form>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* 5. My Profile Tab */}
         <TabsContent value="profile">
           <div className="grid gap-6 md:grid-cols-2 items-start max-w-5xl">
             {/* My Profile Credentials */}

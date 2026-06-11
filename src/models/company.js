@@ -35,6 +35,14 @@ const Company = sequelize.define('Company', {
     allowNull: false,
     unique: true
   },
+  facebook_page_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  facebook_access_token: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   subscription_plan: {
     type: DataTypes.STRING,
     defaultValue: 'free', // e.g. free, professional, enterprise

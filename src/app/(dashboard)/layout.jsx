@@ -152,6 +152,9 @@ export default function DashboardLayout({ children }) {
 
     socketConnection.on('notification', (notif) => {
       console.log('Socket notification received:', notif);
+      if (notif.userId && notif.userId !== userData.id) {
+        return;
+      }
       
       // Prepend to current list
       setNotifications(prev => [

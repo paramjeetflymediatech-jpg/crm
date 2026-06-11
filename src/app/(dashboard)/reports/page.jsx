@@ -17,8 +17,9 @@ import {
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Download, TrendingUp, Users, Target, CheckCircle } from 'lucide-react';
+import { Loader2, Download, TrendingUp, Users, Target, CheckCircle, FileText } from 'lucide-react';
 import { apiFetch } from '@/lib/clientApi';
+
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6'];
 
@@ -76,6 +77,93 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
+  const handleExportPDF = async () => {
+    if (!data) return;
+    const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
+
+    const doc = new jsPDF();
+    const now = new Date().toLocaleString();
+
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(79, 70, 229); // indigo
+    doc.text('CRM Analytics Report', 14, 20);
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Generated: ${now}`, 14, 28);
+
+    // Summary Stats
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text('Performance Summary', 14, 40);
+    autoTable(doc, {
+      startY: 44,
+      head: [['Metric', 'Value']],
+      body: [
+        ['Total Leads', data.summary.totalLeads],
+        ['New Leads', data.summary.newLeads],
+        ['Qualified Leads', data.summary.qualifiedLeads],
+        ['Converted Leads', data.summary.convertedLeads],
+        ['Lost Leads', data.summary.lostLeads],
+        ['Conversion Rate', `${data.summary.conversionRate}%`],
+        ['Follow-ups Today', data.summary.followupsToday],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [79, 70, 229] },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    // Monthly Growth
+    let yOffset = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Monthly Lead Growth', 14, yOffset);
+    autoTable(doc, {
+      startY: yOffset + 4,
+      head: [['Month', 'Total Leads', 'Converted']],
+      body: data.charts.leadsByMonth.map(m => [m.month, m.count, m.converted]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [16, 185, 129] },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    // Lead Sources
+    yOffset = doc.lastAutoTable.finalY + 12;
+    if (yOffset > 240) { doc.addPage(); yOffset = 20; }
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Leads by Source Channel', 14, yOffset);
+    autoTable(doc, {
+      startY: yOffset + 4,
+      head: [['Source', 'Lead Count']],
+      body: data.charts.leadsBySource.map(s => [s.name, s.value]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [245, 158, 11] },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    // Team Performance
+    if (data.charts.teamPerformance.length > 0) {
+      yOffset = doc.lastAutoTable.finalY + 12;
+      if (yOffset > 240) { doc.addPage(); yOffset = 20; }
+      doc.setFontSize(12);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Representative Performance', 14, yOffset);
+      autoTable(doc, {
+        startY: yOffset + 4,
+        head: [['Representative', 'Assigned', 'Converted', 'Rate']],
+        body: data.charts.teamPerformance.map(t => [t.name, t.leads, t.converted, `${t.conversionRate}%`]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [168, 85, 247] },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+    }
+
+    doc.save(`crm_analytics_report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+
   if (loading || !data) {
     return (
       <div className="flex h-[calc(100vh-12rem)] items-center justify-center">
@@ -94,6 +182,9 @@ export default function ReportsPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reports & Analytics</h1>
           <p className="text-sm text-slate-500 mt-1">Export, filter, and review conversion metrics.</p>
         </div>
+        <Button onClick={handleExportPDF} className="bg-indigo-600 hover:bg-indigo-500 text-white">
+          <FileText className="h-4 w-4 mr-2" /> Export Full PDF Report
+        </Button>
       </div>
 
       {/* KPI summaries */}

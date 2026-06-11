@@ -190,6 +190,8 @@ export default function AdminPage() {
                 <TableHead className="text-slate-500 font-semibold">Contact Domain</TableHead>
                 <TableHead className="text-slate-500 font-semibold">Plan Tier</TableHead>
                 <TableHead className="text-slate-500 font-semibold">Status</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-center">Leads</TableHead>
+                <TableHead className="text-slate-500 font-semibold text-center">Users</TableHead>
                 <TableHead className="text-slate-500 font-semibold">API Key</TableHead>
                 <TableHead className="text-slate-500 font-semibold text-right">Actions</TableHead>
               </TableRow>
@@ -197,7 +199,7 @@ export default function AdminPage() {
             <TableBody>
               {companies.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-10 text-slate-500">
+                  <TableCell colSpan={8} className="text-center py-10 text-slate-500">
                     No company records found in system database.
                   </TableCell>
                 </TableRow>
@@ -220,6 +222,12 @@ export default function AdminPage() {
                       }`}>
                         {c.status}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-center font-semibold text-slate-700 text-sm">
+                      {c.lead_count ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-center font-semibold text-slate-700 text-sm">
+                      {c.user_count ?? '—'}
                     </TableCell>
                     <TableCell className="font-mono text-[10px] text-slate-500 truncate max-w-[120px]" title={c.api_key}>
                       {c.api_key.substring(0, 15)}...

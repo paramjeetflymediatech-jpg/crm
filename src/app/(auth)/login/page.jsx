@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ShieldAlert, KeyRound, Mail, Loader2 } from 'lucide-react';
+
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -127,9 +129,12 @@ export default function LoginPage() {
                 'Sign In'
               )}
             </Button>
-            <div className="text-center text-xs text-slate-400">
-             
-            </div>
+            <Link
+              href="/forgot-password"
+              className="text-sm text-slate-500 hover:text-indigo-600 transition duration-150 text-center"
+            >
+              Forgot your password?
+            </Link>
           </CardFooter>
         </form>
       </Card>

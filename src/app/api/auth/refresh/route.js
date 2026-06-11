@@ -6,7 +6,16 @@ export async function POST(request) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = parse(cookieHeader);
-    const refreshToken = cookies.refreshToken;
+    let refreshToken = cookies.refreshToken;
+
+    if (!refreshToken) {
+      try {
+        const body = await request.json();
+        refreshToken = body.refreshToken;
+      } catch (e) {
+        // Body is not JSON or empty
+      }
+    }
 
     if (!refreshToken) {
       return NextResponse.json({ error: 'Refresh token not found.' }, { status: 401 });
@@ -36,7 +45,11 @@ export async function POST(request) {
       maxAge: 60 * 60 // 1 hour
     });
 
-    const response = NextResponse.json({ success: true, message: 'Token refreshed.' });
+    const response = NextResponse.json({ 
+      success: true, 
+      message: 'Token refreshed.',
+      token: newAccessToken
+    });
     response.headers.append('Set-Cookie', accessCookie);
 
     return response;

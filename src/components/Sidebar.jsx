@@ -11,7 +11,8 @@ import {
   TrendingUp, 
   ShieldAlert, 
   LogOut,
-  Layers
+  Layers,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
   // Add Admin Panel if super admin
   if (user && user.role === 'super_admin') {
     menuItems.push({ name: 'Platform Admin', href: '/admin', icon: ShieldAlert });
+    menuItems.push({ name: 'API Docs', href: '/api/docs/ui', icon: FileText, external: true });
   }
 
   return (
@@ -75,7 +77,22 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
             const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
 
-            return (
+            return item.external ? (
+              <a
+                key={item.name}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className={cn(
+                  "group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition duration-200",
+                  "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                )}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.name}
+              </a>
+            ) : (
               <Link
                 key={item.name}
                 href={item.href}

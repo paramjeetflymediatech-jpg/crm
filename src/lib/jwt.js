@@ -12,8 +12,8 @@ function signAccessToken(payload) {
 }
 
 function signRefreshToken(payload) {
-  // Refresh Token expires in 7 days
-  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '7d' });
+  // Refresh Token expires in 365 days
+  return jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: '365d' });
 }
 
 function verifyAccessToken(token) {

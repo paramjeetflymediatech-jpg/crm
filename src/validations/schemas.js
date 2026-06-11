@@ -9,7 +9,9 @@ const companySettingsSchema = z.object({
   company_name: z.string().min(2, 'Company name must be at least 2 characters'),
   website: z.string().url().optional().or(z.literal('')),
   email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal(''))
+  phone: z.string().optional().or(z.literal('')),
+  facebook_page_id: z.string().optional().or(z.literal('')),
+  facebook_access_token: z.string().optional().or(z.literal(''))
 });
 
 const userProfileSchema = z.object({
