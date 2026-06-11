@@ -49,6 +49,12 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
         throw new Error(data.error || 'Invalid credentials');
       }
 
+      // Ensure token is present in the response body
+      if (!data.token) {
+        console.error('Login response missing token field:', JSON.stringify(data));
+        throw new Error('Authentication error: token not received from server. Please contact support.');
+      }
+
       await AsyncStorage.setItem('token', data.token);
       if (data.refreshToken) {
         await AsyncStorage.setItem('refreshToken', data.refreshToken);

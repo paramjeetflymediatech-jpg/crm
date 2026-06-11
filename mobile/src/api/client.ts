@@ -5,7 +5,7 @@ import { setAuth, logoutUser } from '../store/authSlice';
 const BaseUrl = "https://demo.socialflymediatech.com"
 
 export const getBaseUrl = () => {
-  return `${BaseUrl}/api`;
+  return `${BaseUrl}`;
 };
 
 export interface FetchOptions extends RequestInit {
