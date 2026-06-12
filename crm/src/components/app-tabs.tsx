@@ -5,7 +5,7 @@ import { RootState } from '../store';
 import { logoutUser } from '../store/authSlice';
 import { getBaseUrl } from '../api/client';
 import io from 'socket.io-client';
-import { initPushNotifications, registerDeviceToken, unregisterDeviceToken } from '../services/pushNotification';
+import { initPushNotifications, registerDeviceToken, unregisterDeviceToken, setOnNotificationPressed } from '../services/pushNotification';
 
 // Screens
 import DashboardScreen from './DashboardScreen';
@@ -96,6 +96,16 @@ export default function AppTabs() {
     fetchUnread();
   }, [activeTab]);
 
+  useEffect(() => {
+    setOnNotificationPressed(() => {
+      console.log('[AppTabs] Redirecting to Alerts screen due to notification press');
+      handleNavigateToAlerts('dashboard');
+    });
+    return () => {
+      setOnNotificationPressed(() => {});
+    };
+  }, []);
+
   const handleNavigateToLeads = (leadId: number) => {
     setActiveTab('leads');
     setTargetLeadId(leadId);
@@ -138,6 +148,9 @@ export default function AppTabs() {
             setNotificationsSourceTab(null);
             fetchUnread(); 
           }} 
+          onOpenLead={(leadId) => {
+            handleNavigateToLeads(leadId);
+          }}
         />
       );
     }

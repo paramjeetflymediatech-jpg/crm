@@ -101,33 +101,32 @@ async function handler(request) {
       value
     }));
 
-    // 6. Team Performance (Only query if user is admin level)
-    let teamPerformance = [];
-    if (user.role !== 'staff') {
-      const userQuery = {};
-      if (user.role !== 'super_admin') {
-        userQuery.company_id = companyId;
-      }
-
-      const teamMembers = await User.findAll({
-        where: userQuery,
-        attributes: ['id', 'name']
-      });
-
-      teamPerformance = teamMembers.map(member => {
-        const memberLeads = leads.filter(l => l.assigned_to === member.id);
-        const total = memberLeads.length;
-        const converted = memberLeads.filter(l => l.status === 'Converted').length;
-        const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
-
-        return {
-          name: member.name,
-          leads: total,
-          converted,
-          conversionRate
-        };
-      });
+    // 6. Team Performance
+    const userQuery = {};
+    if (user.role === 'staff') {
+      userQuery.id = user.id;
+    } else if (user.role !== 'super_admin') {
+      userQuery.company_id = companyId;
     }
+
+    const teamMembers = await User.findAll({
+      where: userQuery,
+      attributes: ['id', 'name']
+    });
+
+    const teamPerformance = teamMembers.map(member => {
+      const memberLeads = leads.filter(l => l.assigned_to === member.id);
+      const total = memberLeads.length;
+      const converted = memberLeads.filter(l => l.status === 'Converted').length;
+      const conversionRate = total > 0 ? Math.round((converted / total) * 100) : 0;
+
+      return {
+        name: member.name,
+        leads: total,
+        converted,
+        conversionRate
+      };
+    });
 
     // 7. General Conversion Rate
     const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;

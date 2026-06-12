@@ -2,7 +2,7 @@ import messaging from '@react-native-firebase/messaging';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import { mobileApiFetch } from '../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee, { AndroidImportance } from '@notifee/react-native';
+import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
 async function requestUserPermission() {
   if (Platform.OS === 'android' && Platform.Version >= 33) {
@@ -70,6 +70,19 @@ export async function unregisterDeviceToken() {
   }
 }
 
+// Callback for when a notification is pressed (opens app or foreground tap)
+let onNotificationPressedCallback: (() => void) | null = null;
+let hasPendingNotificationClick = false;
+
+export function setOnNotificationPressed(callback: () => void) {
+  onNotificationPressedCallback = callback;
+  if (hasPendingNotificationClick) {
+    console.log('[PushNotification] Executing pending notification press callback.');
+    hasPendingNotificationClick = false;
+    callback();
+  }
+}
+
 export function initPushNotifications() {
   // Configure foreground presentation options for iOS
   if (Platform.OS === 'ios') {
@@ -128,6 +141,11 @@ export function initPushNotifications() {
   // 3. Notification opened app from background state
   messaging().onNotificationOpenedApp((remoteMessage) => {
     console.log('[PushNotification] Notification caused app to open from background:', remoteMessage);
+    if (onNotificationPressedCallback) {
+      onNotificationPressedCallback();
+    } else {
+      hasPendingNotificationClick = true;
+    }
   });
 
   // 4. Notification opened app from quit state
@@ -136,8 +154,28 @@ export function initPushNotifications() {
     .then((remoteMessage) => {
       if (remoteMessage) {
         console.log('[PushNotification] Notification caused app to open from quit state:', remoteMessage);
+        if (onNotificationPressedCallback) {
+          onNotificationPressedCallback();
+        } else {
+          hasPendingNotificationClick = true;
+        }
       }
     });
 
-  return unsubscribeForeground;
+  // 5. Notifee Foreground Event Listener
+  const unsubscribeNotifeeForeground = notifee.onForegroundEvent(({ type, detail }) => {
+    if (type === EventType.PRESS) {
+      console.log('[PushNotification] User pressed foreground notification:', detail.notification);
+      if (onNotificationPressedCallback) {
+        onNotificationPressedCallback();
+      } else {
+        hasPendingNotificationClick = true;
+      }
+    }
+  });
+
+  return () => {
+    unsubscribeForeground();
+    unsubscribeNotifeeForeground();
+  };
 }

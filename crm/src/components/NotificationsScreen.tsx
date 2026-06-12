@@ -14,9 +14,10 @@ import { Bell, CheckSquare, BellOff, ChevronLeft } from 'lucide-react-native';
 
 interface NotificationsScreenProps {
   onBack?: () => void;
+  onOpenLead?: (leadId: number) => void;
 }
 
-export default function NotificationsScreen({ onBack }: NotificationsScreenProps = {}) {
+export default function NotificationsScreen({ onBack, onOpenLead }: NotificationsScreenProps = {}) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,10 +81,20 @@ export default function NotificationsScreen({ onBack }: NotificationsScreenProps
 
   const renderItem = ({ item }: { item: any }) => {
     const isUnread = !item.is_read;
+    const handlePress = () => {
+      if (isUnread) {
+        handleMarkSingleRead(item.id);
+      }
+      const targetLeadId = item.lead_id || item.Lead?.id;
+      if (targetLeadId && onOpenLead) {
+        onOpenLead(targetLeadId);
+      }
+    };
+
     return (
       <TouchableOpacity 
         style={[styles.notiCard, isUnread && styles.notiCardUnread]}
-        onPress={() => isUnread && handleMarkSingleRead(item.id)}
+        onPress={handlePress}
         activeOpacity={0.7}
       >
         <View style={styles.notiIconWrapper}>
