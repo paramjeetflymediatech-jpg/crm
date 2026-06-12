@@ -54,6 +54,10 @@ const User = sequelize.define('User', {
   last_login: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  fcm_tokens: {
+    type: DataTypes.JSON,
+    allowNull: true
   }
 }, {
   tableName: 'users',

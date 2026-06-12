@@ -93,6 +93,21 @@ async function postHandler(request, { params }) {
         createdAt: notification.createdAt
       });
 
+      // Send push notification via FCM
+      try {
+        const { sendPushNotification } = require('@/lib/fcm');
+        const fcmTokens = assignee.fcm_tokens;
+        if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
+          sendPushNotification(fcmTokens, notificationTitle, notificationMessage, {
+            type: 'New Task',
+            leadId: lead.id,
+            taskId: newTask.id
+          }).catch(err => console.error('[FCM] Background push error:', err));
+        }
+      } catch (fcmErr) {
+        console.error('[FCM] Push setup error:', fcmErr);
+      }
+
       // Send Email Alert
       await sendEmail({
         to: assignee.email,

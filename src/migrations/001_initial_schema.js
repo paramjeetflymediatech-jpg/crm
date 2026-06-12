@@ -65,6 +65,7 @@ async function runMigration() {
       phone       VARCHAR(255),
       status      VARCHAR(255) NOT NULL DEFAULT 'active',
       last_login  DATETIME,
+      fcm_tokens  JSON,
       created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
@@ -75,6 +76,7 @@ async function runMigration() {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(255)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(255) NOT NULL DEFAULT 'active'`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login DATETIME`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS fcm_tokens JSON`,
     ];
     for (const sql of userCols) {
       try { await q(sql); } catch (e) { /* column already exists */ }

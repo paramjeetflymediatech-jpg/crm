@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setAuth } from '../store/authSlice';
 import { getBaseUrl } from '../api/client';
 import { Lock, Mail } from 'lucide-react-native';
+import { registerDeviceToken } from '../services/pushNotification';
 
 interface LoginScreenProps {
   onForgotPassword: () => void;
@@ -62,6 +63,7 @@ export default function LoginScreen({ onForgotPassword }: LoginScreenProps) {
       await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
       dispatch(setAuth({ token: data.token, user: data.user }));
+      registerDeviceToken();
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Something went wrong. Please try again.');

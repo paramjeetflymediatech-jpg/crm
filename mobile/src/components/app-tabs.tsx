@@ -5,6 +5,7 @@ import { RootState } from '../store';
 import { logoutUser } from '../store/authSlice';
 import { getBaseUrl } from '../api/client';
 import io from 'socket.io-client';
+import { initPushNotifications, registerDeviceToken, unregisterDeviceToken } from '../services/pushNotification';
 
 // Screens
 import DashboardScreen from './DashboardScreen';
@@ -60,6 +61,21 @@ export default function AppTabs() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribePush = initPushNotifications();
+    
+    // Register device token on tab mount if user is logged in
+    registerDeviceToken();
+
+    return () => {
+      if (typeof unsubscribePush === 'function') {
+        unsubscribePush();
+      }
+    };
+  }, [user]);
+
   const fetchUnread = async () => {
     try {
       const token = await require('@react-native-async-storage/async-storage').default.getItem('token');
@@ -101,7 +117,9 @@ export default function AppTabs() {
           text: 'Sign Out', 
           style: 'destructive',
           onPress: () => {
-            dispatch(logoutUser() as any);
+            unregisterDeviceToken().catch(err => console.error('[FCM] Error unregistering token:', err)).finally(() => {
+              dispatch(logoutUser() as any);
+            });
           }
         }
       ]

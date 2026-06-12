@@ -11,6 +11,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { logoutUser } from '../store/authSlice';
 import { User as UserIcon, Building, LogOut, Key, Globe, Shield, ChevronLeft } from 'lucide-react-native';
+import { unregisterDeviceToken } from '../services/pushNotification';
 
 interface SettingsScreenProps {
   onBack?: () => void;
@@ -31,7 +32,9 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
           text: 'Sign Out', 
           style: 'destructive',
           onPress: () => {
-            dispatch(logoutUser() as any);
+            unregisterDeviceToken().catch(err => console.error('[FCM] Error unregistering token:', err)).finally(() => {
+              dispatch(logoutUser() as any);
+            });
           }
         }
       ]

@@ -171,6 +171,26 @@ async function processLeadgenEvent(body) {
           createdAt: new Date()
         });
 
+        // Send push notification via FCM
+        try {
+          const { sendPushNotification } = require('@/lib/fcm');
+          const fcmTokens = users.reduce((acc, u) => {
+            if (u.fcm_tokens && Array.isArray(u.fcm_tokens)) {
+              acc.push(...u.fcm_tokens);
+            }
+            return acc;
+          }, []);
+
+          if (fcmTokens.length > 0) {
+            sendPushNotification(fcmTokens, notifTitle, notifMessage, {
+              type: 'New Lead',
+              leadId: newLead.id
+            }).catch(err => console.error('[FCM] Background push error:', err));
+          }
+        } catch (fcmErr) {
+          console.error('[FCM] Push setup error:', fcmErr);
+        }
+
         // 8. Email admins
         const admins = users.filter(u => u.role === 'company_admin');
         for (const admin of admins) {

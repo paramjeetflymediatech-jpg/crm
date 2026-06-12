@@ -59,6 +59,21 @@ async function runDailyFollowUpCron() {
         createdAt: notification.createdAt
       });
 
+      // Send push notification via FCM
+      try {
+        const { sendPushNotification } = require('../lib/fcm');
+        const fcmTokens = user.fcm_tokens;
+        if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
+          sendPushNotification(fcmTokens, title, message, {
+            type: 'Task Due Today',
+            leadId: task.lead_id,
+            taskId: task.id
+          }).catch(err => console.error('[FCM] Background cron push error:', err));
+        }
+      } catch (fcmErr) {
+        console.error('[FCM] Cron push setup error:', fcmErr);
+      }
+
       // 3. Send Email Alert
       await sendEmail({
         to: user.email,
@@ -141,6 +156,21 @@ async function runHourlyOverdueCron() {
         userId: user.id,
         createdAt: notification.createdAt
       });
+
+      // Send push notification via FCM
+      try {
+        const { sendPushNotification } = require('../lib/fcm');
+        const fcmTokens = user.fcm_tokens;
+        if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
+          sendPushNotification(fcmTokens, title, message, {
+            type: 'Task Overdue',
+            leadId: task.lead_id,
+            taskId: task.id
+          }).catch(err => console.error('[FCM] Background cron push error:', err));
+        }
+      } catch (fcmErr) {
+        console.error('[FCM] Cron push setup error:', fcmErr);
+      }
 
       // 3. Send Email Alert
       await sendEmail({
