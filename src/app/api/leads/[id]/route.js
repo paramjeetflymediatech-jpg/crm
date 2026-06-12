@@ -74,7 +74,7 @@ async function putHandler(request, { params }) {
     // Validate body (partial schema validation since it's a PUT update)
     const validation = updateLeadSchema.safeParse(body);
     if (!validation.success) {
-      const errorMsg = validation.error.errors.map(e => e.message).join(', ');
+      const errorMsg = validation.error.issues.map(e => e.message).join(', ');
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 

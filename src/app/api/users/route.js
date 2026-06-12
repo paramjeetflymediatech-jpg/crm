@@ -47,7 +47,7 @@ async function postHandler(request) {
     // Validate request schema
     const validation = createUserSchema.safeParse(body);
     if (!validation.success) {
-      const errorMsg = validation.error.errors.map(e => e.message).join(', ');
+      const errorMsg = validation.error.issues.map(e => e.message).join(', ');
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
