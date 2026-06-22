@@ -71,8 +71,43 @@ Task.belongsTo(Lead, { foreignKey: 'lead_id' });
 async function syncDatabase(force = false) {
   try {
     await testConnection();
-    await sequelize.sync({ alter: true });
-    console.log('Database synced successfully.');
+
+    // Prune redundant duplicate unique indexes created by Sequelize's sync({ alter: true }) bug
+    console.log('Checking for redundant duplicate indexes...');
+    const [duplicateIndexes] = await sequelize.query(`
+      SELECT INDEX_NAME, TABLE_NAME 
+      FROM information_schema.statistics 
+      WHERE table_schema = DATABASE() 
+        AND (INDEX_NAME REGEXP '^email_[0-9]+$' OR INDEX_NAME REGEXP '^api_key_[0-9]+$')
+    `);
+
+    if (duplicateIndexes && duplicateIndexes.length > 0) {
+      console.log(`Found ${duplicateIndexes.length} redundant index(es) to clean up.`);
+      for (const idx of duplicateIndexes) {
+        try {
+          console.log(`Dropping redundant index ${idx.INDEX_NAME} on table ${idx.TABLE_NAME}...`);
+          await sequelize.query(`ALTER TABLE \`${idx.TABLE_NAME}\` DROP INDEX \`${idx.INDEX_NAME}\``);
+        } catch (err) {
+          console.warn(`Failed to drop index ${idx.INDEX_NAME} on table ${idx.TABLE_NAME}:`, err.message);
+        }
+      }
+      console.log('Cleanup of redundant indexes completed.');
+    }
+
+    // Only alter in development, and only if requested or if we're not in production/pm2
+    const isProduction = process.env.NODE_ENV === 'production';
+    const shouldAlter = process.env.DB_ALTER === 'true' || (!isProduction && process.env.DB_ALTER !== 'false');
+
+    if (force) {
+      await sequelize.sync({ force: true });
+      console.log('Database force-synced successfully.');
+    } else if (shouldAlter) {
+      await sequelize.sync({ alter: true });
+      console.log('Database altered successfully.');
+    } else {
+      await sequelize.sync();
+      console.log('Database synced successfully (no-alter mode).');
+    }
 
     // Seed default entities if table is empty
     const companyCount = await Company.count();
