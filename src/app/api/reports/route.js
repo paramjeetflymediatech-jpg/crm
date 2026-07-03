@@ -44,7 +44,8 @@ async function handler(request) {
       attributes: [
         'id', 'first_name', 'last_name', 'email', 'phone',
         'source', 'status', 'priority', 'lead_score',
-        'subject', 'created_at', 'updated_at', 'assigned_to'
+        'subject', 'assigned_to'
+        // createdAt / updatedAt are auto-included by Sequelize (underscored: true maps created_at <-> createdAt)
       ],
       include: [
         {
@@ -54,7 +55,7 @@ async function handler(request) {
           required: false
         }
       ],
-      order: [['created_at', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     // 3. Aggregate Leads by Month (Last 6 Months)
@@ -70,16 +71,16 @@ async function handler(request) {
     }
 
     leads.forEach(lead => {
-      // Count lead in the month it was CREATED
-      const createdDate = new Date(lead.created_at);
+      // Count lead in the month it was CREATED (use camelCase — underscored: true maps created_at <-> createdAt)
+      const createdDate = new Date(lead.createdAt);
       const createdKey = `${monthNames[createdDate.getMonth()]} ${createdDate.getFullYear()}`;
       if (leadsByMonthMap[createdKey]) {
         leadsByMonthMap[createdKey].count++;
       }
 
-      // Count conversion in the month it was CONVERTED (updated_at)
+      // Count conversion in the month it was CONVERTED
       if (lead.status === 'Converted') {
-        const convertedDate = new Date(lead.updated_at || lead.created_at);
+        const convertedDate = new Date(lead.updatedAt || lead.createdAt);
         const convertedKey = `${monthNames[convertedDate.getMonth()]} ${convertedDate.getFullYear()}`;
         if (leadsByMonthMap[convertedKey]) {
           leadsByMonthMap[convertedKey].converted++;
@@ -155,7 +156,7 @@ async function handler(request) {
       lead_score: lead.lead_score || 0,
       subject: lead.subject || '',
       assigned_to: lead.AssignedUser ? lead.AssignedUser.name : 'Unassigned',
-      created_at: lead.created_at
+      created_at: lead.createdAt   // camelCase — Sequelize underscored: true
     }));
 
     return NextResponse.json({
