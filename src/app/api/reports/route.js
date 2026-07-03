@@ -38,11 +38,23 @@ async function handler(request) {
     taskWhere.due_date = { [Op.between]: [todayStart, todayEnd] };
     const followupsToday = await Task.count({ where: taskWhere });
 
-    // 2. Fetch all leads in scope to perform calculations (faster and highly customizable in JS)
-    // We only retrieve needed fields for optimization
+    // 2. Fetch all leads with full details (for table + aggregations)
     const leads = await Lead.findAll({
       where,
-      attributes: ['id', 'status', 'source', 'created_at', 'updated_at', 'assigned_to']
+      attributes: [
+        'id', 'first_name', 'last_name', 'email', 'phone',
+        'source', 'status', 'priority', 'lead_score',
+        'subject', 'created_at', 'updated_at', 'assigned_to'
+      ],
+      include: [
+        {
+          model: User,
+          as: 'AssignedUser',
+          attributes: ['id', 'name'],
+          required: false
+        }
+      ],
+      order: [['created_at', 'DESC']]
     });
 
     // 3. Aggregate Leads by Month (Last 6 Months)
@@ -131,6 +143,21 @@ async function handler(request) {
     // 7. General Conversion Rate
     const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
+    // 8. Full leads detail list for table
+    const leadsDetail = leads.map(lead => ({
+      id: lead.id,
+      name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+      email: lead.email || '',
+      phone: lead.phone || '',
+      source: lead.source || 'Unknown',
+      status: lead.status || 'New',
+      priority: lead.priority || 'Medium',
+      lead_score: lead.lead_score || 0,
+      subject: lead.subject || '',
+      assigned_to: lead.AssignedUser ? lead.AssignedUser.name : 'Unassigned',
+      created_at: lead.created_at
+    }));
+
     return NextResponse.json({
       summary: {
         totalLeads,
@@ -146,7 +173,8 @@ async function handler(request) {
         leadsBySource,
         leadPipeline,
         teamPerformance
-      }
+      },
+      leadsDetail
     });
 
   } catch (error) {

@@ -15,7 +15,7 @@ const { runDailyFollowUpCron, runHourlyOverdueCron } = require('./src/cron/cronJ
 
 const port = parseInt(process.env.PORT, 10) || 3000;
 const dev = process.env.NODE_ENV !== 'production';
-const app = next({ dev });
+const app = next({ dev, webpack: true });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
