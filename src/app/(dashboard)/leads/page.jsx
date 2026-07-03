@@ -33,6 +33,7 @@ export default function LeadsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -114,7 +115,7 @@ export default function LeadsPage() {
     try {
       const query = new URLSearchParams({
         page: currentPage.toString(),
-        limit: '10',
+        limit: pageSize.toString(),
         sortField: 'created_at',
         sortOrder: 'DESC'
       });
@@ -143,7 +144,7 @@ export default function LeadsPage() {
     fetchLeads();
     // Clear check boxes on refetch
     setSelectedLeads([]);
-  }, [currentPage, status, source, priority, assignedTo]);
+  }, [currentPage, pageSize, status, source, priority, assignedTo]);
 
   // Debounced live search — fires 300ms after the user stops typing
   const searchDebounceRef = useRef(null);
@@ -563,7 +564,21 @@ export default function LeadsPage() {
 
             {/* Pagination controls */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-slate-150">
-              <span className="text-xs text-slate-400 font-medium">Showing page {currentPage} of {totalPages}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 font-medium">Page {currentPage} of {totalPages} &bull; {totalCount} total</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+                    className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {[10, 25, 50, 100].map(opt => (
+                      <option key={opt} value={opt}>{opt} / page</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"

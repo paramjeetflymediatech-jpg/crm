@@ -43,7 +43,7 @@ const PRIORITY_COLORS = {
   'Low':    { bg: '#f0fdf4', text: '#14532d' },
 };
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 export default function ReportsPage() {
   const [data, setData] = useState(null);
@@ -54,6 +54,7 @@ export default function ReportsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // PDF export dropdown state
   const [showPdfMenu, setShowPdfMenu] = useState(false);
@@ -92,14 +93,17 @@ export default function ReportsPage() {
       return str.includes(',') || str.includes('"') || str.includes('\n')
         ? `"${str.replace(/"/g, '""')}"` : str;
     };
-    const csvContent = 'data:text/csv;charset=utf-8,'
-      + [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    const csvContent = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    // Use Blob URL — encodeURI silently truncates at '#' characters in data
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('href', url);
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleExportCSV = (type) => {
@@ -239,12 +243,15 @@ export default function ReportsPage() {
       return doc.lastAutoTable.finalY;
     };
 
-    // ── Leads detail section ──
+    // ── Leads detail section ── (uses filteredLeads so active search/status/source filters are respected)
     const addLeadsDetail = (doc, startY) => {
-      const leadsToExport = data.leadsDetail || [];
+      const leadsToExport = filteredLeads;
       if (!leadsToExport.length) return startY;
       const y = startY > 240 ? (doc.addPage(), 20) : startY;
-      addSectionHeading(doc, 'All Leads Detail', y);
+      const heading = filteredLeads.length === (data.leadsDetail?.length || 0)
+        ? 'All Leads Detail'
+        : `Leads Detail (Filtered: ${filteredLeads.length} of ${data.leadsDetail?.length || 0})`;
+      addSectionHeading(doc, heading, y);
       autoTable(doc, {
         startY: y + 4,
         head: [['#', 'Name', 'Email', 'Phone', 'Source', 'Status', 'Priority', 'Score', 'Assigned To', 'Date']],
@@ -322,11 +329,11 @@ export default function ReportsPage() {
     });
   }, [data, search, statusFilter, sourceFilter]);
 
-  // Reset to page 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, sourceFilter]);
+  // Reset to page 1 when filters or page size change
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter, sourceFilter, pageSize]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / PAGE_SIZE));
-  const pagedLeads = filteredLeads.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
+  const pagedLeads = filteredLeads.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -599,7 +606,7 @@ export default function ReportsPage() {
                 ) : pagedLeads.map((lead, idx) => {
                   const sc = STATUS_COLORS[lead.status] || STATUS_COLORS['New'];
                   const pc = PRIORITY_COLORS[lead.priority] || PRIORITY_COLORS['Medium'];
-                  const rowNum = (currentPage - 1) * PAGE_SIZE + idx + 1;
+                  const rowNum = (currentPage - 1) * pageSize + idx + 1;
                   return (
                     <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
                       <td className="px-4 py-3 text-xs text-slate-400 font-mono">{rowNum}</td>
@@ -648,12 +655,26 @@ export default function ReportsPage() {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
+          {/* Pagination + Rows per page — always visible */}
+          {filteredLeads.length > 0 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
-              <span className="text-xs text-slate-400">
-                Page {currentPage} of {totalPages} &bull; {filteredLeads.length} total leads
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400">
+                  Page {currentPage} of {totalPages} &bull; {filteredLeads.length} total leads
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400">Rows per page:</span>
+                  <select
+                    value={pageSize}
+                    onChange={e => setPageSize(Number(e.target.value))}
+                    className="h-7 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    {PAGE_SIZE_OPTIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt} / page</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div className="flex items-center gap-1">
                 <Button
                   size="sm"
