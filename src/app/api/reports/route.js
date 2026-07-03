@@ -44,8 +44,9 @@ async function handler(request) {
       attributes: [
         'id', 'first_name', 'last_name', 'email', 'phone',
         'source', 'status', 'priority', 'lead_score',
-        'subject', 'assigned_to'
-        // createdAt / updatedAt are auto-included by Sequelize (underscored: true maps created_at <-> createdAt)
+        'subject', 'assigned_to',
+        // Must be explicitly listed — Sequelize does NOT auto-include timestamps when attributes array is used
+        'createdAt', 'updatedAt'
       ],
       include: [
         {
