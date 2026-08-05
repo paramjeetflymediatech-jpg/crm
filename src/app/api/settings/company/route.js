@@ -36,7 +36,7 @@ async function putHandler(request) {
 
     const body = await request.json();
 
-    const targetCompanyId = user.role === 'super_admin' ? body.company_id : companyId;
+    const targetCompanyId = user.role === 'super_admin' ? (body.company_id || body.id || companyId) : companyId;
     if (!targetCompanyId) {
       return NextResponse.json({ error: 'Company ID is required.' }, { status: 400 });
     }
@@ -49,7 +49,7 @@ async function putHandler(request) {
     // Validate body
     const validation = companySettingsSchema.safeParse(body);
     if (!validation.success) {
-      const errorMsg = validation.error.issues.map(e => e.message).join(', ');
+      const errorMsg = validation.error.issues.map(e => `${e.path.join('.') || 'field'}: ${e.message}`).join(', ');
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
@@ -99,8 +99,8 @@ async function postHandler(request) {
       return NextResponse.json({ error: 'Forbidden: Staff cannot regenerate API keys.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const targetCompanyId = user.role === 'super_admin' ? body.company_id : companyId;
+    const body = await request.json().catch(() => ({}));
+    const targetCompanyId = user.role === 'super_admin' ? (body.company_id || body.id || companyId) : companyId;
 
     const company = await Company.findByPk(targetCompanyId);
     if (!company) {

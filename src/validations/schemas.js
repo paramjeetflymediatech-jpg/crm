@@ -7,17 +7,18 @@ const loginSchema = z.object({
 
 const companySettingsSchema = z.object({
   company_name: z.string().min(2, 'Company name must be at least 2 characters'),
-  website: z.string().url().optional().or(z.literal('')),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  facebook_page_id: z.string().optional().or(z.literal('')),
-  facebook_access_token: z.string().optional().or(z.literal(''))
+  website: z.string().nullable().optional().or(z.literal('')),
+  email: z.string().email('Invalid email address').nullable().optional().or(z.literal('')),
+  phone: z.string().nullable().optional().or(z.literal('')),
+  logo: z.string().nullable().optional().or(z.literal('')),
+  facebook_page_id: z.string().nullable().optional().or(z.literal('')),
+  facebook_access_token: z.string().nullable().optional().or(z.literal(''))
 });
 
 const userProfileSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().optional().or(z.literal('')),
+  phone: z.string().nullable().optional().or(z.literal('')),
   password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal(''))
 });
 
