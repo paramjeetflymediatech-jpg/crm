@@ -243,10 +243,23 @@ async function processLeadgenEvent(body) {
 async function fetchFacebookLead(leadgenId, accessToken) {
   if (accessToken) {
     try {
-      const url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${leadgenId}?fields=field_data,form_id,form_name,created_time&access_token=${accessToken}`;
+      const url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${leadgenId}?fields=field_data,form_id,created_time,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&access_token=${accessToken}`;
       const response = await fetch(url);
       if (response.ok) {
-        return await response.json();
+        const lead = await response.json();
+        if (lead.form_id) {
+          try {
+            const formUrl = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${lead.form_id}?fields=name&access_token=${accessToken}`;
+            const formRes = await fetch(formUrl);
+            if (formRes.ok) {
+              const formData = await formRes.json();
+              lead.form_name = formData.name;
+            }
+          } catch (fErr) {
+            console.error('[Facebook Webhook] Failed to fetch form details:', fErr);
+          }
+        }
+        return lead;
       }
       const err = await response.json();
       console.error('[Facebook Webhook] Graph API error:', err);
