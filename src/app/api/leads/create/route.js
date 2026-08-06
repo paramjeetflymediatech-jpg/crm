@@ -21,15 +21,71 @@ async function handler(request) {
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // 2. Save Lead
+    // 2. Format message content to store all submitted form fields & answers dynamically
+    const reservedKeys = new Set(['name', 'first_name', 'last_name', 'email', 'phone', 'phone_number', 'subject', 'message', 'source', 'apiKey', 'api_key']);
+    
+    const extraAnswers = [];
+    if (name) extraAnswers.push(`Full Name: ${name}`);
+    if (email) extraAnswers.push(`Email: ${email}`);
+    if (phone) extraAnswers.push(`Phone: ${phone}`);
+    if (subject) extraAnswers.push(`Subject: ${subject}`);
+
+    // Parse custom_fields or fields object/array if sent by web form plugins
+    if (body.custom_fields && typeof body.custom_fields === 'object') {
+      Object.entries(body.custom_fields).forEach(([k, v]) => {
+        if (v !== undefined && v !== null && v !== '') {
+          const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+          extraAnswers.push(`${label}: ${v}`);
+        }
+      });
+    }
+
+    if (body.fields && typeof body.fields === 'object') {
+      if (Array.isArray(body.fields)) {
+        body.fields.forEach(f => {
+          if ((f.name || f.label) && (f.value || f.val)) {
+            const label = (f.name || f.label).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            extraAnswers.push(`${label}: ${f.value || f.val}`);
+          }
+        });
+      } else {
+        Object.entries(body.fields).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            extraAnswers.push(`${label}: ${v}`);
+          }
+        });
+      }
+    }
+
+    // Capture any extra root attributes passed in JSON payload
+    Object.entries(body).forEach(([k, v]) => {
+      if (!reservedKeys.has(k) && k !== 'custom_fields' && k !== 'fields' && v !== undefined && v !== null && v !== '') {
+        const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        extraAnswers.push(`${label}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+      }
+    });
+
+    if (message && message.trim() && !extraAnswers.some(a => a.startsWith('Inquiry Message:'))) {
+      extraAnswers.push(`Inquiry Message: ${message.trim()}`);
+    }
+
+    const formattedMessage = [
+      `Source: ${source}`,
+      `Submitted: ${new Date().toISOString()}`,
+      `\n--- Form Field Submissions ---`,
+      extraAnswers.join('\n') || message || 'No form field data provided'
+    ].join('\n');
+
+    // 3. Save Lead
     const newLead = await Lead.create({
       company_id: companyId,
       first_name: firstName,
       last_name: lastName,
-      email: email || '',
+      email: (email && email.trim()) ? email.trim() : null,
       phone: phone || '',
-      subject: subject || '',
-      message: message || '',
+      subject: subject || `${source} Submission`,
+      message: formattedMessage,
       source: source,
       status: 'New',
       priority: 'Medium',
