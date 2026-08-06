@@ -42,6 +42,10 @@ const Lead = sequelize.define('Lead', {
   email: {
     type: DataTypes.STRING,
     allowNull: true,
+    set(val) {
+      const cleanVal = (typeof val === 'string' && val.trim()) ? val.trim() : null;
+      this.setDataValue('email', cleanVal);
+    },
     validate: {
       isEmail: true
     }

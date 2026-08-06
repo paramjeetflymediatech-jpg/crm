@@ -124,13 +124,21 @@ async function processLeadgenEvent(body) {
         const firstName = fields['first_name'] || nameParts[0] || 'Facebook';
         const lastName = fields['last_name'] || nameParts.slice(1).join(' ') || 'Lead';
 
+        // Find email field dynamically from field_data
+        let leadEmail = fields['email'] || fields['work_email'] || fields['email_address'] || null;
+        if (!leadEmail) {
+          const emailKey = Object.keys(fields).find(k => k.toLowerCase().includes('email'));
+          if (emailKey) leadEmail = fields[emailKey];
+        }
+        leadEmail = (leadEmail && typeof leadEmail === 'string' && leadEmail.trim()) ? leadEmail.trim() : null;
+
         // 4. Create Lead in CRM
         const newLead = await Lead.create({
           company_id: company.id,
           first_name: firstName,
           last_name: lastName,
-          email: fields['email'] || fields['work_email'] || '',
-          phone: fields['phone_number'] || fields['mobile_number'] || '',
+          email: leadEmail,
+          phone: fields['phone_number'] || fields['mobile_number'] || fields['phone'] || '',
           subject: `Facebook Lead Ad — ${leadData.form_name || 'Lead Ad'}`,
           message: `Source: Facebook Lead Ads\nForm: ${leadData.form_name || 'N/A'}\nAd ID: ${ad_id || 'N/A'}\nAdGroup: ${adgroup_id || 'N/A'}`,
           source: 'Facebook Ads',
@@ -205,13 +213,13 @@ async function processLeadgenEvent(body) {
           await sendEmail({
             to: admin.email,
             subject: `[CRM] New Facebook Lead: ${firstName} ${lastName}`,
-            text: `Hello ${admin.name},\n\nA new lead was submitted from your Facebook Lead Ad.\n\nName: ${firstName} ${lastName}\nEmail: ${fields['email'] || 'N/A'}\nPhone: ${fields['phone_number'] || 'N/A'}\nForm: ${leadData.form_name || 'N/A'}\n\nLog in to follow up.`,
+            text: `Hello ${admin.name},\n\nA new lead was submitted from your Facebook Lead Ad.\n\nName: ${firstName} ${lastName}\nEmail: ${leadEmail || 'N/A'}\nPhone: ${fields['phone_number'] || 'N/A'}\nForm: ${leadData.form_name || 'N/A'}\n\nLog in to follow up.`,
             html: `
               <p>Hello <strong>${admin.name}</strong>,</p>
               <p>A new lead has been submitted from your Facebook Lead Ad.</p>
               <table cellpadding="6" style="border-collapse:collapse; width:100%; font-size:14px;">
                 <tr><td style="font-weight:bold; color:#555;">Name</td><td>${firstName} ${lastName}</td></tr>
-                <tr><td style="font-weight:bold; color:#555;">Email</td><td>${fields['email'] || 'N/A'}</td></tr>
+                <tr><td style="font-weight:bold; color:#555;">Email</td><td>${leadEmail || 'N/A'}</td></tr>
                 <tr><td style="font-weight:bold; color:#555;">Phone</td><td>${fields['phone_number'] || 'N/A'}</td></tr>
                 <tr><td style="font-weight:bold; color:#555;">Form</td><td>${leadData.form_name || 'N/A'}</td></tr>
                 <tr><td style="font-weight:bold; color:#555;">Lead ID</td><td>${leadgen_id}</td></tr>
@@ -262,16 +270,36 @@ async function fetchFacebookLead(leadgenId, accessToken) {
         return lead;
       }
       const err = await response.json();
-      console.error('[Facebook Webhook] Graph API error:', err);
+      console.error('[Facebook Webhook] Graph API error:', JSON.stringify(err, null, 2));
+
+      if (err?.error?.code === 100 && err?.error?.error_subcode === 33) {
+        console.error(
+          `[Facebook Webhook] PERMISSION ERROR (Subcode 33): Access token lacks 'leads_retrieval' permission, ` +
+          `or Page Lead Access Manager (Meta Business Manager) restricts lead data access for leadgen_id ${leadgenId}.`
+        );
+      }
+
+      // If leadgenId is a known Meta test lead ID (e.g. 444444444444), use fallback
+      if (String(leadgenId).startsWith('4444444')) {
+        console.log(`[Facebook Webhook] Using test lead fallback data for Meta test leadgen_id: ${leadgenId}`);
+        return getDummyTestLead();
+      }
+
+      return null;
     } catch (error) {
       console.error('[Facebook Webhook] Graph API fetch failed:', error);
+      return null;
     }
   } else {
     console.warn('[Facebook Webhook] No access token configured for company.');
   }
 
-  // Fallback for Meta Lead Ads Testing Tool test leads (dummy leadgen_id like 444444444444)
+  // Fallback for Meta Lead Ads Testing Tool when no access token is set or testing locally
   console.log(`[Facebook Webhook] Using test lead fallback data for leadgen_id: ${leadgenId}`);
+  return getDummyTestLead();
+}
+
+function getDummyTestLead() {
   return {
     form_id: 'test_lead_form_id',
     form_name: 'Test Facebook Lead Form',
