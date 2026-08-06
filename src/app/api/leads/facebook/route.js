@@ -132,6 +132,23 @@ async function processLeadgenEvent(body) {
         }
         leadEmail = (leadEmail && typeof leadEmail === 'string' && leadEmail.trim()) ? leadEmail.trim() : null;
 
+        // Construct comprehensive message string containing all form fields & answers dynamically
+        const formAnswers = (leadData.field_data || [])
+          .map(f => {
+            const val = Array.isArray(f.values) ? f.values.join(', ') : (f.values || 'N/A');
+            return `• ${f.name}: ${val}`;
+          })
+          .join('\n');
+
+        const messageContent = [
+          `Source: Facebook Lead Ads`,
+          `Form: ${leadData.form_name || 'N/A'} (ID: ${form_id || leadData.form_id || 'N/A'})`,
+          `Ad ID: ${ad_id || 'N/A'} | AdGroup: ${adgroup_id || 'N/A'}`,
+          `Created Time: ${leadData.created_time || new Date().toISOString()}`,
+          `\n--- Form Field Submissions ---`,
+          formAnswers || 'No form field data available'
+        ].join('\n');
+
         // 4. Create Lead in CRM
         const newLead = await Lead.create({
           company_id: company.id,
@@ -140,7 +157,7 @@ async function processLeadgenEvent(body) {
           email: leadEmail,
           phone: fields['phone_number'] || fields['mobile_number'] || fields['phone'] || '',
           subject: `Facebook Lead Ad — ${leadData.form_name || 'Lead Ad'}`,
-          message: `Source: Facebook Lead Ads\nForm: ${leadData.form_name || 'N/A'}\nAd ID: ${ad_id || 'N/A'}\nAdGroup: ${adgroup_id || 'N/A'}`,
+          message: messageContent,
           source: 'Facebook Ads',
           source_reference_id: leadgen_id,
           status: 'New',
