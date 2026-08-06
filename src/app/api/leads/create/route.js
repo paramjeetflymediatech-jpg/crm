@@ -4,92 +4,106 @@ const { withApiKey } = require('@/lib/apiGuard');
 const { sendEmail } = require('@/emails/mailer');
 const { emitToCompany } = require('@/socket/socketServer');
 
+/**
+ * Recursively flattens any unknown JSON object or array payload into clean key-value pairs
+ */
+function extractAllFields(obj, prefix = '') {
+  const result = [];
+  if (!obj || typeof obj !== 'object') return result;
+
+  for (const [rawKey, val] of Object.entries(obj)) {
+    if (['apiKey', 'api_key', 'company_id', 'companyId'].includes(rawKey)) continue;
+
+    const formattedKey = prefix 
+      ? `${prefix} — ${rawKey.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`
+      : rawKey.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    if (val === null || val === undefined || val === '') continue;
+
+    if (Array.isArray(val)) {
+      if (val.every(item => typeof item !== 'object')) {
+        result.push({ key: formattedKey, value: val.join(', ') });
+      } else {
+        val.forEach((item, idx) => {
+          result.push(...extractAllFields(item, `${formattedKey} #${idx + 1}`));
+        });
+      }
+    } else if (typeof val === 'object') {
+      result.push(...extractAllFields(val, formattedKey));
+    } else {
+      result.push({ key: formattedKey, value: String(val).trim() });
+    }
+  }
+
+  return result;
+}
+
 async function handler(request) {
   try {
     const body = await request.json();
-    const { name, email, phone, subject, message, source = 'Contact Form' } = body;
-
-    if (!name) {
-      return NextResponse.json({ error: 'Name is a required field.' }, { status: 400 });
-    }
-
     const companyId = request.companyId;
-    const company = request.company;
 
-    // 1. Split name into First Name and Last Name
-    const nameParts = name.trim().split(/\s+/);
+    // Extract every single key & value dynamically from the incoming payload
+    const allExtracted = extractAllFields(body);
+
+    // Auto-detect standard fields regardless of exact key naming convention used by web forms
+    let rawName = body.name || body.full_name || body.fullName || body['your-name'] || body.first_name || '';
+    if (!rawName) {
+      const nameObj = allExtracted.find(f => f.key.toLowerCase().includes('name'));
+      if (nameObj) rawName = nameObj.value;
+    }
+    if (!rawName) rawName = 'Website Visitor';
+
+    const nameParts = rawName.trim().split(/\s+/);
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || '';
 
-    // 2. Format message content to store all submitted form fields & answers dynamically
-    const reservedKeys = new Set(['name', 'first_name', 'last_name', 'email', 'phone', 'phone_number', 'subject', 'message', 'source', 'apiKey', 'api_key']);
-    
-    const extraAnswers = [];
-    if (name) extraAnswers.push(`Full Name: ${name}`);
-    if (email) extraAnswers.push(`Email: ${email}`);
-    if (phone) extraAnswers.push(`Phone: ${phone}`);
-    if (subject) extraAnswers.push(`Subject: ${subject}`);
+    let rawEmail = body.email || body.work_email || body['your-email'] || body.email_address || null;
+    if (!rawEmail) {
+      const emailObj = allExtracted.find(f => f.key.toLowerCase().includes('email') || f.key.toLowerCase().includes('mail'));
+      if (emailObj) rawEmail = emailObj.value;
+    }
+    const leadEmail = (rawEmail && typeof rawEmail === 'string' && rawEmail.trim()) ? rawEmail.trim() : null;
 
-    // Parse custom_fields or fields object/array if sent by web form plugins
-    if (body.custom_fields && typeof body.custom_fields === 'object') {
-      Object.entries(body.custom_fields).forEach(([k, v]) => {
-        if (v !== undefined && v !== null && v !== '') {
-          const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          extraAnswers.push(`${label}: ${v}`);
-        }
-      });
+    let rawPhone = body.phone || body.phone_number || body['your-phone'] || body.mobile || body.contact || '';
+    if (!rawPhone) {
+      const phoneObj = allExtracted.find(f => f.key.toLowerCase().includes('phone') || f.key.toLowerCase().includes('mobile') || f.key.toLowerCase().includes('tel'));
+      if (phoneObj) rawPhone = phoneObj.value;
     }
 
-    if (body.fields && typeof body.fields === 'object') {
-      if (Array.isArray(body.fields)) {
-        body.fields.forEach(f => {
-          if ((f.name || f.label) && (f.value || f.val)) {
-            const label = (f.name || f.label).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            extraAnswers.push(`${label}: ${f.value || f.val}`);
-          }
-        });
-      } else {
-        Object.entries(body.fields).forEach(([k, v]) => {
-          if (v !== undefined && v !== null && v !== '') {
-            const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-            extraAnswers.push(`${label}: ${v}`);
-          }
-        });
-      }
+    let rawSubject = body.subject || body.topic || body['your-subject'] || '';
+    if (!rawSubject) {
+      const subjObj = allExtracted.find(f => f.key.toLowerCase().includes('subject') || f.key.toLowerCase().includes('service'));
+      if (subjObj) rawSubject = subjObj.value;
     }
 
-    // Capture any extra root attributes passed in JSON payload
-    Object.entries(body).forEach(([k, v]) => {
-      if (!reservedKeys.has(k) && k !== 'custom_fields' && k !== 'fields' && v !== undefined && v !== null && v !== '') {
-        const label = k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        extraAnswers.push(`${label}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
-      }
-    });
+    const source = body.source || body['form-name'] || body.form_name || 'Contact Form';
 
-    if (message && message.trim() && !extraAnswers.some(a => a.startsWith('Inquiry Message:'))) {
-      extraAnswers.push(`Inquiry Message: ${message.trim()}`);
-    }
+    // Format all submitted form fields & answers dynamically into the message text
+    const formAnswers = allExtracted
+      .map(item => `${item.key}: ${item.value}`)
+      .join('\n');
 
     const formattedMessage = [
       `Source: ${source}`,
       `Submitted: ${new Date().toISOString()}`,
       `\n--- Form Field Submissions ---`,
-      extraAnswers.join('\n') || message || 'No form field data provided'
+      formAnswers || 'No form field data provided'
     ].join('\n');
 
-    // 3. Save Lead
+    // Save Lead
     const newLead = await Lead.create({
       company_id: companyId,
       first_name: firstName,
       last_name: lastName,
-      email: (email && email.trim()) ? email.trim() : null,
-      phone: phone || '',
-      subject: subject || `${source} Submission`,
+      email: leadEmail,
+      phone: rawPhone || '',
+      subject: rawSubject || `${source} Submission`,
       message: formattedMessage,
       source: source,
       status: 'New',
       priority: 'Medium',
-      lead_score: 50 // Default starter score for web form submissions
+      lead_score: 50
     });
 
     // 3. Create Activity Log
@@ -109,7 +123,7 @@ async function handler(request) {
     });
 
     const notificationTitle = 'New Lead Received';
-    const notificationMessage = `Name: ${name} | Source: ${source}`;
+    const notificationMessage = `Name: ${rawName} | Source: ${source}`;
 
     // Bulk create notifications for all company users
     const notificationPromises = users.map(user => {
@@ -161,20 +175,20 @@ async function handler(request) {
     for (const admin of admins) {
       await sendEmail({
         to: admin.email,
-        subject: `[CRM] New Lead: ${name}`,
-        text: `Hello ${admin.name},\n\nA new lead has been submitted to your CRM.\n\nName: ${name}\nEmail: ${email || 'N/A'}\nPhone: ${phone || 'N/A'}\nSubject: ${subject || 'N/A'}\nMessage: ${message || 'N/A'}\nSource: ${source}\n\nPlease log in to follow up.`,
+        subject: `[CRM] New Lead: ${rawName}`,
+        text: `Hello ${admin.name},\n\nA new lead has been submitted to your CRM.\n\nName: ${rawName}\nEmail: ${leadEmail || 'N/A'}\nPhone: ${rawPhone || 'N/A'}\nSubject: ${rawSubject || 'N/A'}\nSource: ${source}\n\nField Submissions:\n${formattedMessage}\n\nPlease log in to follow up.`,
         html: `
           <p>Hello <strong>${admin.name}</strong>,</p>
-          <p>A new lead has been submitted from your WordPress site.</p>
+          <p>A new lead has been submitted from your website/contact form.</p>
           <ul>
-            <li><strong>Name:</strong> ${name}</li>
-            <li><strong>Email:</strong> ${email || 'N/A'}</li>
-            <li><strong>Phone:</strong> ${phone || 'N/A'}</li>
+            <li><strong>Name:</strong> ${rawName}</li>
+            <li><strong>Email:</strong> ${leadEmail || 'N/A'}</li>
+            <li><strong>Phone:</strong> ${rawPhone || 'N/A'}</li>
             <li><strong>Source:</strong> ${source}</li>
-            <li><strong>Subject:</strong> ${subject || 'N/A'}</li>
+            <li><strong>Subject:</strong> ${rawSubject || 'N/A'}</li>
           </ul>
-          <p><strong>Message:</strong></p>
-          <blockquote style="border-left: 3px solid #ccc; padding-left: 10px;">${message || 'N/A'}</blockquote>
+          <p><strong>Submitted Form Details:</strong></p>
+          <pre style="background: #f4f5f7; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; white-space: pre-wrap;">${formattedMessage}</pre>
           <p><a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/leads/${newLead.id}">Click here to view Lead details</a></p>
         `
       });
