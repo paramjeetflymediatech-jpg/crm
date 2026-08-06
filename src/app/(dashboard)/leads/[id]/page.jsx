@@ -370,9 +370,56 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                 
                 {/* Inquiry message box */}
                 {lead.message && (
-                  <div className="mb-6 rounded-lg bg-slate-50 border border-slate-100 p-4">
-                    <p className="text-xs font-semibold text-indigo-650 mb-1">WordPress Inquiry Subject: {lead.subject || 'Inquiry'}</p>
-                    <p className="text-xs text-slate-600 italic leading-relaxed">"{lead.message}"</p>
+                  <div className="mb-6 rounded-xl bg-slate-50 border border-slate-200 p-5 shadow-xs">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-200">
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <MessageSquare className="h-4 w-4 text-indigo-600" />
+                        {lead.source === 'Facebook Ads' ? 'Facebook Lead Form Submission' : (lead.subject || 'Form Inquiry Message')}
+                      </h4>
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {lead.source || 'Website'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      {lead.message.includes(': ') ? (
+                        <div className="grid gap-2.5 sm:grid-cols-2">
+                          {lead.message.split('\n').map((line, idx) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
+                            if (trimmed.startsWith('---')) {
+                              return (
+                                <div key={idx} className="sm:col-span-2 pt-2 border-t border-slate-200 font-bold text-slate-700 text-[11px] tracking-wider uppercase">
+                                  {trimmed.replace(/---/g, '').trim()}
+                                </div>
+                              );
+                            }
+
+                            const colonIdx = trimmed.indexOf(': ');
+                            if (colonIdx > 0) {
+                              const key = trimmed.slice(0, colonIdx).replace(/^[•\-*]\s*/, '');
+                              const val = trimmed.slice(colonIdx + 2);
+                              return (
+                                <div key={idx} className="bg-white border border-slate-200/80 rounded-lg p-3 flex flex-col justify-between shadow-2xs">
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{key}</span>
+                                  <span className="text-xs font-semibold text-slate-900 break-words">{val}</span>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div key={idx} className="sm:col-span-2 text-slate-700 text-xs">
+                                {trimmed}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
+                          {lead.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 

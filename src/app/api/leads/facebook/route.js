@@ -135,14 +135,16 @@ async function processLeadgenEvent(body) {
         // Construct comprehensive message string containing all form fields & answers dynamically
         const formAnswers = (leadData.field_data || [])
           .map(f => {
+            const rawName = f.name || 'Field';
+            const label = rawName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             const val = Array.isArray(f.values) ? f.values.join(', ') : (f.values || 'N/A');
-            return `• ${f.name}: ${val}`;
+            return `${label}: ${val}`;
           })
           .join('\n');
 
         const messageContent = [
           `Source: Facebook Lead Ads`,
-          `Form: ${leadData.form_name || 'N/A'} (ID: ${form_id || leadData.form_id || 'N/A'})`,
+          `Form Name: ${leadData.form_name || 'N/A'} (ID: ${form_id || leadData.form_id || 'N/A'})`,
           `Ad ID: ${ad_id || 'N/A'} | AdGroup: ${adgroup_id || 'N/A'}`,
           `Created Time: ${leadData.created_time || new Date().toISOString()}`,
           `\n--- Form Field Submissions ---`,
