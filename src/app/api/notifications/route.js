@@ -71,5 +71,33 @@ async function postHandler(request) {
   }
 }
 
+async function deleteHandler(request) {
+  try {
+    const user = request.user;
+    const companyId = request.companyId;
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    const where = {
+      user_id: user.id
+    };
+
+    if (user.role !== 'super_admin') {
+      where.company_id = companyId;
+    }
+
+    if (id) {
+      where.id = id;
+    }
+
+    await Notification.destroy({ where });
+    return NextResponse.json({ success: true, message: id ? 'Notification cleared.' : 'All notifications cleared.' });
+  } catch (error) {
+    console.error('DELETE Notifications Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export const GET = withApiAuth(getHandler);
 export const POST = withApiAuth(postHandler);
+export const DELETE = withApiAuth(deleteHandler);

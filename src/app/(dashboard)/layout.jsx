@@ -217,6 +217,32 @@ export default function DashboardLayout({ children }) {
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      const response = await apiFetch('/api/notifications', {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error('Error clearing all notifications:', err);
+    }
+  };
+
+  const handleClearNotification = async (id) => {
+    try {
+      const response = await apiFetch(`/api/notifications?id=${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }
+    } catch (err) {
+      console.error('Error clearing notification:', err);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -251,6 +277,8 @@ export default function DashboardLayout({ children }) {
           notifications={notifications} 
           onMarkRead={handleMarkRead} 
           onMarkAllRead={handleMarkAllRead}
+          onClearAll={handleClearAll}
+          onClearNotification={handleClearNotification}
           onSearchChange={setSearchVal}
           searchValue={searchVal}
           onMenuToggle={() => setSidebarOpen(prev => !prev)}
