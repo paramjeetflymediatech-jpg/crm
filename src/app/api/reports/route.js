@@ -1,5 +1,5 @@
 const { NextResponse } = require('next/server');
-const { Lead, Task, User, sequelize } = require('@/models');
+const { Lead, Task, User, LeadNote, LeadActivity, sequelize } = require('@/models');
 const { withApiAuth } = require('@/lib/apiGuard');
 const { Op } = require('sequelize');
 
@@ -38,13 +38,13 @@ async function handler(request) {
     taskWhere.due_date = { [Op.between]: [todayStart, todayEnd] };
     const followupsToday = await Task.count({ where: taskWhere });
 
-    // 2. Fetch all leads with full details (for table + aggregations)
+    // 2. Fetch all leads with full details (for table + aggregations + remarks + follow-ups)
     const leads = await Lead.findAll({
       where,
       attributes: [
         'id', 'first_name', 'last_name', 'email', 'phone',
         'source', 'status', 'priority', 'lead_score',
-        'subject', 'assigned_to',
+        'subject', 'message', 'follow_up_date', 'assigned_to',
         // Must be explicitly listed — Sequelize does NOT auto-include timestamps when attributes array is used
         'createdAt', 'updatedAt'
       ],
@@ -53,6 +53,26 @@ async function handler(request) {
           model: User,
           as: 'AssignedUser',
           attributes: ['id', 'name'],
+          required: false
+        },
+        {
+          model: LeadNote,
+          as: 'Notes',
+          attributes: ['id', 'note', 'createdAt'],
+          include: [{ model: User, attributes: ['id', 'name'], required: false }],
+          required: false
+        },
+        {
+          model: Task,
+          as: 'Tasks',
+          attributes: ['id', 'title', 'description', 'due_date', 'status'],
+          include: [{ model: User, as: 'AssignedUser', attributes: ['id', 'name'], required: false }],
+          required: false
+        },
+        {
+          model: LeadActivity,
+          as: 'Activities',
+          attributes: ['id', 'action', 'description', 'createdAt'],
           required: false
         }
       ],
@@ -145,20 +165,70 @@ async function handler(request) {
     // 7. General Conversion Rate
     const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
 
-    // 8. Full leads detail list for table
-    const leadsDetail = leads.map(lead => ({
-      id: lead.id,
-      name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
-      email: lead.email || '',
-      phone: lead.phone || '',
-      source: lead.source || 'Unknown',
-      status: lead.status || 'New',
-      priority: lead.priority || 'Medium',
-      lead_score: lead.lead_score || 0,
-      subject: lead.subject || '',
-      assigned_to: lead.AssignedUser ? lead.AssignedUser.name : 'Unassigned',
-      created_at: lead.createdAt   // camelCase — Sequelize underscored: true
-    }));
+    // 8. Full leads detail list for table + exports (including remarks, conversion & follow-ups)
+    const leadsDetail = leads.map(lead => {
+      const notes = (lead.Notes || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const tasks = (lead.Tasks || []).sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+      // 1. Remarks (Notes + Message)
+      const notesRemarks = notes.map(n => {
+        const author = n.User ? n.User.name : 'Staff';
+        const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-GB') : '';
+        return `[${date} - ${author}]: ${n.note.replace(/\r?\n/g, ' ')}`;
+      }).join(' | ');
+
+      const remarks = notesRemarks || lead.message || 'No remarks recorded';
+      const latestRemark = notes.length > 0 ? notes[0].note : (lead.message || '');
+
+      // 2. Follow-up
+      let nextFollowUpDate = lead.follow_up_date 
+        ? new Date(lead.follow_up_date).toLocaleDateString('en-GB') 
+        : '';
+      
+      const pendingTasks = tasks.filter(t => t.status === 'Pending');
+      if (!nextFollowUpDate && pendingTasks.length > 0) {
+        nextFollowUpDate = new Date(pendingTasks[0].due_date).toLocaleDateString('en-GB');
+      }
+
+      const followUpDetails = tasks.length > 0
+        ? tasks.map(t => {
+            const dueDate = t.due_date ? new Date(t.due_date).toLocaleDateString('en-GB') : 'No Date';
+            const assignee = t.AssignedUser ? ` (${t.AssignedUser.name})` : '';
+            return `[${t.status}] ${t.title} - Due: ${dueDate}${assignee}${t.description ? ` (${t.description})` : ''}`;
+          }).join('; ')
+        : (nextFollowUpDate ? `Scheduled for ${nextFollowUpDate}` : 'No follow-up scheduled');
+
+      // 3. Conversion Status & Details
+      const isConverted = lead.status === 'Converted';
+      const conversionDate = isConverted ? new Date(lead.updatedAt || lead.createdAt).toLocaleDateString('en-GB') : '';
+      const conversionDetails = isConverted 
+        ? `Converted on ${conversionDate}` 
+        : (lead.status === 'Lost' ? 'Lost' : `In Pipeline (${lead.status})`);
+
+      return {
+        id: lead.id,
+        name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+        email: lead.email || '',
+        phone: lead.phone || '',
+        source: lead.source || 'Unknown',
+        status: lead.status || 'New',
+        priority: lead.priority || 'Medium',
+        lead_score: lead.lead_score || 0,
+        subject: lead.subject || '',
+        message: lead.message || '',
+        assigned_to: lead.AssignedUser ? lead.AssignedUser.name : 'Unassigned',
+        created_at: lead.createdAt,
+        // Remarks & Conversion & Follow-up
+        remarks,
+        latest_remark: latestRemark,
+        notes_count: notes.length,
+        follow_up_date: nextFollowUpDate || 'None',
+        follow_up_details: followUpDetails,
+        conversion_status: lead.status,
+        conversion_date: conversionDate,
+        conversion_details: conversionDetails
+      };
+    });
 
     return NextResponse.json({
       summary: {

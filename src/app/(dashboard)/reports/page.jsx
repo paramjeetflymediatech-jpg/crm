@@ -127,15 +127,43 @@ export default function ReportsPage() {
         'monthly_growth_report.csv'
       );
     } else if (type === 'leads') {
-      // Export filtered leads
+      // Export filtered leads with full remarks, follow-up, and conversion
       downloadCSV(
-        ['#', 'Name', 'Email', 'Phone', 'Source', 'Status', 'Priority', 'Lead Score', 'Assigned To', 'Subject', 'Created Date'],
+        [
+          '#',
+          'Name',
+          'Email',
+          'Phone',
+          'Source',
+          'Conversion Status',
+          'Priority',
+          'Lead Score',
+          'Assigned To',
+          'Subject / Inquiry',
+          'Next Follow-up Date',
+          'Follow-up Tasks & Details',
+          'Remarks / Notes',
+          'Conversion Details',
+          'Created Date'
+        ],
         filteredLeads.map((l, i) => [
-          i + 1, l.name, l.email, l.phone, l.source,
-          l.status, l.priority, l.lead_score, l.assigned_to, l.subject,
-          new Date(l.created_at).toLocaleDateString()
+          i + 1,
+          l.name,
+          l.email,
+          l.phone,
+          l.source,
+          l.status,
+          l.priority,
+          l.lead_score,
+          l.assigned_to,
+          l.subject,
+          l.follow_up_date || 'None',
+          l.follow_up_details || 'None',
+          l.remarks || 'No remarks recorded',
+          l.conversion_details || l.status,
+          new Date(l.created_at).toLocaleDateString('en-GB')
         ]),
-        'leads_detail_report.csv'
+        `leads_detail_report_${new Date().toISOString().split('T')[0]}.csv`
       );
     }
   };
@@ -244,33 +272,52 @@ export default function ReportsPage() {
     };
 
     // ── Leads detail section ── (uses filteredLeads so active search/status/source filters are respected)
-    const addLeadsDetail = (doc, startY) => {
+    const addLeadsDetail = (doc, startY, isLandscape = false) => {
       const leadsToExport = filteredLeads;
       if (!leadsToExport.length) return startY;
-      const y = startY > 240 ? (doc.addPage(), 20) : startY;
+      const y = startY > 240 ? (doc.addPage(isLandscape ? 'a4' : undefined, isLandscape ? 'landscape' : 'portrait'), 20) : startY;
       const heading = filteredLeads.length === (data.leadsDetail?.length || 0)
-        ? 'All Leads Detail'
+        ? 'All Leads Detail (with Conversion, Follow-ups & Remarks)'
         : `Leads Detail (Filtered: ${filteredLeads.length} of ${data.leadsDetail?.length || 0})`;
       addSectionHeading(doc, heading, y);
       autoTable(doc, {
         startY: y + 4,
-        head: [['#', 'Name', 'Email', 'Phone', 'Source', 'Status', 'Priority', 'Score', 'Assigned To', 'Date']],
+        head: [['#', 'Name', 'Contact', 'Source', 'Status', 'Follow-up', 'Remarks / Notes', 'Assigned To', 'Date']],
         body: leadsToExport.map((l, i) => [
           i + 1,
           l.name,
-          l.email,
-          l.phone,
+          `${l.phone || ''}\n${l.email || ''}`.trim() || '—',
           l.source,
           l.status,
-          l.priority,
-          l.lead_score,
+          l.follow_up_date && l.follow_up_date !== 'None' ? `${l.follow_up_date}\n${l.follow_up_details || ''}`.trim() : (l.follow_up_details || '—'),
+          l.remarks || '—',
           l.assigned_to,
-          new Date(l.created_at).toLocaleDateString(),
+          new Date(l.created_at).toLocaleDateString('en-GB'),
         ]),
-        styles: { fontSize: 7.5 },
+        styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
         headStyles: headerStyle([14, 165, 233]),
         alternateRowStyles: altRow,
-        columnStyles: { 2: { cellWidth: 38 } },
+        columnStyles: isLandscape ? {
+          0: { cellWidth: 10 },
+          1: { cellWidth: 32 },
+          2: { cellWidth: 36 },
+          3: { cellWidth: 24 },
+          4: { cellWidth: 26 },
+          5: { cellWidth: 42 },
+          6: { cellWidth: 62 },
+          7: { cellWidth: 24 },
+          8: { cellWidth: 20 }
+        } : {
+          0: { cellWidth: 8 },
+          1: { cellWidth: 22 },
+          2: { cellWidth: 26 },
+          3: { cellWidth: 16 },
+          4: { cellWidth: 18 },
+          5: { cellWidth: 28 },
+          6: { cellWidth: 42 },
+          7: { cellWidth: 18 },
+          8: { cellWidth: 14 }
+        },
       });
       return doc.lastAutoTable.finalY;
     };
@@ -281,8 +328,8 @@ export default function ReportsPage() {
       y = addMonthly(doc, y + 12);
       y = addSources(doc, y);
       y = addTeam(doc, y);
-      doc.addPage();
-      addLeadsDetail(doc, 20);
+      doc.addPage('a4', 'landscape');
+      addLeadsDetail(doc, 20, true);
       doc.save(`crm_full_report_${dateStr}.pdf`);
 
     } else if (type === 'summary') {
@@ -298,9 +345,10 @@ export default function ReportsPage() {
       doc.save(`crm_charts_report_${dateStr}.pdf`);
 
     } else if (type === 'leads') {
-      addTitle(doc, 'CRM Analytics Report — Leads Detail');
-      addLeadsDetail(doc, 40);
-      doc.save(`crm_leads_report_${dateStr}.pdf`);
+      const leadsDoc = new jsPDF('landscape');
+      addTitle(leadsDoc, 'CRM Analytics Report — Leads Detail (with Remarks & Follow-ups)');
+      addLeadsDetail(leadsDoc, 40, true);
+      leadsDoc.save(`crm_leads_report_${dateStr}.pdf`);
     }
   };
 
@@ -591,7 +639,7 @@ export default function ReportsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-y border-slate-100 bg-slate-50">
-                  {['#', 'Name', 'Email', 'Phone', 'Source', 'Status', 'Priority', 'Score', 'Assigned To', 'Date'].map(h => (
+                  {['#', 'Name', 'Contact', 'Source', 'Status', 'Follow-up', 'Remarks / Notes', 'Score', 'Assigned To', 'Date'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -611,12 +659,15 @@ export default function ReportsPage() {
                     <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
                       <td className="px-4 py-3 text-xs text-slate-400 font-mono">{rowNum}</td>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-slate-800 text-xs">{lead.name || '—'}</span>
+                        <span className="font-medium text-slate-800 text-xs block">{lead.name || '—'}</span>
+                        {lead.subject && <span className="text-[11px] text-slate-400 block truncate max-w-[140px]">{lead.subject}</span>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 max-w-[160px] truncate">{lead.email || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{lead.phone || '—'}</td>
-                      <td className="px-4 py-3 text-xs text-slate-600">{lead.source || '—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-xs text-slate-500 max-w-[150px]">
+                        <div className="truncate font-mono">{lead.phone || '—'}</div>
+                        <div className="text-[11px] text-slate-400 truncate">{lead.email || ''}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">{lead.source || '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span
                           className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
                           style={{ backgroundColor: sc.bg, color: sc.text }}
@@ -624,18 +675,32 @@ export default function ReportsPage() {
                           <span className="h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: sc.dot }} />
                           {lead.status}
                         </span>
+                        {lead.status === 'Converted' && lead.conversion_date && (
+                          <span className="block text-[10px] text-emerald-600 mt-0.5">Conv: {lead.conversion_date}</span>
+                        )}
                       </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap"
-                          style={{ backgroundColor: pc.bg, color: pc.text }}
-                        >
-                          {lead.priority}
-                        </span>
+                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[160px]">
+                        {lead.follow_up_date && lead.follow_up_date !== 'None' ? (
+                          <div>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                              {lead.follow_up_date}
+                            </span>
+                            <span className="block text-[11px] text-slate-400 truncate mt-0.5" title={lead.follow_up_details}>
+                              {lead.follow_up_details}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-slate-600 max-w-[200px]" title={lead.remarks}>
+                        <p className="line-clamp-2 text-xs leading-relaxed text-slate-600">
+                          {lead.remarks || '—'}
+                        </p>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-16 rounded-full bg-slate-100 overflow-hidden">
+                          <div className="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden">
                             <div
                               className="h-full rounded-full bg-indigo-500"
                               style={{ width: `${Math.min(100, lead.lead_score)}%` }}

@@ -1,6 +1,6 @@
 const { NextResponse } = require('next/server');
 const { Op } = require('sequelize');
-const { Lead, User, LeadActivity, LeadNote, Company } = require('@/models');
+const { Lead, User, LeadActivity, LeadNote, Task, Company } = require('@/models');
 const { withApiAuth } = require('@/lib/apiGuard');
 const { createLeadSchema } = require('@/validations/schemas');
 
@@ -78,9 +78,22 @@ async function getHandler(request) {
     // 4. Execute Query with Count
     const { count, rows } = await Lead.findAndCountAll({
       where,
+      distinct: true,
       include: [
         { model: User, as: 'AssignedUser', attributes: ['id', 'name', 'email', 'avatar'] },
-        { model: Company, attributes: ['id', 'company_name'] }
+        { model: Company, attributes: ['id', 'company_name'] },
+        {
+          model: LeadNote,
+          as: 'Notes',
+          attributes: ['id', 'note', 'createdAt'],
+          include: [{ model: User, attributes: ['id', 'name'] }]
+        },
+        {
+          model: Task,
+          as: 'Tasks',
+          attributes: ['id', 'title', 'description', 'due_date', 'status'],
+          include: [{ model: User, as: 'AssignedUser', attributes: ['id', 'name'] }]
+        }
       ],
       order: [[sortField, sortOrder]],
       limit,

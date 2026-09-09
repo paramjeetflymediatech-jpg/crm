@@ -290,36 +290,80 @@ export default function LeadsPage() {
     }
   };
 
-  // Export filtered leads to CSV
+  // Export filtered leads to CSV (with remarks, follow-up, and conversion)
   const handleExportCSV = () => {
     if (leads.length === 0) return;
     
     // Construct CSV Header
-    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Subject', 'Source', 'Status', 'Priority', 'Assignee', 'Created At'];
-    
-    const rows = leads.map(l => [
-      l.first_name,
-      l.last_name || '',
-      l.email || '',
-      l.phone || '',
-      `"${(l.subject || '').replace(/"/g, '""')}"`,
-      l.source || 'Manual',
-      l.status,
-      l.priority,
-      l.AssignedUser ? l.AssignedUser.name : 'Unassigned',
-      l.created_at || l.createdAt ? new Date(l.created_at || l.createdAt).toLocaleDateString() : 'N/A'
-    ]);
+    const headers = [
+      'First Name',
+      'Last Name',
+      'Email',
+      'Phone',
+      'Subject / Inquiry',
+      'Source',
+      'Conversion Status',
+      'Priority',
+      'Assignee',
+      'Next Follow-up Date',
+      'Follow-up Tasks / Reminders',
+      'Remarks / Notes',
+      'Created At'
+    ];
 
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const escape = (val) => {
+      const str = String(val ?? '');
+      return str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')
+        ? `"${str.replace(/"/g, '""')}"` : str;
+    };
     
-    const encodedUri = encodeURI(csvContent);
+    const rows = leads.map(l => {
+      // Extract remarks from Notes
+      const notes = (l.Notes || []).map(n => {
+        const author = n.User?.name || 'Staff';
+        const date = n.createdAt ? new Date(n.createdAt).toLocaleDateString('en-GB') : '';
+        return `[${date} - ${author}]: ${n.note.replace(/\r?\n/g, ' ')}`;
+      }).join(' | ') || l.message || 'No remarks';
+
+      // Extract follow-up tasks
+      const tasks = (l.Tasks || []).map(t => {
+        const dueDate = t.due_date ? new Date(t.due_date).toLocaleDateString('en-GB') : '';
+        return `[${t.status}] ${t.title}${dueDate ? ` (Due: ${dueDate})` : ''}`;
+      }).join('; ') || 'No scheduled tasks';
+
+      const followUpDate = l.follow_up_date 
+        ? new Date(l.follow_up_date).toLocaleDateString('en-GB')
+        : (l.Tasks?.find(t => t.status === 'Pending')?.due_date 
+            ? new Date(l.Tasks.find(t => t.status === 'Pending').due_date).toLocaleDateString('en-GB')
+            : 'None');
+
+      return [
+        l.first_name || '',
+        l.last_name || '',
+        l.email || '',
+        l.phone || '',
+        l.subject || '',
+        l.source || 'Manual',
+        l.status || 'New',
+        l.priority || 'Medium',
+        l.AssignedUser ? l.AssignedUser.name : 'Unassigned',
+        followUpDate,
+        tasks,
+        notes,
+        l.created_at || l.createdAt ? new Date(l.created_at || l.createdAt).toLocaleDateString('en-GB') : 'N/A'
+      ];
+    });
+
+    const csvContent = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `leads_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
