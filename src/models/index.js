@@ -149,6 +149,7 @@ async function syncDatabase(force = false) {
         'Contact Form',
         'Facebook Ads',
         'Google Ads',
+        'Justdial',
         'Organic Search',
         'Referral'
       ];

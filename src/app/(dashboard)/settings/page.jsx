@@ -36,7 +36,8 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
-  Shield
+  Shield,
+  PhoneCall
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
 
@@ -45,6 +46,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedJd, setCopiedJd] = useState(false);
 
   // Team Members tab state
   const [teamMembers, setTeamMembers] = useState([]);
@@ -379,6 +381,11 @@ export default function SettingsPage() {
           {currentUser?.role !== 'staff' && (
             <TabsTrigger value="facebook" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
               <Link2 className="h-4 w-4 mr-1.5" /> Facebook Ads
+            </TabsTrigger>
+          )}
+          {currentUser?.role !== 'staff' && (
+            <TabsTrigger value="justdial" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
+              <PhoneCall className="h-4 w-4 mr-1.5 text-orange-500" /> Justdial
             </TabsTrigger>
           )}
           <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
@@ -1003,7 +1010,118 @@ export default function SettingsPage() {
           </TabsContent>
         )}
 
-        {/* 5. My Profile Tab */}
+        {/* 5. Justdial Integration Tab */}
+        {currentUser?.role !== 'staff' && (
+          <TabsContent value="justdial" className="space-y-6">
+            <Card className="border-slate-200 bg-white text-slate-700 max-w-3xl">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 border border-orange-100">
+                    <PhoneCall className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-slate-900">Justdial Lead Ingestion Integration</CardTitle>
+                    <CardDescription className="text-xs text-slate-500">
+                      Receive customer enquiries directly from Justdial in real-time
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                
+                {/* How to activate box */}
+                <div className="rounded-lg bg-orange-50/70 border border-orange-100 p-4 text-xs text-orange-900 space-y-2">
+                  <p className="font-bold text-orange-950">⚡ How to Setup with Justdial</p>
+                  <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed text-orange-800">
+                    <li>Contact your <strong>Justdial Account Manager / Relationship Manager</strong> or Justdial Business Support.</li>
+                    <li>Ask them to configure <strong>Real-Time Lead Forwarding (Webhook / API Push)</strong> for your listing.</li>
+                    <li>Provide them with the <strong>CRM Webhook URL</strong> shown below.</li>
+                    <li>Ask them to send leads via <strong>POST (JSON or Form-Data)</strong> or <strong>GET</strong>.</li>
+                  </ol>
+                </div>
+
+                {/* Webhook Endpoint with API Key embedded */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Your Justdial Webhook URL (with API Key)
+                  </label>
+                  <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <span className="font-mono text-xs text-orange-700 select-all break-all flex-1">
+                      {typeof window !== 'undefined'
+                        ? `${window.location.origin}/api/leads/justdial?apiKey=${company?.api_key || 'YOUR_API_KEY'}`
+                        : `https://yourcrm.com/api/leads/justdial?apiKey=${company?.api_key || 'YOUR_API_KEY'}`}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/leads/justdial?apiKey=${company?.api_key || ''}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedJd(true);
+                        setTimeout(() => setCopiedJd(false), 2000);
+                      }}
+                      className="shrink-0 h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-slate-100"
+                    >
+                      {copiedJd ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-600 mr-1" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 mr-1" /> Copy URL
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Give this exact URL to Justdial. Any enquiry submitted on Justdial will automatically appear as a lead in your CRM with full customer details.
+                  </p>
+                </div>
+
+                {/* Supported Parameters Reference */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+                    Supported Justdial Parameters
+                  </h4>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-xs text-slate-700 space-y-2">
+                    <p className="text-slate-500">The webhook auto-detects standard Justdial fields including:</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono text-[11px] pt-1">
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>name / caller_name</code></div>
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>mobile / phone</code></div>
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>email / email_id</code></div>
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>category / service</code></div>
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>city / area / pincode</code></div>
+                      <div className="bg-white p-1.5 rounded border border-slate-200"><code>leadid / leadtype</code></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sample Test Payload */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+                    Sample JSON Webhook Payload for Testing
+                  </h4>
+                  <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 font-mono text-xs overflow-x-auto">
+{`{
+  "leadid": "JD998877",
+  "name": "Rajesh Kumar",
+  "mobile": "9876543210",
+  "email": "rajesh@example.com",
+  "category": "Digital Marketing Services",
+  "city": "Mumbai",
+  "area": "Andheri West",
+  "pincode": "400053",
+  "leadtype": "Hot"
+}`}
+                  </pre>
+                </div>
+
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* 6. My Profile Tab */}
         <TabsContent value="profile">
           <div className="grid gap-6 md:grid-cols-2 items-start max-w-5xl">
             {/* My Profile Credentials */}

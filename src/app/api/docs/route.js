@@ -90,6 +90,7 @@ const openApiSpec = {
     { name: 'Notifications', description: 'In-app notification management' },
     { name: 'WordPress Integration', description: 'External API for WordPress lead collection' },
     { name: 'Facebook Lead Ads', description: 'Facebook Lead Ads webhook integration' },
+    { name: 'Justdial Integration', description: 'Justdial real-time lead ingestion webhook' },
     { name: 'Reports', description: 'Analytics and reporting' },
     { name: 'Settings', description: 'Company and user settings' },
     { name: 'Users', description: 'User management' },
@@ -376,6 +377,65 @@ const openApiSpec = {
         },
         responses: {
           200: { description: 'Events processed' }
+        }
+      }
+    },
+    '/api/leads/justdial': {
+      get: {
+        tags: ['Justdial Integration'],
+        summary: 'Justdial webhook verification or GET-based lead submission',
+        security: [{ apiKey: [] }],
+        parameters: [
+          { name: 'apiKey', in: 'query', schema: { type: 'string' }, description: 'Company API Key' },
+          { name: 'leadid', in: 'query', schema: { type: 'string' }, description: 'Justdial Lead ID' },
+          { name: 'name', in: 'query', schema: { type: 'string' }, description: 'Customer Name' },
+          { name: 'mobile', in: 'query', schema: { type: 'string' }, description: 'Customer Mobile' },
+          { name: 'email', in: 'query', schema: { type: 'string' }, description: 'Customer Email' },
+          { name: 'category', in: 'query', schema: { type: 'string' }, description: 'Enquiry Category' },
+          { name: 'city', in: 'query', schema: { type: 'string' }, description: 'City' },
+          { name: 'area', in: 'query', schema: { type: 'string' }, description: 'Area / Locality' }
+        ],
+        responses: {
+          200: { description: 'Webhook active and verified' },
+          201: { description: 'Lead received successfully' },
+          401: { description: 'Invalid or missing API key' }
+        }
+      },
+      post: {
+        tags: ['Justdial Integration'],
+        summary: 'Receive real-time lead push from Justdial',
+        security: [{ apiKey: [] }],
+        parameters: [
+          { name: 'apiKey', in: 'query', schema: { type: 'string' }, description: 'Company API Key (if not in header/body)' }
+        ],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  leadid: { type: 'string', example: 'JD998877' },
+                  name: { type: 'string', example: 'Rajesh Kumar' },
+                  mobile: { type: 'string', example: '9876543210' },
+                  email: { type: 'string', example: 'rajesh@example.com' },
+                  category: { type: 'string', example: 'Digital Marketing Services' },
+                  city: { type: 'string', example: 'Mumbai' },
+                  area: { type: 'string', example: 'Andheri West' },
+                  pincode: { type: 'string', example: '400053' },
+                  leadtype: { type: 'string', example: 'Hot' }
+                }
+              }
+            },
+            'application/x-www-form-urlencoded': {
+              schema: {
+                type: 'object'
+              }
+            }
+          }
+        },
+        responses: {
+          201: { description: 'Lead received and processed successfully' },
+          401: { description: 'Invalid or missing API key' }
         }
       }
     },
