@@ -8,12 +8,25 @@ import {
   requestPermission, 
   AuthorizationStatus 
 } from '@react-native-firebase/messaging';
+import { getApps } from '@react-native-firebase/app';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import { mobileApiFetch } from '../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 
+function isFirebaseAvailable(): boolean {
+  try {
+    return getApps().length > 0;
+  } catch {
+    return false;
+  }
+}
+
 async function requestUserPermission() {
+  if (!isFirebaseAvailable()) {
+    return false;
+  }
+
   if (Platform.OS === 'android' && Platform.Version >= 33) {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
@@ -31,6 +44,10 @@ async function requestUserPermission() {
 }
 
 export async function registerDeviceToken() {
+  if (!isFirebaseAvailable()) {
+    console.warn('[PushNotification] Firebase is not initialized. Skipping device token registration.');
+    return;
+  }
   try {
     const hasPermission = await requestUserPermission();
     if (!hasPermission) {
@@ -61,6 +78,9 @@ export async function registerDeviceToken() {
 }
 
 export async function unregisterDeviceToken() {
+  if (!isFirebaseAvailable()) {
+    return;
+  }
   try {
     const token = await AsyncStorage.getItem('fcm_token');
     if (!token) return;
@@ -95,6 +115,11 @@ export function setOnNotificationPressed(callback: () => void) {
 }
 
 export function initPushNotifications() {
+  if (!isFirebaseAvailable()) {
+    console.warn('[PushNotification] Firebase is not initialized. Skipping push notification listeners.');
+    return () => {};
+  }
+
   const msg = getMessaging();
 
   // 1. Listen for token refresh
