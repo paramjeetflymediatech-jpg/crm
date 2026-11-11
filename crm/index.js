@@ -5,10 +5,10 @@
 import { AppRegistry } from 'react-native';
 import App from './App';
 import { name as appName } from './app.json';
-import messaging from '@react-native-firebase/messaging';
+import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebase/messaging';
 
-// Register background handler
-messaging().setBackgroundMessageHandler(async remoteMessage => {
+// Register background handler (modular API)
+setBackgroundMessageHandler(getMessaging(), async remoteMessage => {
   console.log('[FCM] Message handled in the background!', remoteMessage);
 });
 

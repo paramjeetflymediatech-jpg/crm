@@ -98,7 +98,7 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
         activeOpacity={0.7}
       >
         <View style={styles.notiIconWrapper}>
-          <Bell size={18} color={isUnread ? '#818cf8' : '#64748b'} />
+          <Bell size={18} color={isUnread ? '#2563eb' : '#64748b'} />
         </View>
         <View style={styles.notiTextContainer}>
           <Text style={[styles.notiTitle, isUnread && styles.notiTitleUnread]}>{item.title}</Text>
@@ -118,7 +118,7 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {onBack && (
             <TouchableOpacity onPress={onBack} style={{ marginRight: 12 }}>
-              <ChevronLeft size={24} color="#818cf8" />
+              <ChevronLeft size={24} color="#2563eb" />
             </TouchableOpacity>
           )}
           <Text style={styles.title}>Notifications</Text>
@@ -128,14 +128,14 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
           onPress={handleMarkAllRead}
           activeOpacity={0.7}
         >
-          <CheckSquare size={16} color="#818cf8" style={{ marginRight: 6 }} />
+          <CheckSquare size={16} color="#2563eb" style={{ marginRight: 6 }} />
           <Text style={styles.markReadBtnText}>Mark all read</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
         <FlatList 
@@ -144,11 +144,11 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <BellOff size={40} color="#334155" style={{ marginBottom: 12 }} />
+              <BellOff size={40} color="#cbd5e1" style={{ marginBottom: 12 }} />
               <Text style={styles.emptyText}>You have no notifications.</Text>
             </View>
           }
@@ -161,12 +161,13 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
@@ -175,21 +176,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   title: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '700',
   },
   markReadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   markReadBtnText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -199,49 +204,60 @@ const styles = StyleSheet.create({
   },
   notiCard: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     alignItems: 'center',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   notiCardUnread: {
-    borderColor: '#475569',
-    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    borderColor: '#bfdbfe',
+    backgroundColor: '#f0f7ff',
   },
   notiIconWrapper: {
     marginRight: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#eff6ff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notiTextContainer: {
     flex: 1,
   },
   notiTitle: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 4,
   },
   notiTitleUnread: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: '#0f172a',
+    fontWeight: '700',
   },
   notiMessage: {
-    color: '#cbd5e1',
+    color: '#334155',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 6,
   },
   notiTime: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 10,
   },
   unreadIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     marginLeft: 12,
   },
   emptyContainer: {
@@ -250,7 +266,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: '#475569',
+    color: '#94a3b8',
     fontSize: 14,
     fontWeight: '500',
   },

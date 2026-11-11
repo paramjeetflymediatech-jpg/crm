@@ -55,7 +55,7 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.loadingText}>Loading Metrics...</Text>
       </View>
     );
@@ -84,7 +84,7 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
             onPress={onNotificationPress}
             activeOpacity={0.7}
           >
-            <Bell size={22} color="#cbd5e1" />
+            <Bell size={20} color="#2563eb" />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -97,7 +97,7 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
         }
       >
         {error && (
@@ -109,48 +109,48 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
 
         <View style={styles.grid}>
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
-              <Users size={20} color="#818cf8" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#eff6ff' }]}>
+              <Users size={20} color="#2563eb" />
             </View>
             <Text style={styles.cardVal}>{summary.totalLeads}</Text>
             <Text style={styles.cardLbl}>Total Leads</Text>
           </View>
 
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(14, 165, 233, 0.15)' }]}>
-              <Sparkles size={20} color="#38bdf8" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#eff6ff' }]}>
+              <Sparkles size={20} color="#0284c7" />
             </View>
             <Text style={styles.cardVal}>{summary.newLeads}</Text>
             <Text style={styles.cardLbl}>New Leads</Text>
           </View>
 
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-              <TrendingUp size={20} color="#fbbf24" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#fffbeb' }]}>
+              <TrendingUp size={20} color="#d97706" />
             </View>
             <Text style={styles.cardVal}>{summary.qualifiedLeads}</Text>
             <Text style={styles.cardLbl}>Qualified</Text>
           </View>
 
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <CheckCircle2 size={20} color="#34d399" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#ecfdf5' }]}>
+              <CheckCircle2 size={20} color="#059669" />
             </View>
             <Text style={styles.cardVal}>{summary.convertedLeads}</Text>
             <Text style={styles.cardLbl}>Converted</Text>
           </View>
 
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-              <ListTodo size={20} color="#f87171" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#fef2f2' }]}>
+              <ListTodo size={20} color="#dc2626" />
             </View>
             <Text style={styles.cardVal}>{summary.followupsToday}</Text>
             <Text style={styles.cardLbl}>Follow-ups Today</Text>
           </View>
 
           <View style={[styles.card, styles.col6]}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
-              <TrendingUp size={20} color="#c084fc" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#faf5ff' }]}>
+              <TrendingUp size={20} color="#9333ea" />
             </View>
             <Text style={styles.cardVal}>{summary.conversionRate}%</Text>
             <Text style={styles.cardLbl}>Conversion Rate</Text>
@@ -167,7 +167,7 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
             {(data?.charts?.leadPipeline || []).map((item: any, idx: number) => (
               <View key={idx} style={styles.pipelineRow}>
                 <View style={styles.pipelineNameCol}>
-                  <View style={[styles.indicatorDot, { backgroundColor: ['#6366f1', '#38bdf8', '#fbbf24', '#34d399', '#f87171', '#c084fc'][idx % 6] }]} />
+                  <View style={[styles.indicatorDot, { backgroundColor: ['#2563eb', '#0284c7', '#d97706', '#059669', '#dc2626', '#9333ea'][idx % 6] }]} />
                   <Text style={styles.pipelineName}>{item.name}</Text>
                 </View>
                 <Text style={styles.pipelineValue}>{item.value}</Text>
@@ -186,26 +186,27 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   loadingText: {
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 12,
     fontSize: 14,
+    fontWeight: '500',
   },
   header: {
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -214,11 +215,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#bfdbfe',
   },
   bellBadge: {
     position: 'absolute',
@@ -238,14 +239,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   welcomeText: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '700',
   },
   companyText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     marginTop: 2,
   },
   scrollContent: {
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fca5a5',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 20,
   },
@@ -279,53 +280,53 @@ const styles = StyleSheet.create({
     width: '48%',
   },
   card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   iconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
   cardVal: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
     marginBottom: 4,
   },
   cardLbl: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   section: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 16,
   },
   pipelineContainer: {
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     paddingBottom: 8,
     marginBottom: 8,
   },
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#f1f5f9',
   },
   pipelineNameCol: {
     flexDirection: 'row',
@@ -364,17 +365,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   pipelineName: {
-    color: '#cbd5e1',
+    color: '#334155',
     fontSize: 13,
     fontWeight: '500',
   },
   pipelineValue: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   emptyText: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 12,

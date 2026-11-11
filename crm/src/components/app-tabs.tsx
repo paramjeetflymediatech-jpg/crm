@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Alert, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Alert, ScrollView, Image, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { logoutUser } from '../store/authSlice';
@@ -22,12 +23,19 @@ import { LayoutDashboard, Users, Calendar as CalendarIcon, TrendingUp, Menu, Bel
 export default function AppTabs() {
   const user = useSelector((state: RootState) => state.auth.user);
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more'>('dashboard');
   const [moreView, setMoreView] = useState<'menu' | 'alerts' | 'settings' | 'admin'>('menu');
   const [targetLeadId, setTargetLeadId] = useState<number | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsSourceTab, setNotificationsSourceTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more' | null>(null);
+
+  // Responsive bottom padding for gesture navigation vs 3-button navigation
+  const isGestureNav = insets.bottom > 0 && insets.bottom <= 28;
+  const dynamicBottomPadding = insets.bottom > 0
+    ? (isGestureNav ? Math.max(insets.bottom - 6, 6) : insets.bottom + 2)
+    : (Platform.OS === 'ios' ? 12 : 8);
 
   useEffect(() => {
     if (!user) return;
@@ -92,6 +100,17 @@ export default function AppTabs() {
     }
   };
 
+  const handleNavigateToAlerts = (source: 'dashboard' | 'leads' | 'calendar' | 'reports' | 'more' = 'dashboard') => {
+    setNotificationsSourceTab(source);
+    setActiveTab('more');
+    setMoreView('alerts');
+  };
+
+  const handleNavigateToLeads = (leadId: number) => {
+    setActiveTab('leads');
+    setTargetLeadId(leadId);
+  };
+
   useEffect(() => {
     fetchUnread();
   }, [activeTab]);
@@ -106,17 +125,6 @@ export default function AppTabs() {
     };
   }, []);
 
-  const handleNavigateToLeads = (leadId: number) => {
-    setActiveTab('leads');
-    setTargetLeadId(leadId);
-  };
-
-  const handleNavigateToAlerts = (source: 'dashboard' | 'leads' | 'calendar' | 'reports' | 'more' = 'dashboard') => {
-    setNotificationsSourceTab(source);
-    setActiveTab('more');
-    setMoreView('alerts');
-  };
-
   const handleLogout = () => {
     Alert.alert(
       'Confirm Sign Out',
@@ -124,7 +132,7 @@ export default function AppTabs() {
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Sign Out', 
+          text: 'Proceed', 
           style: 'destructive',
           onPress: () => {
             unregisterDeviceToken().catch(err => console.error('[FCM] Error unregistering token:', err)).finally(() => {
@@ -188,7 +196,7 @@ export default function AppTabs() {
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
-                <Bell size={18} color="#818cf8" style={{ marginRight: 12 }} />
+                <Bell size={18} color="#2563eb" style={{ marginRight: 12 }} />
                 <Text style={styles.menuItemText}>Alerts</Text>
                 {unreadCount > 0 && (
                   <View style={styles.inlineBadge}>
@@ -196,7 +204,7 @@ export default function AppTabs() {
                   </View>
                 )}
               </View>
-              <ChevronRight size={16} color="#64748b" />
+              <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -205,10 +213,10 @@ export default function AppTabs() {
               activeOpacity={0.7}
             >
               <View style={styles.menuItemLeft}>
-                <SettingsIcon size={18} color="#818cf8" style={{ marginRight: 12 }} />
+                <SettingsIcon size={18} color="#2563eb" style={{ marginRight: 12 }} />
                 <Text style={styles.menuItemText}>Settings</Text>
               </View>
-              <ChevronRight size={16} color="#64748b" />
+              <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
 
             {user?.role === 'super_admin' && (
@@ -218,12 +226,22 @@ export default function AppTabs() {
                 activeOpacity={0.7}
               >
                 <View style={styles.menuItemLeft}>
-                  <ShieldAlert size={18} color="#f87171" style={{ marginRight: 12 }} />
-                  <Text style={[styles.menuItemText, { color: '#f87171' }]}>Platform Control Panel</Text>
+                  <ShieldAlert size={18} color="#ef4444" style={{ marginRight: 12 }} />
+                  <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Platform Control Panel</Text>
                 </View>
-                <ChevronRight size={16} color="#64748b" />
+                <ChevronRight size={16} color="#94a3b8" />
               </TouchableOpacity>
             )}
+          </View>
+
+          <View style={styles.appBranding}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.brandLogo} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.brandTitle}>Enterprise CRM</Text>
+            <Text style={styles.brandVersion}>v1.0.8 • Production Build</Text>
           </View>
 
           <TouchableOpacity 
@@ -281,15 +299,23 @@ export default function AppTabs() {
         {renderContent()}
       </View>
 
-      <SafeAreaView style={styles.tabBarContainer}>
+      <View style={[styles.tabBarContainer, { paddingBottom: dynamicBottomPadding }]}>
         <View style={styles.tabBar}>
           <TouchableOpacity 
             style={styles.tabItem} 
             onPress={() => setActiveTab('dashboard')}
             activeOpacity={0.7}
           >
-            <LayoutDashboard size={20} color={activeTab === 'dashboard' ? '#6366f1' : '#64748b'} />
-            <Text style={[styles.tabLabel, { color: activeTab === 'dashboard' ? '#6366f1' : '#64748b' }]}>Dashboard</Text>
+            <View style={[styles.iconPill, activeTab === 'dashboard' && styles.iconPillActive]}>
+              <LayoutDashboard 
+                size={20} 
+                color={activeTab === 'dashboard' ? '#2563eb' : '#64748b'} 
+                strokeWidth={activeTab === 'dashboard' ? 2.4 : 1.9}
+              />
+            </View>
+            <Text style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}>
+              Dashboard
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -297,8 +323,16 @@ export default function AppTabs() {
             onPress={() => setActiveTab('leads')}
             activeOpacity={0.7}
           >
-            <Users size={20} color={activeTab === 'leads' ? '#6366f1' : '#64748b'} />
-            <Text style={[styles.tabLabel, { color: activeTab === 'leads' ? '#6366f1' : '#64748b' }]}>Leads</Text>
+            <View style={[styles.iconPill, activeTab === 'leads' && styles.iconPillActive]}>
+              <Users 
+                size={20} 
+                color={activeTab === 'leads' ? '#2563eb' : '#64748b'} 
+                strokeWidth={activeTab === 'leads' ? 2.4 : 1.9}
+              />
+            </View>
+            <Text style={[styles.tabLabel, activeTab === 'leads' && styles.tabLabelActive]}>
+              Leads
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -306,8 +340,16 @@ export default function AppTabs() {
             onPress={() => setActiveTab('calendar')}
             activeOpacity={0.7}
           >
-            <CalendarIcon size={20} color={activeTab === 'calendar' ? '#6366f1' : '#64748b'} />
-            <Text style={[styles.tabLabel, { color: activeTab === 'calendar' ? '#6366f1' : '#64748b' }]}>Calendar</Text>
+            <View style={[styles.iconPill, activeTab === 'calendar' && styles.iconPillActive]}>
+              <CalendarIcon 
+                size={20} 
+                color={activeTab === 'calendar' ? '#2563eb' : '#64748b'} 
+                strokeWidth={activeTab === 'calendar' ? 2.4 : 1.9}
+              />
+            </View>
+            <Text style={[styles.tabLabel, activeTab === 'calendar' && styles.tabLabelActive]}>
+              Calendar
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -315,8 +357,16 @@ export default function AppTabs() {
             onPress={() => setActiveTab('reports')}
             activeOpacity={0.7}
           >
-            <TrendingUp size={20} color={activeTab === 'reports' ? '#6366f1' : '#64748b'} />
-            <Text style={[styles.tabLabel, { color: activeTab === 'reports' ? '#6366f1' : '#64748b' }]}>Reports</Text>
+            <View style={[styles.iconPill, activeTab === 'reports' && styles.iconPillActive]}>
+              <TrendingUp 
+                size={20} 
+                color={activeTab === 'reports' ? '#2563eb' : '#64748b'} 
+                strokeWidth={activeTab === 'reports' ? 2.4 : 1.9}
+              />
+            </View>
+            <Text style={[styles.tabLabel, activeTab === 'reports' && styles.tabLabelActive]}>
+              Reports
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -327,18 +377,24 @@ export default function AppTabs() {
             }}
             activeOpacity={0.7}
           >
-            <View>
-              <Menu size={20} color={activeTab === 'more' ? '#6366f1' : '#64748b'} />
+            <View style={[styles.iconPill, activeTab === 'more' && styles.iconPillActive]}>
+              <Menu 
+                size={20} 
+                color={activeTab === 'more' ? '#2563eb' : '#64748b'} 
+                strokeWidth={activeTab === 'more' ? 2.4 : 1.9}
+              />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
             </View>
-            <Text style={[styles.tabLabel, { color: activeTab === 'more' ? '#6366f1' : '#64748b' }]}>More</Text>
+            <Text style={[styles.tabLabel, activeTab === 'more' && styles.tabLabelActive]}>
+              More
+            </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -346,36 +402,62 @@ export default function AppTabs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   content: {
     flex: 1,
   },
   tabBarContainer: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderTopWidth: 1,
-    borderColor: '#334155',
+    borderTopColor: '#f1f5f9',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
+    paddingTop: 5,
   },
   tabBar: {
     flexDirection: 'row',
-    height: 52,
+    height: 48,
     justifyContent: 'space-around',
     alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 4,
   },
   tabItem: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '20%',
+    paddingVertical: 2,
+  },
+  iconPill: {
+    width: 44,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  iconPillActive: {
+    backgroundColor: '#eff6ff',
   },
   tabLabel: {
-    fontSize: 9,
-    marginTop: 4,
+    fontSize: 10.5,
+    marginTop: 2,
     fontWeight: '500',
+    color: '#64748b',
+    letterSpacing: -0.1,
+  },
+  tabLabelActive: {
+    color: '#2563eb',
+    fontWeight: '700',
   },
   badge: {
     position: 'absolute',
-    right: -8,
-    top: -4,
+    right: -4,
+    top: -3,
     backgroundColor: '#ef4444',
     borderRadius: 8,
     minWidth: 16,
@@ -383,26 +465,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   badgeText: {
     color: '#ffffff',
-    fontSize: 8,
-    fontWeight: 'bold',
+    fontSize: 8.5,
+    fontWeight: '800',
   },
   moreContainer: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   moreHeader: {
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   moreHeaderTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '700',
   },
@@ -412,31 +496,31 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 18,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.25)',
+    borderColor: '#bfdbfe',
   },
   avatarText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -444,34 +528,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   profileRole: {
-    color: '#38bdf8',
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-    marginTop: 2,
+    color: '#2563eb',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginTop: 4,
+    letterSpacing: 0.5,
   },
   profileCompany: {
-    color: '#94a3b8',
-    fontSize: 12,
+    color: '#64748b',
+    fontSize: 13,
     marginTop: 2,
   },
   menuList: {
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     overflow: 'hidden',
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   menuItem: {
     flexDirection: 'row',
@@ -479,15 +564,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderColor: '#0f172a',
+    borderColor: '#f1f5f9',
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   menuItemText: {
-    color: '#cbd5e1',
-    fontSize: 14,
+    color: '#1e293b',
+    fontSize: 15,
     fontWeight: '500',
   },
   inlineBadge: {
@@ -505,16 +590,37 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: 'bold',
   },
+  appBranding: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  brandLogo: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  brandTitle: {
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  brandVersion: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 2,
+  },
   logoutBtn: {
     flexDirection: 'row',
     backgroundColor: '#ef4444',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 3,
   },

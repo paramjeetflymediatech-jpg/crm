@@ -238,11 +238,11 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
     if (!selectedLead) return;
     Alert.alert(
       'Confirm Deletion',
-      'Are you sure you want to permanently delete this lead?',
+      'Are you sure you want to permanently delete this lead? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: 'Proceed', 
           style: 'destructive',
           onPress: async () => {
             try {
@@ -274,16 +274,16 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
           <Text style={styles.leadName}>{item.first_name} {item.last_name || ''}</Text>
           <View style={[
             styles.statusBadge, 
-            { backgroundColor: isNew ? 'rgba(14, 165, 233, 0.15)' : isConverted ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)' }
+            { backgroundColor: isNew ? '#eff6ff' : isConverted ? '#ecfdf5' : '#f1f5f9' }
           ]}>
             <Text style={[
               styles.statusText,
-              { color: isNew ? '#38bdf8' : isConverted ? '#34d399' : '#cbd5e1' }
+              { color: isNew ? '#2563eb' : isConverted ? '#059669' : '#475569' }
             ]}>{item.status}</Text>
           </View>
         </View>
 
-        <Text style={styles.leadSource}>WordPress: {item.source || 'Manual'}</Text>
+        <Text style={styles.leadSource}>Source: {item.source || 'Manual'}</Text>
         
         {item.email && (
           <View style={styles.metaRow}>
@@ -306,11 +306,11 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.searchWrapper}>
-          <Search size={18} color="#64748b" style={styles.searchIcon} />
+          <Search size={18} color="#2563eb" style={styles.searchIcon} />
           <TextInput 
             style={styles.searchInput}
             placeholder="Search leads..."
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#94a3b8"
             value={search}
             onChangeText={setSearch}
           />
@@ -339,7 +339,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
         <FlatList 
@@ -348,7 +348,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
@@ -367,7 +367,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <X size={24} color="#ffffff" />
+              <X size={24} color="#0f172a" />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Lead Details</Text>
             {currentUser?.role !== 'staff' ? (
@@ -379,7 +379,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
 
           {detailLoading && !selectedLead ? (
             <View style={styles.modalLoading}>
-              <ActivityIndicator size="large" color="#6366f1" />
+              <ActivityIndicator size="large" color="#2563eb" />
             </View>
           ) : (
             <View style={{ flex: 1 }}>
@@ -398,11 +398,11 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
 
                 <View style={styles.detailsSection}>
                   <View style={styles.detailItem}>
-                    <Mail size={16} color="#64748b" style={styles.detailIcon} />
+                    <Mail size={16} color="#2563eb" style={styles.detailIcon} />
                     <Text style={styles.detailVal}>{selectedLead?.email || 'No email'}</Text>
                   </View>
                   <View style={styles.detailItem}>
-                    <Phone size={16} color="#64748b" style={styles.detailIcon} />
+                    <Phone size={16} color="#2563eb" style={styles.detailIcon} />
                     <Text style={styles.detailVal}>{selectedLead?.phone || 'No phone'}</Text>
                   </View>
                 </View>
@@ -440,7 +440,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
                     style={[styles.tabButton, activeTab === 'timeline' && styles.tabButtonActive]}
                     onPress={() => setActiveTab('timeline')}
                   >
-                    <Activity size={16} color={activeTab === 'timeline' ? '#818cf8' : '#64748b'} />
+                    <Activity size={16} color={activeTab === 'timeline' ? '#2563eb' : '#64748b'} />
                     <Text style={[styles.tabText, activeTab === 'timeline' && styles.tabTextActive]}>Timeline</Text>
                   </TouchableOpacity>
 
@@ -448,7 +448,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
                     style={[styles.tabButton, activeTab === 'notes' && styles.tabButtonActive]}
                     onPress={() => setActiveTab('notes')}
                   >
-                    <MessageSquare size={16} color={activeTab === 'notes' ? '#818cf8' : '#64748b'} />
+                    <MessageSquare size={16} color={activeTab === 'notes' ? '#2563eb' : '#64748b'} />
                     <Text style={[styles.tabText, activeTab === 'notes' && styles.tabTextActive]}>Notes</Text>
                   </TouchableOpacity>
 
@@ -456,7 +456,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
                     style={[styles.tabButton, activeTab === 'tasks' && styles.tabButtonActive]}
                     onPress={() => setActiveTab('tasks')}
                   >
-                    <CheckSquare size={16} color={activeTab === 'tasks' ? '#818cf8' : '#64748b'} />
+                    <CheckSquare size={16} color={activeTab === 'tasks' ? '#2563eb' : '#64748b'} />
                     <Text style={[styles.tabText, activeTab === 'tasks' && styles.tabTextActive]}>Tasks</Text>
                   </TouchableOpacity>
                 </View>
@@ -611,28 +611,29 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId }: Leads
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8fafc',
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 64,
     paddingBottom: 16,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   searchWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
-    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#cbd5e1',
     paddingHorizontal: 12,
     marginBottom: 12,
   },
@@ -641,7 +642,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
     paddingVertical: 10,
   },
@@ -652,38 +653,43 @@ const styles = StyleSheet.create({
     paddingRight: 10,
   },
   filterChip: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 12,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   filterChipText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   filterChipTextActive: {
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
     paddingBottom: 40,
   },
   leadCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   leadHeader: {
     flexDirection: 'row',
@@ -692,14 +698,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   leadName: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 10,
@@ -707,9 +713,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   leadSource: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
     marginBottom: 10,
   },
   metaRow: {
@@ -721,20 +727,22 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   metaText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
+    fontWeight: '500',
   },
   emptyContainer: {
     paddingVertical: 60,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 14,
+    fontWeight: '500',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -743,12 +751,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 54,
     paddingBottom: 16,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   modalTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '700',
   },
@@ -768,44 +776,56 @@ const styles = StyleSheet.create({
   },
   modalProfileCard: {
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     marginBottom: 20,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   profileAvatar: {
-    backgroundColor: '#6366f1',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    backgroundColor: '#eff6ff',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
   },
   avatarLetter: {
-    color: '#ffffff',
-    fontSize: 24,
+    color: '#2563eb',
+    fontSize: 26,
     fontWeight: 'bold',
   },
   profileName: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 4,
   },
   profileSource: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
   },
   detailsSection: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
     marginBottom: 20,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   detailItem: {
     flexDirection: 'row',
@@ -816,21 +836,27 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   detailVal: {
-    color: '#cbd5e1',
+    color: '#1e293b',
     fontSize: 14,
+    fontWeight: '500',
   },
   selectorsCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
     marginBottom: 20,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   selectorLabel: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
     marginBottom: 8,
     letterSpacing: 0.5,
@@ -841,30 +867,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   smallChip: {
-    backgroundColor: '#0f172a',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 4,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#cbd5e1',
   },
   smallChipActive: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
   },
   smallChipText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   smallChipTextActive: {
     color: '#ffffff',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   tabsHeader: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     marginBottom: 16,
   },
   tabButton: {
@@ -876,7 +902,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   tabButtonActive: {
-    borderColor: '#6366f1',
+    borderColor: '#2563eb',
   },
   tabText: {
     color: '#64748b',
@@ -885,8 +911,8 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   tabTextActive: {
-    color: '#818cf8',
-    fontWeight: '600',
+    color: '#2563eb',
+    fontWeight: '700',
   },
   tabContentContainer: {
     paddingBottom: 60,
@@ -895,23 +921,22 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   inquiryBox: {
-    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    backgroundColor: '#eff6ff',
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.2)',
-    borderRadius: 8,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
   inquirySubject: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
   },
   inquiryBody: {
-    color: '#cbd5e1',
+    color: '#334155',
     fontSize: 12,
-    fontStyle: 'italic',
     lineHeight: 18,
   },
   timelineRow: {
@@ -922,7 +947,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     marginTop: 6,
     marginRight: 12,
   },
@@ -930,65 +955,75 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   timelineAction: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   timelineDesc: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
     marginTop: 2,
   },
   timelineTime: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 10,
     marginTop: 4,
   },
   emptyTabText: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 12,
   },
   notesTab: {},
   addNoteContainer: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
-    padding: 12,
+    borderColor: '#e2e8f0',
+    padding: 14,
     marginBottom: 16,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   noteInput: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 13,
     minHeight: 60,
     textAlignVertical: 'top',
-    padding: 8,
-    backgroundColor: '#0f172a',
-    borderRadius: 6,
+    padding: 10,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#cbd5e1',
     marginBottom: 10,
   },
   noteSubmitBtn: {
-    backgroundColor: '#6366f1',
-    borderRadius: 6,
-    paddingVertical: 8,
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 10,
     alignItems: 'center',
   },
   btnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
   noteCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     marginBottom: 10,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   noteHeader: {
     flexDirection: 'row',
@@ -996,16 +1031,16 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   noteUser: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   noteTime: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 10,
   },
   noteText: {
-    color: '#cbd5e1',
+    color: '#1e293b',
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1017,69 +1052,79 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   tasksTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   addTaskBtn: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   addTaskBtnText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 12,
     fontWeight: '600',
   },
   addTaskForm: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
-    padding: 12,
+    borderColor: '#e2e8f0',
+    padding: 14,
     marginBottom: 16,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   taskInput: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 13,
-    backgroundColor: '#0f172a',
-    borderRadius: 6,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
-    padding: 8,
+    borderColor: '#cbd5e1',
+    padding: 10,
     marginBottom: 10,
   },
   taskItem: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     marginBottom: 10,
     alignItems: 'flex-start',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   taskTextCol: {
     marginLeft: 12,
     flex: 1,
   },
   taskItemTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 13,
     fontWeight: '600',
   },
   taskCompleted: {
     textDecorationLine: 'line-through',
-    color: '#64748b',
+    color: '#94a3b8',
   },
   taskItemDesc: {
-    color: '#cbd5e1',
+    color: '#64748b',
     fontSize: 11,
     marginTop: 2,
   },
   taskItemDue: {
-    color: '#f87171',
+    color: '#dc2626',
     fontSize: 10,
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
 });

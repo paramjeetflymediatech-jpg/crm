@@ -5,13 +5,16 @@ import {
   TextInput, 
   TouchableOpacity, 
   View, 
+  Image,
   ActivityIndicator, 
   KeyboardAvoidingView, 
   Platform, 
-  ScrollView 
+  ScrollView,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { getBaseUrl } from '../api/client';
-import { Mail, ArrowLeft } from 'lucide-react-native';
+import { Mail, ArrowLeft, KeyRound, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react-native';
 
 interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
@@ -20,12 +23,15 @@ interface ForgotPasswordScreenProps {
 export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProps) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      setError('Email address is required.');
+      const msg = 'Please enter your work email address.';
+      setError(msg);
+      Alert.alert('Required Field', msg, [{ text: 'Proceed' }]);
       return;
     }
 
@@ -46,207 +52,395 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
         throw new Error(data.error || 'Failed to send password reset email');
       }
 
-      setSuccessMessage(data.message || 'Password reset email sent. Please check your inbox.');
-      setEmail('');
+      const msg = data.message || 'Password reset instructions have been dispatched to your email.';
+      setSuccessMessage(msg);
+      Alert.alert('Instructions Sent', msg, [{ text: 'Proceed' }]);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Something went wrong. Please try again.');
+      const msg = err.message || 'Something went wrong. Please check your connection.';
+      setError(msg);
+      Alert.alert('Reset Failed', msg, [{ text: 'Proceed' }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        <View style={styles.card}>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={styles.container}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer} 
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Top Back Navigation Bar */}
           <TouchableOpacity 
             style={styles.backButton} 
             onPress={onBackToLogin}
             activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <ArrowLeft size={20} color="#94a3b8" />
-            <Text style={styles.backButtonText}>Back to Login</Text>
+            <View style={styles.backIconCircle}>
+              <ArrowLeft size={18} color="#2563eb" />
+            </View>
+            <Text style={styles.backButtonText}>Back to Sign In</Text>
           </TouchableOpacity>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Reset Password</Text>
-            <Text style={styles.subtitle}>Enter your email to receive a password reset link</Text>
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.iconCircle}>
+              <KeyRound size={28} color="#2563eb" />
+            </View>
+            
+            <View style={styles.badgePill}>
+              <Text style={styles.badgeText}>Account Recovery</Text>
+            </View>
+
+            <Text style={styles.heroTitle}>Reset Password</Text>
+            <Text style={styles.heroSubtitle}>
+              Enter your registered work email to receive secure recovery instructions
+            </Text>
           </View>
 
-          {error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
-
-          {successMessage && (
-            <View style={styles.successContainer}>
-              <Text style={styles.successText}>{successMessage}</Text>
-            </View>
-          )}
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrapper}>
-              <Mail size={18} color="#94a3b8" style={styles.inputIcon} />
-              <TextInput 
-                style={styles.input}
-                placeholder="you@company.com"
-                placeholderTextColor="#64748b"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                editable={!loading}
-              />
-            </View>
-          </View>
-
-          <TouchableOpacity 
-            style={styles.resetButton} 
-            onPress={handleForgotPassword}
-            disabled={loading}
-            activeOpacity={0.8}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.resetButtonText}>Send Reset Link</Text>
+          {/* Card */}
+          <View style={styles.card}>
+            {error && (
+              <View style={styles.errorBanner}>
+                <AlertCircle size={18} color="#dc2626" style={{ marginRight: 8, marginTop: 1 }} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
             )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            {successMessage ? (
+              <View style={styles.successState}>
+                <View style={styles.successIconWrapper}>
+                  <CheckCircle2 size={36} color="#059669" />
+                </View>
+                <Text style={styles.successTitle}>Check Your Inbox</Text>
+                <Text style={styles.successBody}>
+                  We sent password reset instructions to:
+                </Text>
+                <Text style={styles.successEmail}>{email}</Text>
+                <Text style={styles.successNote}>
+                  If you don&apos;t see the email within a couple of minutes, please check your spam folder.
+                </Text>
+
+                <TouchableOpacity 
+                  style={styles.primaryButton}
+                  onPress={onBackToLogin}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryButtonText}>Return to Sign In</Text>
+                  <ArrowRight size={18} color="#ffffff" style={{ marginLeft: 8 }} />
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.resendBtn}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.resendBtnText}>Resend Email</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.fieldLabel}>Work Email Address</Text>
+                  <View style={[
+                    styles.inputWrapper,
+                    isFocused && styles.inputWrapperFocused
+                  ]}>
+                    <Mail 
+                      size={18} 
+                      color={isFocused ? '#2563eb' : '#94a3b8'} 
+                      style={styles.fieldIcon} 
+                    />
+                    <TextInput 
+                      style={styles.input}
+                      placeholder="name@company.com"
+                      placeholderTextColor="#94a3b8"
+                      value={email}
+                      onChangeText={(val) => { setEmail(val); if (error) setError(null); }}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      editable={!loading}
+                      onFocus={() => setIsFocused(true)}
+                      onBlur={() => setIsFocused(false)}
+                    />
+                  </View>
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.primaryButton, loading && styles.buttonDisabled]} 
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#ffffff" size="small" />
+                  ) : (
+                    <>
+                      <Text style={styles.primaryButtonText}>Send Recovery Link</Text>
+                      <ArrowRight size={18} color="#ffffff" style={{ marginLeft: 8 }} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Footer Security Badge */}
+          <View style={styles.footer}>
+            <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
+            <Text style={styles.footerText}>
+              Protected by Enterprise Multi-Tenant Identity Verification
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#1e293b',
-    borderRadius: 16,
-    padding: 28,
-    borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     alignSelf: 'flex-start',
   },
-  backButtonText: {
-    color: '#94a3b8',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  header: {
+  backIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 28,
+    marginRight: 8,
   },
-  title: {
-    color: '#ffffff',
+  backButtonText: {
+    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  heroSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  iconCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  badgePill: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  badgeText: {
+    color: '#2563eb',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+  heroTitle: {
+    color: '#0f172a',
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.5,
     marginBottom: 6,
     textAlign: 'center',
   },
-  subtitle: {
-    color: '#94a3b8',
+  heroSubtitle: {
+    color: '#64748b',
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+    maxWidth: 290,
   },
-  errorContainer: {
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 3,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     backgroundColor: '#fef2f2',
     borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: 8,
+    borderColor: '#fecaca',
+    borderRadius: 10,
     padding: 12,
-    marginBottom: 20,
+    marginBottom: 18,
   },
   errorText: {
+    flex: 1,
     color: '#b91c1c',
     fontSize: 13,
-    textAlign: 'center',
+    lineHeight: 18,
     fontWeight: '500',
   },
-  successContainer: {
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#a7f3d0',
-    borderRadius: 8,
-    padding: 12,
+  fieldGroup: {
     marginBottom: 20,
   },
-  successText: {
-    color: '#047857',
+  fieldLabel: {
+    color: '#334155',
     fontSize: 13,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    color: '#cbd5e1',
-    fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
-    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#cbd5e1',
     paddingHorizontal: 12,
   },
-  inputIcon: {
+  inputWrapperFocused: {
+    borderColor: '#2563eb',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  fieldIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 15,
     paddingVertical: 12,
   },
-  resetButton: {
-    backgroundColor: '#6366f1',
-    borderRadius: 8,
+  primaryButton: {
+    flexDirection: 'row',
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
     paddingVertical: 14,
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366f1',
+    marginTop: 4,
+    shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     elevation: 3,
   },
-  resetButtonText: {
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  primaryButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  successState: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  successIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  successTitle: {
+    color: '#0f172a',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  successBody: {
+    color: '#64748b',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  successEmail: {
+    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  successNote: {
+    color: '#94a3b8',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 20,
+    paddingHorizontal: 8,
+  },
+  resendBtn: {
+    marginTop: 14,
+    paddingVertical: 8,
+  },
+  resendBtnText: {
+    color: '#2563eb',
+    fontSize: 13,
     fontWeight: '600',
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 22,
+    paddingHorizontal: 12,
+  },
+  footerText: {
+    color: '#94a3b8',
+    fontSize: 11,
+    textAlign: 'center',
   },
 });

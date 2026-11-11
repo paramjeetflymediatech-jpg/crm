@@ -15,7 +15,7 @@ import { Users, AlertCircle, TrendingUp, CheckCircle2, Award, PieChart as ChartI
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const COLORS = ['#6366f1', '#10b981', '#fbbf24', '#f87171', '#a855f7', '#0ea5e9', '#14b8a6'];
+const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0284c7', '#0d9488'];
 
 interface ReportsScreenProps {
   onNotificationPress?: () => void;
@@ -59,7 +59,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
   if (loading || !data) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.infoText}>Loading Reports...</Text>
       </View>
     );
@@ -120,14 +120,14 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
             const valLabel = Math.round(maxVal * (1 - ratio));
             return (
               <React.Fragment key={index}>
-                <Path d={`M ${padding} ${y} L ${svgWidth - padding} ${y}`} stroke="#334155" strokeWidth={0.5} strokeDasharray="4,4" />
+                <Path d={`M ${padding} ${y} L ${svgWidth - padding} ${y}`} stroke="#e2e8f0" strokeWidth={1} strokeDasharray="4,4" />
               </React.Fragment>
             );
           })}
 
           {/* Counts Line (Leads) */}
           {countPath !== '' && (
-            <Path d={countPath} fill="none" stroke="#6366f1" strokeWidth={2.5} />
+            <Path d={countPath} fill="none" stroke="#2563eb" strokeWidth={2.5} />
           )}
 
           {/* Converted Line */}
@@ -143,8 +143,8 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
 
             return (
               <React.Fragment key={i}>
-                <Circle cx={x} cy={yCount} r={3.5} fill="#6366f1" stroke="#1e293b" strokeWidth={1} />
-                <Circle cx={x} cy={yConv} r={3.5} fill="#10b981" stroke="#1e293b" strokeWidth={1} />
+                <Circle cx={x} cy={yCount} r={4} fill="#2563eb" stroke="#ffffff" strokeWidth={2} />
+                <Circle cx={x} cy={yConv} r={4} fill="#10b981" stroke="#ffffff" strokeWidth={2} />
               </React.Fragment>
             );
           })}
@@ -162,7 +162,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
         {/* Legend */}
         <View style={styles.chartLegend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#6366f1' }]} />
+            <View style={[styles.legendDot, { backgroundColor: '#2563eb' }]} />
             <Text style={styles.legendText}>Captured</Text>
           </View>
           <View style={styles.legendItem}>
@@ -255,7 +255,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
             onPress={onNotificationPress}
             activeOpacity={0.7}
           >
-            <Bell size={22} color="#cbd5e1" />
+            <Bell size={20} color="#2563eb" />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -268,7 +268,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
         }
       >
         {error && (
@@ -281,32 +281,32 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
         {/* Summary KPIs */}
         <View style={styles.kpiGrid}>
           <View style={styles.kpiCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <TrendingUp size={18} color="#34d399" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#fffbeb' }]}>
+              <TrendingUp size={18} color="#d97706" />
             </View>
             <Text style={styles.kpiVal}>{summary.conversionRate}%</Text>
             <Text style={styles.kpiLbl}>Conversion Rate</Text>
           </View>
 
           <View style={styles.kpiCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
-              <CheckCircle2 size={18} color="#818cf8" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#ecfdf5' }]}>
+              <CheckCircle2 size={18} color="#059669" />
             </View>
             <Text style={styles.kpiVal}>{summary.convertedLeads}</Text>
             <Text style={styles.kpiLbl}>Total Converted</Text>
           </View>
 
           <View style={styles.kpiCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(14, 165, 233, 0.15)' }]}>
-              <Users size={18} color="#38bdf8" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#eff6ff' }]}>
+              <Users size={18} color="#2563eb" />
             </View>
             <Text style={styles.kpiVal}>{summary.totalLeads}</Text>
             <Text style={styles.kpiLbl}>Total Leads</Text>
           </View>
 
           <View style={styles.kpiCard}>
-            <View style={[styles.iconWrapper, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
-              <Award size={18} color="#c084fc" />
+            <View style={[styles.iconWrapper, { backgroundColor: '#faf5ff' }]}>
+              <Award size={18} color="#9333ea" />
             </View>
             <Text style={styles.kpiVal}>{summary.followupsToday}</Text>
             <Text style={styles.kpiLbl}>Reminders Active</Text>
@@ -316,7 +316,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
         {/* Section 1: Monthly Growth Trend */}
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
-            <ChartIcon size={18} color="#6366f1" style={{ marginRight: 6 }} />
+            <ChartIcon size={18} color="#2563eb" style={{ marginRight: 6 }} />
             <Text style={styles.sectionTitle}>Monthly Growth Trend</Text>
           </View>
           {renderMonthlyTrend()}
@@ -347,26 +347,27 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   infoText: {
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 12,
     fontSize: 14,
+    fontWeight: '500',
   },
   header: {
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -375,11 +376,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#bfdbfe',
   },
   bellBadge: {
     position: 'absolute',
@@ -399,12 +400,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '700',
   },
   headerSubtitle: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
     marginTop: 2,
   },
@@ -418,7 +419,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fca5a5',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 16,
   },
@@ -436,63 +437,63 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   kpiCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
     padding: 14,
     width: '48%',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
+    borderColor: '#e2e8f0',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   iconWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
   },
   kpiVal: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
+    color: '#0f172a',
+    fontSize: 22,
+    fontWeight: '800',
     marginBottom: 2,
   },
   kpiLbl: {
-    color: '#94a3b8',
-    fontSize: 11,
-    fontWeight: '500',
+    color: '#64748b',
+    fontSize: 12,
+    fontWeight: '600',
   },
   sectionCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     paddingBottom: 10,
   },
   sectionTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   chartContainer: {
     alignItems: 'center',
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
   },
   chartXText: {
     color: '#64748b',
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
   },
   chartLegend: {
@@ -520,14 +521,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   legendDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginRight: 6,
   },
   legendText: {
-    color: '#94a3b8',
-    fontSize: 11,
+    color: '#64748b',
+    fontSize: 12,
     fontWeight: '500',
   },
   sourcesContainer: {
@@ -543,17 +544,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sourceName: {
-    color: '#cbd5e1',
+    color: '#334155',
     fontSize: 12,
     fontWeight: '600',
   },
   sourceVal: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 11,
+    fontWeight: '500',
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f1f5f9',
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -567,7 +569,7 @@ const styles = StyleSheet.create({
   teamRow: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#0f172a',
+    borderColor: '#f1f5f9',
     paddingBottom: 14,
   },
   teamHeaderRow: {
@@ -577,19 +579,19 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   teamName: {
-    color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#0f172a',
+    fontSize: 14,
+    fontWeight: '700',
   },
   teamBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   teamBadgeText: {
-    color: '#34d399',
-    fontSize: 10,
+    color: '#059669',
+    fontSize: 11,
     fontWeight: '700',
   },
   teamDetails: {
@@ -600,9 +602,10 @@ const styles = StyleSheet.create({
   teamDetailText: {
     color: '#64748b',
     fontSize: 11,
+    fontWeight: '500',
   },
   teamDetailDivider: {
-    color: '#334155',
+    color: '#cbd5e1',
     marginHorizontal: 8,
     fontSize: 10,
   },
@@ -610,7 +613,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   emptyText: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 24,

@@ -134,7 +134,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.infoText}>Loading Calendar...</Text>
       </View>
     );
@@ -153,7 +153,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
             onPress={onNotificationPress}
             activeOpacity={0.7}
           >
-            <Bell size={22} color="#cbd5e1" />
+            <Bell size={20} color="#2563eb" />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -166,7 +166,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
         }
       >
         {error && (
@@ -180,11 +180,11 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
         <View style={styles.calendarCard}>
           <View style={styles.monthSelector}>
             <TouchableOpacity onPress={handlePrevMonth} style={styles.arrowBtn}>
-              <ChevronLeft size={20} color="#ffffff" />
+              <ChevronLeft size={20} color="#2563eb" />
             </TouchableOpacity>
             <Text style={styles.monthText}>{monthNames[month]} {year}</Text>
             <TouchableOpacity onPress={handleNextMonth} style={styles.arrowBtn}>
-              <ChevronRight size={20} color="#ffffff" />
+              <ChevronRight size={20} color="#2563eb" />
             </TouchableOpacity>
           </View>
 
@@ -239,7 +239,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
 
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#6366f1' }]} />
+              <View style={[styles.legendDot, { backgroundColor: '#2563eb' }]} />
               <Text style={styles.legendText}>Days with follow-ups scheduled</Text>
             </View>
           </View>
@@ -320,26 +320,27 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   infoText: {
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 12,
     fontSize: 14,
+    fontWeight: '500',
   },
   header: {
     paddingHorizontal: 24,
     paddingTop: 64,
     paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -348,11 +349,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#bfdbfe',
   },
   bellBadge: {
     position: 'absolute',
@@ -372,12 +373,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   headerTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 22,
     fontWeight: '700',
   },
   headerSubtitle: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
     marginTop: 2,
   },
@@ -391,7 +392,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     borderWidth: 1,
     borderColor: '#fca5a5',
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
     marginBottom: 16,
   },
@@ -403,12 +404,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   calendarCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
     marginBottom: 20,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   monthSelector: {
     flexDirection: 'row',
@@ -418,19 +424,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   arrowBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#0f172a',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#bfdbfe',
   },
   monthText: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   weekLabels: {
     flexDirection: 'row',
@@ -459,10 +465,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cellSelected: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
   },
   cellText: {
-    color: '#94a3b8',
+    color: '#334155',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -471,8 +477,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   cellTextWithTask: {
-    color: '#ffffff',
-    fontWeight: '600',
+    color: '#0f172a',
+    fontWeight: '700',
   },
   dot: {
     width: 4,
@@ -482,7 +488,7 @@ const styles = StyleSheet.create({
     bottom: 4,
   },
   dotActive: {
-    backgroundColor: '#818cf8',
+    backgroundColor: '#2563eb',
   },
   dotSelected: {
     backgroundColor: '#ffffff',
@@ -490,7 +496,7 @@ const styles = StyleSheet.create({
   legend: {
     marginTop: 16,
     borderTopWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     paddingTop: 12,
   },
   legendItem: {
@@ -506,29 +512,34 @@ const styles = StyleSheet.create({
   },
   legendText: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
   },
   agendaCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   agendaHeader: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     paddingBottom: 12,
   },
   agendaTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   agendaSubtitle: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
     marginTop: 2,
   },
@@ -541,15 +552,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#64748b',
-    fontSize: 12,
+    color: '#94a3b8',
+    fontSize: 13,
     fontStyle: 'italic',
   },
   taskCard: {
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 14,
     marginBottom: 12,
   },
@@ -560,7 +571,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   taskTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
@@ -577,7 +588,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   taskDesc: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
     lineHeight: 16,
     marginBottom: 12,
@@ -587,7 +598,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderColor: '#1e293b',
+    borderColor: '#e2e8f0',
     paddingTop: 8,
   },
   assigneeContainer: {
@@ -603,7 +614,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewLinkText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 11,
     fontWeight: '600',
   },

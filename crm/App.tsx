@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { ActivityIndicator, View, StatusBar } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store, RootState } from './src/store';
 import { loadStoredAuth } from './src/store/authSlice';
 import AppTabs from './src/components/app-tabs';
+import WelcomeScreen from './src/components/WelcomeScreen';
 import LoginScreen from './src/components/LoginScreen';
 import ForgotPasswordScreen from './src/components/ForgotPasswordScreen';
+import CustomAlertModal from './src/components/common/CustomAlertModal';
+import { initAlertPolyfill } from './src/services/alertService';
+
+// Initialize global custom alert popup polyfill
+initAlertPolyfill();
 
 function AppContent() {
   const dispatch = useDispatch();
   const [appReady, setAppReady] = useState(false);
-  const [authScreen, setAuthScreen] = useState<'login' | 'forgot-password'>('login');
+  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'forgot-password'>('welcome');
   
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -22,33 +29,44 @@ function AppContent() {
 
   if (!appReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <ActivityIndicator size="large" color="#6366f1" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+        <ActivityIndicator size="large" color="#2563eb" />
       </View>
     );
   }
 
   // Auth gate
   if (!token) {
+    if (authScreen === 'welcome') {
+      return (
+        <>
+          <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+          <WelcomeScreen onGetStarted={() => setAuthScreen('login')} />
+        </>
+      );
+    }
     if (authScreen === 'forgot-password') {
       return (
         <>
-          <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
+          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
           <ForgotPasswordScreen onBackToLogin={() => setAuthScreen('login')} />
         </>
       );
     }
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
-        <LoginScreen onForgotPassword={() => setAuthScreen('forgot-password')} />
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <LoginScreen 
+          onForgotPassword={() => setAuthScreen('forgot-password')} 
+          onBackToWelcome={() => setAuthScreen('welcome')}
+        />
       </>
     );
   }
 
   return (
     <>
-      <StatusBar barStyle="light-content" backgroundColor="#1e293b" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       <AppTabs />
     </>
   );
@@ -56,8 +74,11 @@ function AppContent() {
 
 export default function App() {
   return (
-    <Provider store={store}>
-      <AppContent />
-    </Provider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <AppContent />
+        <CustomAlertModal />
+      </Provider>
+    </SafeAreaProvider>
   );
 }

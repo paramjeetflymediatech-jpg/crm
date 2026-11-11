@@ -148,7 +148,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: actionText.toUpperCase(), 
+          text: 'Proceed', 
           onPress: async () => {
             setActionLoadingId(company.id);
             try {
@@ -176,7 +176,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.infoText}>Loading Control Panel...</Text>
       </View>
     );
@@ -187,7 +187,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
     return (
       <View style={styles.restrictedContainer}>
         <View style={styles.restrictedIconWrapper}>
-          <ShieldAlert size={36} color="#f87171" />
+          <ShieldAlert size={36} color="#ef4444" />
         </View>
         <Text style={styles.restrictedTitle}>Access Restricted</Text>
         <Text style={styles.restrictedDesc}>
@@ -202,7 +202,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
       <View style={styles.header}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={{ marginRight: 12 }}>
-            <ChevronLeft size={24} color="#818cf8" />
+            <ChevronLeft size={24} color="#2563eb" />
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }}>
@@ -221,12 +221,12 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
       <ScrollView 
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563eb" />
         }
       >
         {/* Companies Section */}
         <View style={styles.sectionHeader}>
-          <Building2 size={16} color="#818cf8" style={{ marginRight: 6 }} />
+          <Building2 size={16} color="#2563eb" style={{ marginRight: 6 }} />
           <Text style={styles.sectionTitle}>Active Client Companies ({companies.length})</Text>
         </View>
 
@@ -245,11 +245,11 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
                   <Text style={styles.companyName}>{c.company_name}</Text>
                   <View style={[
                     styles.statusBadge,
-                    { backgroundColor: isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)' }
+                    { backgroundColor: isActive ? '#ecfdf5' : '#fef2f2' }
                   ]}>
                     <Text style={[
                       styles.statusText,
-                      { color: isActive ? '#34d399' : '#f87171' }
+                      { color: isActive ? '#059669' : '#dc2626' }
                     ]}>{c.status}</Text>
                   </View>
                 </View>
@@ -285,17 +285,17 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
                   disabled={isToggling}
                 >
                   {isToggling ? (
-                    <ActivityIndicator size="small" color={isActive ? '#ef4444' : '#10b981'} />
+                    <ActivityIndicator size="small" color={isActive ? '#dc2626' : '#059669'} />
                   ) : (
                     <>
                       {isActive ? (
                         <>
-                          <Ban size={14} color="#f87171" style={{ marginRight: 6 }} />
+                          <Ban size={14} color="#dc2626" style={{ marginRight: 6 }} />
                           <Text style={styles.suspendBtnText}>Suspend Workspace</Text>
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 size={14} color="#34d399" style={{ marginRight: 6 }} />
+                          <CheckCircle2 size={14} color="#059669" style={{ marginRight: 6 }} />
                           <Text style={styles.activateBtnText}>Activate Workspace</Text>
                         </>
                       )}
@@ -309,7 +309,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
 
         {/* Audit Logs Section */}
         <View style={[styles.sectionHeader, { marginTop: 24 }]}>
-          <Activity size={16} color="#818cf8" style={{ marginRight: 6 }} />
+          <Activity size={16} color="#2563eb" style={{ marginRight: 6 }} />
           <Text style={styles.sectionTitle}>Security Audit Trail</Text>
         </View>
 
@@ -355,11 +355,11 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Building2 size={20} color="#818cf8" style={{ marginRight: 8 }} />
+                <Building2 size={20} color="#2563eb" style={{ marginRight: 8 }} />
                 <Text style={styles.modalTitle}>Provision Workspace</Text>
               </View>
               <TouchableOpacity onPress={() => setModalVisible(false)} activeOpacity={0.7}>
-                <X size={20} color="#94a3b8" />
+                <X size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
 
@@ -508,16 +508,16 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
   },
   infoText: {
-    color: '#94a3b8',
+    color: '#64748b',
     marginTop: 12,
     fontSize: 14,
   },
@@ -525,28 +525,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     padding: 32,
   },
   restrictedIconWrapper: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: '#fef2f2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: '#fee2e2',
   },
   restrictedTitle: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
   },
   restrictedDesc: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
@@ -554,21 +554,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 20,
-    backgroundColor: '#1e293b',
+    paddingHorizontal: 20,
+    paddingTop: 56,
+    paddingBottom: 16,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   headerTitle: {
-    color: '#ffffff',
-    fontSize: 22,
+    color: '#0f172a',
+    fontSize: 20,
     fontWeight: '700',
   },
   headerSubtitle: {
-    color: '#94a3b8',
-    fontSize: 13,
+    color: '#64748b',
+    fontSize: 12,
     marginTop: 2,
   },
   scrollContent: {
@@ -582,38 +582,38 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   sectionTitle: {
-    color: '#cbd5e1',
-    fontSize: 14,
+    color: '#475569',
+    fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   emptyCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   emptyText: {
-    color: '#64748b',
-    fontSize: 12,
+    color: '#94a3b8',
+    fontSize: 13,
     fontStyle: 'italic',
   },
   companyCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    marginBottom: 14,
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   companyHeader: {
     flexDirection: 'row',
@@ -622,7 +622,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   companyName: {
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 15,
     fontWeight: '600',
     flex: 1,
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: 10,
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   metaText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 12,
   },
   companyDetailsRow: {
@@ -655,65 +655,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     marginBottom: 14,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     padding: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   detailText: {
     color: '#64748b',
     fontSize: 11,
   },
   planText: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontWeight: '600',
     textTransform: 'capitalize',
   },
   statsText: {
-    color: '#cbd5e1',
+    color: '#0f172a',
     fontWeight: '600',
   },
   detailDivider: {
-    color: '#334155',
+    color: '#cbd5e1',
     marginHorizontal: 8,
     fontSize: 10,
   },
   actionBtn: {
     borderRadius: 8,
-    paddingVertical: 10,
+    paddingVertical: 9,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     borderWidth: 1,
   },
   suspendBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.05)',
-    borderColor: 'rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
   },
   suspendBtnText: {
-    color: '#f87171',
+    color: '#dc2626',
     fontSize: 12,
     fontWeight: '600',
   },
   activateBtn: {
-    backgroundColor: 'rgba(16, 185, 129, 0.05)',
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#ecfdf5',
+    borderColor: '#a7f3d0',
   },
   activateBtnText: {
-    color: '#34d399',
+    color: '#059669',
     fontSize: 12,
     fontWeight: '600',
   },
   logsContainer: {
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
     overflow: 'hidden',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   logItem: {
     padding: 14,
     borderBottomWidth: 1,
-    borderColor: '#0f172a',
+    borderColor: '#f1f5f9',
   },
   logHeader: {
     flexDirection: 'row',
@@ -722,24 +729,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   logTenant: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 11,
     fontWeight: '600',
   },
   logModule: {
-    backgroundColor: '#334155',
-    color: '#cbd5e1',
-    fontSize: 9,
+    backgroundColor: '#eff6ff',
+    color: '#2563eb',
+    fontSize: 10,
     fontWeight: '600',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
     textTransform: 'uppercase',
   },
   logAction: {
-    color: '#ffffff',
-    fontSize: 12,
-    lineHeight: 16,
+    color: '#0f172a',
+    fontSize: 13,
+    lineHeight: 18,
     marginBottom: 8,
   },
   logFooter: {
@@ -749,7 +756,7 @@ const styles = StyleSheet.create({
   },
   logUser: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 11,
   },
   logTimeContainer: {
     flexDirection: 'row',
@@ -757,16 +764,16 @@ const styles = StyleSheet.create({
   },
   logTime: {
     color: '#64748b',
-    fontSize: 10,
+    fontSize: 11,
   },
   headerAddBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#6366f1',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#2563eb',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366f1',
+    shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -774,16 +781,16 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#ffffff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -792,11 +799,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#e2e8f0',
   },
   modalTitle: {
-    color: '#ffffff',
-    fontSize: 18,
+    color: '#0f172a',
+    fontSize: 17,
     fontWeight: '700',
   },
   modalScroll: {
@@ -804,7 +811,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   formSectionTitle: {
-    color: '#818cf8',
+    color: '#2563eb',
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -812,10 +819,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputContainer: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   inputLabel: {
-    color: '#cbd5e1',
+    color: '#334155',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 6,
@@ -823,10 +830,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f8fafc',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#cbd5e1',
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -834,17 +841,17 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#ffffff',
+    color: '#0f172a',
     fontSize: 14,
     paddingVertical: 10,
   },
   planSelector: {
     flexDirection: 'row',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#f1f5f9',
     borderRadius: 8,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#e2e8f0',
   },
   planOption: {
     flex: 1,
@@ -853,10 +860,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   planOptionActive: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
   },
   planOptionText: {
-    color: '#94a3b8',
+    color: '#64748b',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -865,20 +872,20 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#e2e8f0',
     marginVertical: 20,
   },
   submitBtn: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#2563eb',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   submitBtnText: {
     color: '#ffffff',

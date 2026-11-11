@@ -6,14 +6,14 @@ require('dotenv').config();
 const dbHost = process.env.DB_HOST || '127.0.0.1';
 const dbPort = process.env.DB_PORT || '3306';
 const dbUser = process.env.DB_USER || 'root';
-const dbPassword = process.env.DB_PASSWORD || '';
+const dbPassword = process.env.DB_PASSWORD || 'root';
 const dbName = process.env.DB_NAME || 'crm_saas';
 
 const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
   host: dbHost,
   port: parseInt(dbPort, 10),
   dialect: 'mysql',
-  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  logging: process.env.NODE_ENV === 'development' ? (msg) => console.log(msg) : false,
   pool: {
     max: 10,
     min: 0,
