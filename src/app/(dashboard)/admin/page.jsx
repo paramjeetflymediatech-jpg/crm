@@ -15,6 +15,7 @@ import {
   Layers
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
+import { showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,11 +24,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 export default function AdminPage() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const u = localStorage.getItem('user');
+        return u ? JSON.parse(u) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [companies, setCompanies] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('openProvision') === 'true';
+    }
+    return false;
+  });
 
   // Client Wizard Form States
   const [form, setForm] = useState({
@@ -66,33 +83,61 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const u = JSON.parse(userStr);
-      setCurrentUser(u);
-      if (u.role === 'super_admin') {
-        fetchData();
-      } else {
-        setLoading(false);
+    let ignore = false;
+
+    async function loadData() {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
+        if (!ignore) setLoading(false);
+        return;
       }
-    } else {
-      setLoading(false);
+      const u = JSON.parse(userStr);
+      if (u.role !== 'super_admin') {
+        if (!ignore) setLoading(false);
+        return;
+      }
+
+      try {
+        const [resComp, resLogs] = await Promise.all([
+          fetch('/api/admin/companies'),
+          fetch('/api/admin/audit-logs')
+        ]);
+
+        if (!ignore) {
+          if (resComp.ok) {
+            const d = await resComp.json();
+            setCompanies(d.companies || []);
+          }
+          if (resLogs.ok) {
+            const d = await resLogs.json();
+            setLogs(d.logs || []);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
 
-    // Check query params to auto-open provision dialog
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('openProvision') === 'true') {
-        setCreateOpen(true);
-      }
-    }
+    loadData();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const handleToggleSuspend = async (company) => {
     const nextStatus = company.status === 'active' ? 'suspended' : 'active';
     const actionText = nextStatus === 'suspended' ? 'suspend' : 'activate';
     
-    if (!window.confirm(`Are you sure you want to ${actionText} Company "${company.company_name}"?`)) return;
+    const confirmed = await showConfirm({
+      title: `${actionText === 'suspend' ? 'Suspend' : 'Activate'} Company?`,
+      text: `Are you sure you want to ${actionText} "${company.company_name}"? All users under this tenant will be ${actionText === 'suspended' ? 'blocked from signing in' : 'granted access'}.`,
+      confirmButtonText: `Yes, ${actionText}`,
+      isDanger: nextStatus === 'suspended'
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/admin/companies/${company.id}`, {
@@ -102,9 +147,14 @@ export default function AdminPage() {
       });
       if (res.ok) {
         fetchData();
+        Toast.fire({ icon: 'success', title: `Company ${actionText}ed successfully` });
+      } else {
+        const err = await res.json();
+        showError('Action Failed', err.error || `Failed to ${actionText} company.`);
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred.');
     }
   };
 
@@ -131,12 +181,14 @@ export default function AdminPage() {
           admin_password: ''
         });
         fetchData();
+        showSuccess('Tenant Provisioned', 'New company workspace and administrator account created successfully.');
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to provision company.');
+        showError('Provisioning Failed', err.error || 'Failed to provision company.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while creating company.');
     } finally {
       setSaving(false);
     }

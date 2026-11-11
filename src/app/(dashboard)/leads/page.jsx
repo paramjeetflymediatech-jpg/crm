@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiFetch as fetch } from '@/lib/clientApi';
+import { showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
 
 export default function LeadsPage() {
   const router = useRouter();
@@ -205,12 +206,14 @@ export default function LeadsPage() {
           message: ''
         });
         fetchLeads();
+        Toast.fire({ icon: 'success', title: 'Lead created successfully' });
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to create lead.');
+        showError('Creation Failed', err.error || 'Failed to create lead.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while creating lead.');
     }
   };
 
@@ -231,12 +234,14 @@ export default function LeadsPage() {
         setTargetRepresentative('');
         setSelectedLeads([]);
         fetchLeads();
+        Toast.fire({ icon: 'success', title: 'Leads assigned successfully' });
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Assignment Failed', err.error || 'Failed to assign leads.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'Failed to assign leads.');
     }
   };
 
@@ -257,18 +262,27 @@ export default function LeadsPage() {
         setTargetStatus('');
         setSelectedLeads([]);
         fetchLeads();
+        Toast.fire({ icon: 'success', title: 'Status updated for selected leads' });
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Update Failed', err.error || 'Failed to update status.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'Failed to update status.');
     }
   };
 
   // Bulk delete action
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedLeads.length} leads?`)) return;
+    const confirmed = await showConfirm({
+      title: `Delete ${selectedLeads.length} leads?`,
+      text: 'Selected leads and their associated activity logs will be permanently deleted.',
+      confirmButtonText: 'Yes, delete leads',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
     try {
       const res = await fetch('/api/leads/bulk', {
         method: 'POST',
@@ -281,12 +295,14 @@ export default function LeadsPage() {
       if (res.ok) {
         setSelectedLeads([]);
         fetchLeads();
+        Toast.fire({ icon: 'success', title: 'Leads deleted successfully' });
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Delete Failed', err.error || 'Failed to delete leads.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'Failed to delete leads.');
     }
   };
 

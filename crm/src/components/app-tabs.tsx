@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../store';
 import { logoutUser } from '../store/authSlice';
-import { getBaseUrl } from '../api/client';
+import { getBaseUrl, getImageUrl } from '../api/client';
 import io from 'socket.io-client';
 import { initPushNotifications, registerDeviceToken, unregisterDeviceToken, setOnNotificationPressed } from '../services/pushNotification';
 
@@ -18,7 +18,24 @@ import ReportsScreen from './ReportsScreen';
 import AdminScreen from './AdminScreen';
 
 // Icons
-import { LayoutDashboard, Users, Calendar as CalendarIcon, TrendingUp, Menu, Bell, Settings as SettingsIcon, ShieldAlert, LogOut, ChevronRight } from 'lucide-react-native';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar as CalendarIcon, 
+  TrendingUp, 
+  Menu, 
+  Bell, 
+  Settings as SettingsIcon, 
+  ShieldAlert, 
+  LogOut, 
+  ChevronRight,
+  User,
+  Building2,
+  Shield,
+  Volume2,
+  Edit3
+} from 'lucide-react-native';
+import { showConfirm } from '../services/alertService';
 
 export default function AppTabs() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -27,9 +44,15 @@ export default function AppTabs() {
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more'>('dashboard');
   const [moreView, setMoreView] = useState<'menu' | 'alerts' | 'settings' | 'admin'>('menu');
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'profile' | 'company' | 'team'>('company');
   const [targetLeadId, setTargetLeadId] = useState<number | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsSourceTab, setNotificationsSourceTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more' | null>(null);
+
+  const openSettings = (tab: 'profile' | 'company' | 'team' = 'company') => {
+    setSettingsInitialTab(tab);
+    setMoreView('settings');
+  };
 
   // Responsive bottom padding for gesture navigation vs 3-button navigation
   const isGestureNav = insets.bottom > 0 && insets.bottom <= 28;
@@ -126,22 +149,22 @@ export default function AppTabs() {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Confirm Sign Out',
-      'Are you sure you want to sign out of your account?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Proceed', 
-          style: 'destructive',
-          onPress: () => {
-            unregisterDeviceToken().catch(err => console.error('[FCM] Error unregistering token:', err)).finally(() => {
-              dispatch(logoutUser() as any);
-            });
-          }
+    showConfirm({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out of your CRM workspace account?',
+      isDestructive: true,
+      proceedText: 'Sign Out',
+      cancelText: 'Cancel',
+      onProceed: async () => {
+        try {
+          await unregisterDeviceToken();
+        } catch (err) {
+          console.error('[FCM] Error unregistering token:', err);
+        } finally {
+          dispatch(logoutUser() as any);
         }
-      ]
-    );
+      }
+    });
   };
 
   const renderMoreContent = () => {
@@ -163,94 +186,259 @@ export default function AppTabs() {
       );
     }
     if (moreView === 'settings') {
-      return <SettingsScreen onBack={() => setMoreView('menu')} />;
+      return (
+        <SettingsScreen 
+          onBack={() => setMoreView('menu')} 
+          initialTab={settingsInitialTab}
+        />
+      );
     }
     if (moreView === 'admin') {
       return <AdminScreen onBack={() => setMoreView('menu')} />;
     }
 
+    const isStaff = user?.role === 'staff';
+    const isSuperAdmin = user?.role === 'super_admin';
+    const roleLabel = user?.role
+      ? user.role.replace('_', ' ').toUpperCase()
+      : 'USER';
+
     return (
       <View style={styles.moreContainer}>
-        <View style={styles.moreHeader}>
-          <Text style={styles.moreHeaderTitle}>More Options</Text>
+        {/* Modern Sticky Header */}
+        <View style={[styles.moreHeader, { paddingTop: Math.max(insets.top, 16) + 12 }]}>
+          <View>
+            <Text style={styles.moreHeaderTitle}>More Options</Text>
+            <Text style={styles.moreHeaderSubtitle}>Account, workspace & platform controls</Text>
+          </View>
+          <View style={styles.onlineBadge}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.onlineBadgeText}>CONNECTED</Text>
+          </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.moreScroll}>
-          {/* Profile Card */}
-          <View style={styles.profileCard}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{user?.name ? user.name[0].toUpperCase() : 'U'}</Text>
+        <ScrollView 
+          contentContainerStyle={styles.moreScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Hero Profile Card */}
+          <TouchableOpacity 
+            style={styles.heroProfileCard}
+            onPress={() => openSettings('profile')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.heroAvatarContainer}>
+              <View style={styles.heroAvatar}>
+                {getImageUrl(user?.companyLogo || user?.avatar) ? (
+                  <Image
+                    source={{ uri: getImageUrl(user?.companyLogo || user?.avatar)! }}
+                    style={styles.heroAvatarImg}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Text style={styles.heroAvatarText}>
+                    {user?.name ? user.name[0].toUpperCase() : 'U'}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.heroAvatarStatusDot} />
             </View>
-            <View style={styles.profileDetails}>
-              <Text style={styles.profileName}>{user?.name}</Text>
-              <Text style={styles.profileRole}>{user?.role?.replace('_', ' ')}</Text>
-              <Text style={styles.profileCompany}>{user?.companyName || 'System Platform'}</Text>
-            </View>
-          </View>
 
-          {/* List items */}
-          <View style={styles.menuList}>
+            <View style={styles.heroProfileDetails}>
+              <Text style={styles.heroProfileName} numberOfLines={1}>
+                {user?.name || 'Workspace User'}
+              </Text>
+              <Text style={styles.heroProfileEmail} numberOfLines={1}>
+                {user?.email || 'user@company.com'}
+              </Text>
+
+              {/* Badges Row */}
+              <View style={styles.heroBadgesRow}>
+                <View style={[
+                  styles.heroRoleBadge,
+                  isSuperAdmin ? styles.heroRoleBadgeSuper : (isStaff ? styles.heroRoleBadgeStaff : styles.heroRoleBadgeAdmin)
+                ]}>
+                  <Shield size={11} color={isSuperAdmin ? '#9333ea' : (isStaff ? '#475569' : '#2563eb')} style={{ marginRight: 3 }} />
+                  <Text style={[
+                    styles.heroRoleBadgeText,
+                    isSuperAdmin ? { color: '#9333ea' } : (isStaff ? { color: '#475569' } : { color: '#2563eb' })
+                  ]}>
+                    {roleLabel}
+                  </Text>
+                </View>
+
+                <View style={styles.heroCompanyBadge}>
+                  <Building2 size={11} color="#64748b" style={{ marginRight: 3 }} />
+                  <Text style={styles.heroCompanyBadgeText} numberOfLines={1}>
+                    {user?.companyName || 'Enterprise CRM'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.heroEditPill}>
+              <Edit3 size={15} color="#2563eb" />
+            </View>
+          </TouchableOpacity>
+
+          {/* Section: Workspace Navigation */}
+          <Text style={styles.sectionHeaderTitle}>WORKSPACE & NOTIFICATIONS</Text>
+          <View style={styles.menuCardGroup}>
+            {/* Alerts & Notifications */}
             <TouchableOpacity 
-              style={styles.menuItem} 
+              style={styles.menuCardRow} 
               onPress={() => handleNavigateToAlerts('more')}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
-                <Bell size={18} color="#2563eb" style={{ marginRight: 12 }} />
-                <Text style={styles.menuItemText}>Alerts</Text>
+              <View style={[styles.menuIconBox, { backgroundColor: '#eff6ff' }]}>
+                <Bell size={18} color="#2563eb" />
+              </View>
+              <View style={styles.menuCardTextContainer}>
+                <Text style={styles.menuCardTitle}>Notifications & Alerts</Text>
+                <Text style={styles.menuCardSubtitle}>System updates, mentions & lead notifications</Text>
+              </View>
+              <View style={styles.menuCardRight}>
                 {unreadCount > 0 && (
-                  <View style={styles.inlineBadge}>
-                    <Text style={styles.inlineBadgeText}>{unreadCount}</Text>
+                  <View style={styles.unreadCountPill}>
+                    <Text style={styles.unreadCountText}>{unreadCount}</Text>
                   </View>
                 )}
+                <ChevronRight size={16} color="#94a3b8" />
               </View>
-              <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
 
+            <View style={styles.menuRowDivider} />
+
+            {/* My Profile */}
             <TouchableOpacity 
-              style={styles.menuItem} 
-              onPress={() => setMoreView('settings')}
+              style={styles.menuCardRow} 
+              onPress={() => openSettings('profile')}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
-                <SettingsIcon size={18} color="#2563eb" style={{ marginRight: 12 }} />
-                <Text style={styles.menuItemText}>Settings</Text>
+              <View style={[styles.menuIconBox, { backgroundColor: '#f0fdf4' }]}>
+                <User size={18} color="#16a34a" />
+              </View>
+              <View style={styles.menuCardTextContainer}>
+                <Text style={styles.menuCardTitle}>My Profile & Image</Text>
+                <Text style={styles.menuCardSubtitle}>Upload local photo/logo, contact & password</Text>
               </View>
               <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
 
-            {user?.role === 'super_admin' && (
-              <TouchableOpacity 
-                style={styles.menuItem} 
-                onPress={() => setMoreView('admin')}
-                activeOpacity={0.7}
-              >
-                <View style={styles.menuItemLeft}>
-                  <ShieldAlert size={18} color="#ef4444" style={{ marginRight: 12 }} />
-                  <Text style={[styles.menuItemText, { color: '#ef4444' }]}>Platform Control Panel</Text>
-                </View>
-                <ChevronRight size={16} color="#94a3b8" />
-              </TouchableOpacity>
+            {!isStaff && (
+              <>
+                <View style={styles.menuRowDivider} />
+
+                {/* Workspace Settings */}
+                <TouchableOpacity 
+                  style={styles.menuCardRow} 
+                  onPress={() => openSettings('company')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.menuIconBox, { backgroundColor: '#faf5ff' }]}>
+                    <SettingsIcon size={18} color="#7c3aed" />
+                  </View>
+                  <View style={styles.menuCardTextContainer}>
+                    <Text style={styles.menuCardTitle}>Company & Ingestion API</Text>
+                    <Text style={styles.menuCardSubtitle}>Company profile, REST API token & channels</Text>
+                  </View>
+                  <ChevronRight size={16} color="#94a3b8" />
+                </TouchableOpacity>
+
+                <View style={styles.menuRowDivider} />
+
+                {/* Team Members */}
+                <TouchableOpacity 
+                  style={styles.menuCardRow} 
+                  onPress={() => openSettings('team')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.menuIconBox, { backgroundColor: '#fef3c7' }]}>
+                    <Users size={18} color="#d97706" />
+                  </View>
+                  <View style={styles.menuCardTextContainer}>
+                    <Text style={styles.menuCardTitle}>Team Members</Text>
+                    <Text style={styles.menuCardSubtitle}>Manage staff accounts, assign roles & access</Text>
+                  </View>
+                  <ChevronRight size={16} color="#94a3b8" />
+                </TouchableOpacity>
+              </>
             )}
           </View>
 
-          <View style={styles.appBranding}>
-            <Image 
-              source={require('../assets/logo.png')} 
-              style={styles.brandLogo} 
-              resizeMode="contain" 
-            />
-            <Text style={styles.brandTitle}>Enterprise CRM</Text>
-            <Text style={styles.brandVersion}>v1.1.0 • Production Build</Text>
+          {/* Section: Super Admin (if super_admin) */}
+          {isSuperAdmin && (
+            <>
+              <Text style={[styles.sectionHeaderTitle, { color: '#dc2626' }]}>
+                SUPER ADMIN PLATFORM
+              </Text>
+              <View style={[styles.menuCardGroup, { borderColor: '#fecaca' }]}>
+                <TouchableOpacity 
+                  style={styles.menuCardRow} 
+                  onPress={() => setMoreView('admin')}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.menuIconBox, { backgroundColor: '#fef2f2' }]}>
+                    <ShieldAlert size={18} color="#ef4444" />
+                  </View>
+                  <View style={styles.menuCardTextContainer}>
+                    <Text style={[styles.menuCardTitle, { color: '#dc2626' }]}>
+                      Platform Control Panel
+                    </Text>
+                    <Text style={styles.menuCardSubtitle}>
+                      Manage tenant companies, system settings & audits
+                    </Text>
+                  </View>
+                  <ChevronRight size={16} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
+          {/* Section: Preferences */}
+          <Text style={styles.sectionHeaderTitle}>PREFERENCES</Text>
+          <View style={styles.menuCardGroup}>
+            <TouchableOpacity 
+              style={styles.menuCardRow} 
+              onPress={() => openSettings('profile')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#fff7ed' }]}>
+                <Volume2 size={18} color="#ea580c" />
+              </View>
+              <View style={styles.menuCardTextContainer}>
+                <Text style={styles.menuCardTitle}>Lead Alert Ringtone</Text>
+                <Text style={styles.menuCardSubtitle}>Audible sound for new assigned & hot leads</Text>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
           </View>
 
+          {/* App Branding & Version Card */}
+          <View style={styles.brandingCard}>
+            <Image 
+              source={require('../assets/logo.png')} 
+              style={styles.brandingLogo} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.brandingTitle}>Enterprise CRM Mobile</Text>
+            <Text style={styles.brandingVersion}>Version 1.2.0 • Production Build</Text>
+            <View style={styles.brandingTenantBadge}>
+              <Building2 size={12} color="#64748b" style={{ marginRight: 4 }} />
+              <Text style={styles.brandingTenantText}>
+                Active Tenant: {user?.companyName || 'Enterprise Platform'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Sign Out Button */}
           <TouchableOpacity 
-            style={styles.logoutBtn} 
+            style={styles.logoutActionBtn} 
             onPress={handleLogout}
             activeOpacity={0.8}
           >
             <LogOut size={18} color="#ffffff" style={{ marginRight: 8 }} />
-            <Text style={styles.logoutBtnText}>Sign Out</Text>
+            <Text style={styles.logoutActionBtnText}>Sign Out of Workspace</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -478,9 +666,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   moreHeader: {
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderColor: '#e2e8f0',
@@ -488,145 +678,296 @@ const styles = StyleSheet.create({
   moreHeaderTitle: {
     color: '#0f172a',
     fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  moreHeaderSubtitle: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  onlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: 20,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#16a34a',
+    marginRight: 5,
+  },
+  onlineBadgeText: {
+    fontSize: 10,
     fontWeight: '700',
+    color: '#16a34a',
+    letterSpacing: 0.5,
   },
   moreScroll: {
-    padding: 20,
+    padding: 16,
+    paddingBottom: 44,
   },
-  profileCard: {
+  heroProfileCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    padding: 18,
+    padding: 16,
     marginBottom: 20,
     shadowColor: '#64748b',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  heroAvatarContainer: {
+    position: 'relative',
+    marginRight: 14,
+  },
+  heroAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#eff6ff',
+    borderWidth: 2,
+    borderColor: '#bfdbfe',
+    overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    borderWidth: 1,
-    borderColor: '#bfdbfe',
   },
-  avatarText: {
+  heroAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  heroAvatarText: {
     color: '#2563eb',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
   },
-  profileDetails: {
+  heroAvatarStatusDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#22c55e',
+    borderWidth: 2.5,
+    borderColor: '#ffffff',
+  },
+  heroProfileDetails: {
     flex: 1,
+    justifyContent: 'center',
   },
-  profileName: {
+  heroProfileName: {
+    fontSize: 17,
+    fontWeight: '700',
     color: '#0f172a',
-    fontSize: 16,
-    fontWeight: '700',
   },
-  profileRole: {
-    color: '#2563eb',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    marginTop: 4,
-    letterSpacing: 0.5,
-  },
-  profileCompany: {
+  heroProfileEmail: {
+    fontSize: 12,
     color: '#64748b',
-    fontSize: 13,
     marginTop: 2,
   },
-  menuList: {
+  heroBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  heroRoleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  heroRoleBadgeSuper: {
+    backgroundColor: '#f3e8ff',
+  },
+  heroRoleBadgeAdmin: {
+    backgroundColor: '#eff6ff',
+  },
+  heroRoleBadgeStaff: {
+    backgroundColor: '#f1f5f9',
+  },
+  heroRoleBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  heroCompanyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    maxWidth: 130,
+  },
+  heroCompanyBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  heroEditPill: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  sectionHeaderTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  menuCardGroup: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 18,
     shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
     elevation: 2,
   },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  menuItemLeft: {
+  menuCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  menuItemText: {
-    color: '#1e293b',
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  inlineBadge: {
-    backgroundColor: '#ef4444',
+  menuIconBox: {
+    width: 38,
+    height: 38,
     borderRadius: 10,
-    minWidth: 18,
-    height: 18,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    marginLeft: 8,
+    marginRight: 14,
   },
-  inlineBadgeText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: 'bold',
+  menuCardTextContainer: {
+    flex: 1,
+    marginRight: 8,
   },
-  appBranding: {
-    alignItems: 'center',
-    marginVertical: 24,
-  },
-  brandLogo: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    marginBottom: 8,
-  },
-  brandTitle: {
-    color: '#0f172a',
+  menuCardTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    fontWeight: '600',
+    color: '#0f172a',
   },
-  brandVersion: {
-    color: '#94a3b8',
-    fontSize: 12,
+  menuCardSubtitle: {
+    fontSize: 11,
+    color: '#64748b',
     marginTop: 2,
   },
-  logoutBtn: {
+  menuCardRight: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  unreadCountPill: {
     backgroundColor: '#ef4444',
     borderRadius: 10,
-    paddingVertical: 14,
+    minWidth: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+  unreadCountText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  menuRowDivider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginLeft: 68,
+  },
+  brandingCard: {
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  brandingLogo: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  brandingTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+    letterSpacing: 0.2,
+  },
+  brandingVersion: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  brandingTenantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginTop: 8,
+  },
+  brandingTenantText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  logoutActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ef4444',
+    borderRadius: 14,
+    paddingVertical: 14,
     shadowColor: '#ef4444',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 3,
+    marginBottom: 16,
   },
-  logoutBtnText: {
+  logoutActionBtnText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

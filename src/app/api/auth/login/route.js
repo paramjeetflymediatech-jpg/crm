@@ -88,6 +88,11 @@ export async function POST(request) {
       maxAge: 7 * 24 * 60 * 60 // 7 days
     });
 
+    let company = user.Company;
+    if (!company && user.role === 'super_admin') {
+      company = await Company.findOne({ order: [['id', 'ASC']] });
+    }
+
     const response = NextResponse.json({
       message: 'Login successful.',
       token: accessToken,
@@ -97,8 +102,11 @@ export async function POST(request) {
         name: user.name,
         email: user.email,
         role: user.role,
-        companyId: user.company_id,
-        companyName: user.Company ? user.Company.company_name : 'System Platform'
+        companyId: user.company_id || (company ? company.id : null),
+        companyName: company ? company.company_name : 'System Platform',
+        avatar: user.avatar || null,
+        companyLogo: company ? company.logo : null,
+        phone: user.phone || null
       }
     });
 

@@ -13,12 +13,32 @@ async function getHandler(request) {
       return NextResponse.json({ error: 'Forbidden: Staff cannot access company settings.' }, { status: 403 });
     }
 
-    const company = await Company.findByPk(user.role === 'super_admin' ? request.nextUrl.searchParams.get('companyId') : companyId);
+    let targetCompanyId = user.role === 'super_admin'
+      ? (request.nextUrl.searchParams.get('companyId') || user.company_id || companyId)
+      : (companyId || user.company_id);
+
+    // If super admin and no specific company requested, fallback to first active company
+    if (!targetCompanyId && user.role === 'super_admin') {
+      const firstCompany = await Company.findOne({ order: [['id', 'ASC']] });
+      if (firstCompany) {
+        targetCompanyId = firstCompany.id;
+      }
+    }
+
+    if (!targetCompanyId) {
+      return NextResponse.json({ company: null });
+    }
+
+    const company = await Company.findByPk(targetCompanyId);
     if (!company) {
       return NextResponse.json({ error: 'Company not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ company });
+    return NextResponse.json({ company }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      }
+    });
   } catch (error) {
     console.error('GET Company Settings Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -36,7 +56,18 @@ async function putHandler(request) {
 
     const body = await request.json();
 
-    const targetCompanyId = user.role === 'super_admin' ? (body.company_id || body.id || companyId) : companyId;
+    let targetCompanyId = user.role === 'super_admin'
+      ? (body.company_id || body.id || request.nextUrl.searchParams.get('companyId') || user.company_id || companyId)
+      : (companyId || user.company_id || body.company_id || body.id);
+
+    // If super admin and still no company id, fallback to first active company
+    if (!targetCompanyId && user.role === 'super_admin') {
+      const firstCompany = await Company.findOne({ order: [['id', 'ASC']] });
+      if (firstCompany) {
+        targetCompanyId = firstCompany.id;
+      }
+    }
+
     if (!targetCompanyId) {
       return NextResponse.json({ error: 'Company ID is required.' }, { status: 400 });
     }
@@ -61,7 +92,7 @@ async function putHandler(request) {
       website: website || null,
       email: email || null,
       phone: phone || null,
-      logo: logo || company.logo,
+      logo: logo !== undefined ? (logo || null) : company.logo,
       facebook_page_id: facebook_page_id !== undefined ? (facebook_page_id || null) : company.facebook_page_id,
       facebook_access_token: facebook_access_token !== undefined ? (facebook_access_token || null) : company.facebook_access_token
     });
@@ -73,7 +104,6 @@ async function putHandler(request) {
       user_id: user.id,
       action: 'Company Settings Updated',
       module: 'Settings',
-      description: `Company settings updated by ${user.name}.`,
       ip_address: ip
     });
 
@@ -81,6 +111,10 @@ async function putHandler(request) {
       success: true,
       message: 'Company settings updated successfully.',
       company
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      }
     });
 
   } catch (error) {
@@ -100,7 +134,20 @@ async function postHandler(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const targetCompanyId = user.role === 'super_admin' ? (body.company_id || body.id || companyId) : companyId;
+    let targetCompanyId = user.role === 'super_admin'
+      ? (body.company_id || body.id || request.nextUrl.searchParams.get('companyId') || user.company_id || companyId)
+      : (companyId || user.company_id || body.company_id || body.id);
+
+    if (!targetCompanyId && user.role === 'super_admin') {
+      const firstCompany = await Company.findOne({ order: [['id', 'ASC']] });
+      if (firstCompany) {
+        targetCompanyId = firstCompany.id;
+      }
+    }
+
+    if (!targetCompanyId) {
+      return NextResponse.json({ error: 'Company ID is required.' }, { status: 400 });
+    }
 
     const company = await Company.findByPk(targetCompanyId);
     if (!company) {

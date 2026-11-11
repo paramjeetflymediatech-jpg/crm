@@ -3,13 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
-  Calendar, 
-  TrendingUp, 
-  ShieldAlert, 
+import {
+  LayoutDashboard,
+  Users,
+  User,
+  Settings,
+  Calendar,
+  TrendingUp,
+  ShieldAlert,
   LogOut,
   Layers,
   FileText
@@ -24,6 +25,7 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
     { name: 'Leads', href: '/leads', icon: Users },
     { name: 'Follow-ups', href: '/calendar', icon: Calendar },
     { name: 'Reports', href: '/reports', icon: TrendingUp },
+    { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
@@ -51,13 +53,27 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
         "lg:translate-x-0"
       )}>
         {/* Brand Header */}
-        <div className="flex h-16 items-center gap-2 border-b border-slate-100 px-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-650 text-white font-bold">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-slate-900 leading-tight">CRM Tenancy</span>
-            <span className="text-[10px] text-indigo-600 font-medium tracking-wider uppercase">Enterprise</span>
+        <div className="flex h-16 items-center gap-2.5 border-b border-slate-100 px-6">
+          {user?.companyLogo || user?.avatar ? (
+            <div className="h-9 w-9 rounded-lg border border-slate-200 overflow-hidden bg-white flex items-center justify-center shrink-0 p-0.5">
+              <img
+                src={user?.companyLogo || user?.avatar}
+                alt="Logo"
+                className="h-full w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold shrink-0 shadow-xs">
+              <Layers className="h-5 w-5" />
+            </div>
+          )}
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-semibold text-slate-900 leading-tight truncate">
+              {user?.companyName && user.companyName !== 'System Platform' ? user.companyName : (user?.name || 'Flymedia Technology')}
+            </span>
+            <span className="text-[10px] text-indigo-600 font-medium tracking-wider uppercase">
+              {user?.role ? user.role.replace('_', ' ') : 'Enterprise'}
+            </span>
           </div>
         </div>
 
@@ -66,7 +82,7 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
           <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5">
             <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tenant Portal</div>
             <div className="text-xs font-semibold text-slate-700 truncate mt-0.5">
-              {user?.companyName || 'Loading...'}
+              {user?.companyName && user.companyName !== 'System Platform' ? user.companyName : (user?.name ? `${user.name}'s Portal` : 'Flymedia Technology')}
             </div>
           </div>
         </div>
@@ -99,8 +115,8 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
                 onClick={onClose}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition duration-200",
-                  isActive 
-                    ? "bg-indigo-650 text-white shadow-sm" 
+                  isActive
+                    ? "bg-indigo-650 text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
@@ -113,15 +129,28 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
 
         {/* Bottom Profile / Logout */}
         <div className="border-t border-slate-150 p-4">
-          <div className="flex items-center gap-3 rounded-lg bg-slate-50 border border-slate-200 p-2.5 mb-2">
-            <div className="h-8 w-8 rounded-full bg-indigo-600/10 text-indigo-600 border border-indigo-500/10 flex items-center justify-center text-xs font-bold uppercase">
-              {user?.name ? user.name[0] : 'U'}
+          <Link
+            href="/profile"
+            onClick={onClose}
+            className="flex items-center gap-3 rounded-lg bg-slate-50 border border-slate-200 p-2.5 mb-2 hover:bg-slate-100/80 transition duration-150 cursor-pointer block"
+            title="Edit Profile"
+          >
+            <div className="h-8 w-8 rounded-full bg-indigo-600/10 text-indigo-600 border border-slate-200 overflow-hidden flex items-center justify-center text-xs font-bold uppercase shrink-0">
+              {user?.avatar || user?.companyLogo ? (
+                <img
+                  src={user.avatar || user.companyLogo}
+                  alt={user?.name || 'User'}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{user?.name ? user.name[0] : 'U'}</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-slate-855 truncate">{user?.name}</p>
+              <p className="text-xs font-semibold text-slate-800 truncate">{user?.name}</p>
               <p className="text-[10px] text-slate-400 truncate capitalize">{user?.role?.replace('_', ' ')}</p>
             </div>
-          </div>
+          </Link>
 
           <button
             onClick={onLogout}

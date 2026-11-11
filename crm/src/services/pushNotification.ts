@@ -1,4 +1,13 @@
-import messaging from '@react-native-firebase/messaging';
+import { 
+  getMessaging, 
+  getToken, 
+  onTokenRefresh, 
+  onMessage, 
+  onNotificationOpenedApp, 
+  getInitialNotification, 
+  requestPermission, 
+  AuthorizationStatus 
+} from '@react-native-firebase/messaging';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import { mobileApiFetch } from '../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,10 +21,11 @@ async function requestUserPermission() {
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   }
 
-  const authStatus = await messaging().requestPermission();
+  const msg = getMessaging();
+  const authStatus = await requestPermission(msg);
   const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+    authStatus === AuthorizationStatus.AUTHORIZED ||
+    authStatus === AuthorizationStatus.PROVISIONAL;
 
   return enabled;
 }
@@ -28,7 +38,8 @@ export async function registerDeviceToken() {
       return;
     }
 
-    const token = await messaging().getToken();
+    const msg = getMessaging();
+    const token = await getToken(msg);
     console.log('[PushNotification] FCM Device Token retrieved:', token);
 
     // Save token locally in AsyncStorage to compare or delete on logout
@@ -84,17 +95,10 @@ export function setOnNotificationPressed(callback: () => void) {
 }
 
 export function initPushNotifications() {
-  // Configure foreground presentation options for iOS
-  if (Platform.OS === 'ios') {
-    (messaging() as any).setForegroundNotificationPresentationOptions({
-      alert: true,
-      badge: true,
-      sound: true,
-    }).catch((err: any) => console.warn('[PushNotification] Failed to set iOS foreground presentation options:', err));
-  }
+  const msg = getMessaging();
 
   // 1. Listen for token refresh
-  messaging().onTokenRefresh(async (token) => {
+  const unsubscribeTokenRefresh = onTokenRefresh(msg, async (token) => {
     console.log('[PushNotification] FCM Token refreshed:', token);
     await AsyncStorage.setItem('fcm_token', token);
     await mobileApiFetch('/api/device-token', {
@@ -104,7 +108,7 @@ export function initPushNotifications() {
   });
 
   // 2. Foreground messages
-  const unsubscribeForeground = messaging().onMessage(async (remoteMessage) => {
+  const unsubscribeForeground = onMessage(msg, async (remoteMessage) => {
     console.log('[PushNotification] Foreground message received:', remoteMessage);
     const { notification } = remoteMessage;
     if (notification) {
@@ -139,7 +143,7 @@ export function initPushNotifications() {
   });
 
   // 3. Notification opened app from background state
-  messaging().onNotificationOpenedApp((remoteMessage) => {
+  const unsubscribeNotificationOpened = onNotificationOpenedApp(msg, (remoteMessage) => {
     console.log('[PushNotification] Notification caused app to open from background:', remoteMessage);
     if (onNotificationPressedCallback) {
       onNotificationPressedCallback();
@@ -149,8 +153,7 @@ export function initPushNotifications() {
   });
 
   // 4. Notification opened app from quit state
-  messaging()
-    .getInitialNotification()
+  getInitialNotification(msg)
     .then((remoteMessage) => {
       if (remoteMessage) {
         console.log('[PushNotification] Notification caused app to open from quit state:', remoteMessage);
@@ -175,7 +178,9 @@ export function initPushNotifications() {
   });
 
   return () => {
-    unsubscribeForeground();
-    unsubscribeNotifeeForeground();
+    if (typeof unsubscribeTokenRefresh === 'function') unsubscribeTokenRefresh();
+    if (typeof unsubscribeForeground === 'function') unsubscribeForeground();
+    if (typeof unsubscribeNotificationOpened === 'function') unsubscribeNotificationOpened();
+    if (typeof unsubscribeNotifeeForeground === 'function') unsubscribeNotifeeForeground();
   };
 }

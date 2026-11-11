@@ -11,6 +11,7 @@ export interface User {
   company_id?: number;
   companyId?: number;
   companyName?: string;
+  companyLogo?: string;
   Company?: {
     id: number;
     company_name: string;

@@ -6,11 +6,12 @@ import {
   ScrollView, 
   RefreshControl, 
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Image
 } from 'react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { mobileApiFetch } from '../api/client';
+import { mobileApiFetch, getImageUrl } from '../api/client';
 import { Users, AlertCircle, TrendingUp, Sparkles, CheckCircle2, ListTodo, Bell } from 'lucide-react-native';
 
 interface DashboardScreenProps {
@@ -78,20 +79,37 @@ export default function DashboardScreen({ onNotificationPress, unreadCount = 0 }
           <Text style={styles.welcomeText}>Hello, {user?.name || 'User'}</Text>
           <Text style={styles.companyText}>{user?.companyName || 'System Tenant'}</Text>
         </View>
-        {onNotificationPress && (
-          <TouchableOpacity 
-            style={styles.bellButton} 
-            onPress={onNotificationPress}
-            activeOpacity={0.7}
-          >
-            <Bell size={20} color="#2563eb" />
-            {unreadCount > 0 && (
-              <View style={styles.bellBadge}>
-                <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-              </View>
+        <View style={styles.headerRight}>
+          {onNotificationPress && (
+            <TouchableOpacity 
+              style={styles.bellButton} 
+              onPress={onNotificationPress}
+              activeOpacity={0.7}
+            >
+              <Bell size={20} color="#2563eb" />
+              {unreadCount > 0 && (
+                <View style={styles.bellBadge}>
+                  <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* Top Right Logo / Avatar Image */}
+          <View style={styles.headerAvatar}>
+            {getImageUrl(user?.companyLogo || user?.avatar) ? (
+              <Image 
+                source={{ uri: getImageUrl(user?.companyLogo || user?.avatar)! }}
+                style={styles.headerAvatarImg}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={styles.headerAvatarText}>
+                {user?.name ? user.name[0].toUpperCase() : 'U'}
+              </Text>
             )}
-          </TouchableOpacity>
-        )}
+          </View>
+        </View>
       </View>
 
       <ScrollView 
@@ -211,6 +229,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  headerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerAvatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  headerAvatarText: {
+    color: '#2563eb',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   bellButton: {
     width: 40,
     height: 40,
@@ -240,7 +283,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     color: '#0f172a',
-    fontSize: 22,
+    fontSize: 15,
     fontWeight: '700',
   },
   companyText: {

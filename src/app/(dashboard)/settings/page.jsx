@@ -37,9 +37,13 @@ import {
   EyeOff,
   CheckCircle2,
   Shield,
-  PhoneCall
+  PhoneCall,
+  Camera,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
+import { showAlert, showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('company');
@@ -72,9 +76,13 @@ export default function SettingsPage() {
     name: '',
     email: '',
     phone: '',
-    password: ''
+    password: '',
+    avatar: ''
   });
   const [userLoading, setUserLoading] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [companyLogoUploading, setCompanyLogoUploading] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
 
   // Sound settings states
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -140,15 +148,52 @@ export default function SettingsPage() {
     const fetchSettings = async () => {
       try {
         const storedUser = localStorage.getItem('user');
+        let currentRole = 'staff';
         if (storedUser) {
           const u = JSON.parse(storedUser);
+          currentRole = u.role || 'staff';
           setCurrentUser(u);
+          if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab) {
+              setActiveTab(tab);
+            } else if (u.role === 'staff') {
+              setActiveTab('profile');
+            }
+          }
           setUserProfile({
-            name: u.name,
-            email: u.email,
+            name: u.name || '',
+            email: u.email || '',
             phone: u.phone || '',
-            password: ''
+            password: '',
+            avatar: u.avatar || ''
           });
+        }
+
+        // Fetch fresh profile from server
+        try {
+          const resProfile = await fetch('/api/settings/profile');
+          if (resProfile.ok) {
+            const pData = await resProfile.json();
+            if (pData?.user) {
+              const fresh = pData.user;
+              setUserProfile(prev => ({
+                ...prev,
+                name: fresh.name || '',
+                email: fresh.email || '',
+                phone: fresh.phone || '',
+                avatar: fresh.avatar || ''
+              }));
+              setCurrentUser(prev => {
+                const merged = { ...prev, ...fresh };
+                localStorage.setItem('user', JSON.stringify(merged));
+                return merged;
+              });
+            }
+          }
+        } catch (pErr) {
+          console.warn('Could not fetch fresh profile:', pErr);
         }
 
         // Initialize sound preferences from localStorage
@@ -159,39 +204,54 @@ export default function SettingsPage() {
           setSoundVolume(parseFloat(vol));
         }
 
-        // Fetch company settings if admin level
-        const resCompany = await fetch('/api/settings/company');
-        if (resCompany.ok) {
-          const d = await resCompany.json();
-          setCompany(d.company);
+        // If admin/super_admin, fetch company settings
+        if (currentRole !== 'staff') {
+          try {
+            const resCompany = await fetch('/api/settings/company');
+            if (resCompany.ok) {
+              const d = await resCompany.json();
+              if (d?.company) {
+                setCompany({
+                  id: d.company.id,
+                  company_name: d.company.company_name || '',
+                  website: d.company.website || '',
+                  email: d.company.email || '',
+                  phone: d.company.phone || '',
+                  logo: d.company.logo || '',
+                  api_key: d.company.api_key || '',
+                  subscription_plan: d.company.subscription_plan || ''
+                });
+                setFbSettings({
+                  facebook_page_id: d.company.facebook_page_id || '',
+                  facebook_access_token: d.company.facebook_access_token || ''
+                });
+              }
+            }
+          } catch (cErr) {
+            console.warn('Could not fetch company settings:', cErr);
+          }
         }
 
-        // Fetch configurations
-        const [resStatuses, resSources, resTeam] = await Promise.all([
+        // Fetch lead statuses and sources (and team members if not staff)
+        const fetchPromises = [
           fetch('/api/leads/statuses'),
-          fetch('/api/leads/sources'),
-          fetch('/api/users')
-        ]);
-
-        // Pre-fill Facebook settings from company data
-        const resC2 = await fetch('/api/settings/company');
-        if (resC2.ok) {
-          const d2 = await resC2.json();
-          setFbSettings({
-            facebook_page_id: d2.company?.facebook_page_id || '',
-            facebook_access_token: d2.company?.facebook_access_token || ''
-          });
+          fetch('/api/leads/sources')
+        ];
+        if (currentRole !== 'staff') {
+          fetchPromises.push(fetch('/api/users'));
         }
 
-        if (resStatuses.ok) {
+        const [resStatuses, resSources, resTeam] = await Promise.all(fetchPromises);
+
+        if (resStatuses?.ok) {
           const d = await resStatuses.json();
           setStatuses(d.statuses || []);
         }
-        if (resSources.ok) {
+        if (resSources?.ok) {
           const d = await resSources.json();
           setSources(d.sources || []);
         }
-        if (resTeam.ok) {
+        if (resTeam?.ok) {
           const d = await resTeam.json();
           setTeamMembers(d.users || []);
         }
@@ -214,18 +274,33 @@ export default function SettingsPage() {
 
   // Regenerate API Key
   const handleRegenerateKey = async () => {
-    if (!window.confirm('Regenerating will break existing WordPress integrations using the current key. Continue?')) return;
+    const confirmed = await showConfirm({
+      title: 'Regenerate API Key?',
+      text: 'Regenerating will break existing WordPress integrations using the current key.',
+      confirmButtonText: 'Yes, regenerate key',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
     try {
       const res = await fetch('/api/settings/company', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: company.id || currentUser?.companyId || currentUser?.company_id
+        })
       });
       if (res.ok) {
         const d = await res.json();
         setCompany(prev => ({ ...prev, api_key: d.api_key }));
+        showSuccess('Key Regenerated', 'Your WordPress API key has been regenerated.');
+      } else {
+        const err = await res.json();
+        showError('Regeneration Failed', err.error || 'Failed to regenerate key.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while regenerating API key.');
     }
   };
 
@@ -238,17 +313,23 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/company', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...company, ...fbSettings })
+        body: JSON.stringify({
+          ...company,
+          ...fbSettings,
+          company_id: company.id || currentUser?.companyId || currentUser?.company_id
+        })
       });
       if (res.ok) {
         setFbSaved(true);
         setTimeout(() => setFbSaved(false), 3000);
+        Toast.fire({ icon: 'success', title: 'Facebook settings saved successfully' });
       } else {
         const err = await res.json();
-        alert(err.error || 'Failed to save Facebook settings.');
+        showError('Save Failed', err.error || 'Failed to save Facebook settings.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while saving Facebook settings.');
     } finally {
       setFbLoading(false);
     }
@@ -262,18 +343,168 @@ export default function SettingsPage() {
       const res = await fetch('/api/settings/company', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(company)
+        body: JSON.stringify({
+          ...company,
+          company_id: company.id || currentUser?.companyId || currentUser?.company_id
+        })
       });
       if (res.ok) {
-        alert('Company settings saved successfully.');
+        const d = await res.json();
+        if (d?.company) {
+          const updatedUser = {
+            ...currentUser,
+            companyName: d.company.company_name,
+            companyLogo: d.company.logo
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setCurrentUser(updatedUser);
+          window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        }
+        showSuccess('Company Settings Saved', 'Your company branding and details have been updated.');
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Update Failed', err.error || 'Failed to update company settings.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while saving company settings.');
     } finally {
       setCompanyLoading(false);
+    }
+  };
+
+  // Avatar & Logo Upload Handlers
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showError('File Too Large', 'Please upload an image smaller than 5MB.');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Upload failed');
+
+      const uploadedUrl = d.url;
+      setUserProfile(prev => ({ ...prev, avatar: uploadedUrl }));
+
+      // Automatically persist avatar to database immediately
+      const saveRes = await fetch('/api/settings/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...userProfile,
+          avatar: uploadedUrl
+        })
+      });
+
+      if (saveRes.ok) {
+        const savedData = await saveRes.json();
+        const updatedUser = { ...currentUser, ...savedData.user, avatar: uploadedUrl };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        Toast.fire({ icon: 'success', title: 'Profile image updated and saved!' });
+      } else {
+        Toast.fire({ icon: 'info', title: 'Image uploaded. Click "Update Profile" to save.' });
+      }
+    } catch (err) {
+      showError('Upload Failed', err.message);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setUserProfile(p => ({ ...p, avatar: '' }));
+    try {
+      const saveRes = await fetch('/api/settings/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...userProfile,
+          avatar: ''
+        })
+      });
+      if (saveRes.ok) {
+        const savedData = await saveRes.json();
+        const updatedUser = { ...currentUser, ...savedData.user, avatar: null };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        Toast.fire({ icon: 'success', title: 'Profile image removed' });
+      }
+    } catch (err) {
+      console.warn('Could not auto-save avatar removal:', err);
+    }
+  };
+
+  const handleCompanyLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showError('File Too Large', 'Please upload an image smaller than 5MB.');
+      return;
+    }
+
+    setCompanyLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Upload failed');
+
+      const uploadedUrl = d.url;
+      setCompany(prev => ({ ...prev, logo: uploadedUrl }));
+
+      // Automatically persist logo to company settings immediately
+      const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+      const saveRes = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...company,
+          logo: uploadedUrl,
+          company_id: targetCid
+        })
+      });
+
+      if (saveRes.ok) {
+        const savedData = await saveRes.json();
+        const updatedUser = {
+          ...currentUser,
+          companyName: savedData.company?.company_name || currentUser?.companyName,
+          companyLogo: uploadedUrl
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        Toast.fire({ icon: 'success', title: 'Company logo updated and saved!' });
+      } else {
+        Toast.fire({ icon: 'info', title: 'Logo uploaded. Click "Save Settings" to save.' });
+      }
+    } catch (err) {
+      showError('Upload Failed', err.message);
+    } finally {
+      setCompanyLogoUploading(false);
     }
   };
 
@@ -281,6 +512,7 @@ export default function SettingsPage() {
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     setUserLoading(true);
+    setProfileSuccess(false);
     try {
       const res = await fetch('/api/settings/profile', {
         method: 'PUT',
@@ -289,18 +521,29 @@ export default function SettingsPage() {
       });
       if (res.ok) {
         const d = await res.json();
-        // Update local state
+        // Update local state and trigger global sync across header and sidebar
         const updatedUser = { ...currentUser, ...d.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setCurrentUser(updatedUser);
-        setUserProfile(prev => ({ ...prev, password: '' }));
-        alert('Profile saved successfully.');
+        setUserProfile(prev => ({
+          ...prev,
+          name: d.user?.name || prev.name,
+          email: d.user?.email || prev.email,
+          phone: d.user?.phone || prev.phone,
+          avatar: d.user?.avatar || prev.avatar,
+          password: ''
+        }));
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        setProfileSuccess(true);
+        setTimeout(() => setProfileSuccess(false), 4000);
+        showSuccess('Profile Saved', 'Your profile details and image have been updated successfully.');
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Update Failed', err.error || 'Failed to update profile.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while saving profile.');
     } finally {
       setUserLoading(false);
     }
@@ -361,7 +604,7 @@ export default function SettingsPage() {
         <p className="text-sm text-slate-500 mt-1">Manage profile, subscription keys, and pipelines.</p>
       </div>
 
-      <Tabs defaultValue={currentUser?.role === 'staff' ? 'profile' : 'company'} className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="flex w-full md:w-auto border border-slate-200 bg-slate-100 text-slate-500 rounded-lg h-10 p-0.5 mb-6 gap-0.5">
           {currentUser?.role !== 'staff' && (
             <TabsTrigger value="company" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
@@ -404,6 +647,54 @@ export default function SettingsPage() {
                 </CardHeader>
                 <form onSubmit={handleCompanySubmit}>
                   <CardContent className="space-y-4">
+                    {/* Company Logo Upload */}
+                    <div className="space-y-2 pb-2 border-b border-slate-100">
+                      <label className="text-xs font-semibold text-slate-500">Company Logo</label>
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-lg border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center shrink-0 p-0.5">
+                          {company.logo ? (
+                            <img src={company.logo} alt="Company Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                          <input
+                            type="file"
+                            id="company-logo-file-input"
+                            accept="image/*"
+                            onChange={handleCompanyLogoUpload}
+                            className="hidden"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={companyLogoUploading}
+                              onClick={() => document.getElementById('company-logo-file-input')?.click()}
+                              className="text-xs h-8"
+                            >
+                              <Upload className="h-3.5 w-3.5 mr-1" />
+                              {companyLogoUploading ? 'Uploading...' : 'Upload Logo'}
+                            </Button>
+                            {company.logo && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCompany(prev => ({ ...prev, logo: '' }))}
+                                className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                              </Button>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-slate-400">PNG, JPG, SVG or WebP. Appears on sidebar brand banner.</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-slate-400">Company Name</label>
                       <Input
@@ -607,13 +898,21 @@ export default function SettingsPage() {
                               <Button
                                 size="sm"
                                 onClick={async () => {
-                                  if (!window.confirm(`Delete ${member.name}? This cannot be undone.`)) return;
+                                  const confirmed = await showConfirm({
+                                    title: `Delete ${member.name}?`,
+                                    text: 'This user account will be permanently deleted and cannot be restored.',
+                                    confirmButtonText: 'Yes, delete member',
+                                    isDanger: true
+                                  });
+                                  if (!confirmed) return;
+
                                   const res = await fetch(`/api/users/${member.id}`, { method: 'DELETE' });
                                   if (res.ok) {
                                     refreshTeam();
+                                    Toast.fire({ icon: 'success', title: `${member.name} deleted successfully` });
                                   } else {
                                     const err = await res.json();
-                                    alert(err.error || 'Failed to delete.');
+                                    showError('Delete Failed', err.error || 'Failed to delete member.');
                                   }
                                 }}
                                 className="h-7 px-2.5 text-xs bg-red-50 border border-red-100 text-red-700 hover:bg-red-100"
@@ -656,9 +955,10 @@ export default function SettingsPage() {
                     if (res.ok) {
                       setViewMemberOpen(false);
                       refreshTeam();
+                      Toast.fire({ icon: 'success', title: 'Member updated successfully' });
                     } else {
                       const err = await res.json();
-                      alert(err.error || 'Failed to update.');
+                      showError('Update Failed', err.error || 'Failed to update member.');
                     }
                   } catch (err) {
                     console.error(err);
@@ -763,9 +1063,10 @@ export default function SettingsPage() {
                       setAddMemberOpen(false);
                       setMemberForm({ name: '', email: '', phone: '', password: '', role: 'staff' });
                       refreshTeam();
+                      Toast.fire({ icon: 'success', title: 'New staff member added successfully' });
                     } else {
                       const err = await res.json();
-                      alert(err.error || 'Failed to create user.');
+                      showError('Creation Failed', err.error || 'Failed to create user.');
                     }
                   } catch (err) {
                     console.error(err);
@@ -979,7 +1280,7 @@ export default function SettingsPage() {
                         {showFbToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <p className="text-[10px] text-slate-400">Generate via Facebook Graph API Explorer or your app's Access Token settings. Use a <strong>long-lived token</strong> for production.</p>
+                    <p className="text-[10px] text-slate-400">Generate via Facebook Graph API Explorer or your app&apos;s Access Token settings. Use a <strong>long-lived token</strong> for production.</p>
                   </div>
 
                   {/* Current status indicator */}
@@ -1125,55 +1426,167 @@ export default function SettingsPage() {
         <TabsContent value="profile">
           <div className="grid gap-6 md:grid-cols-2 items-start max-w-5xl">
             {/* My Profile Credentials */}
-            <Card className="border-slate-200 bg-white text-slate-700 w-full">
-              <CardHeader>
-                <CardTitle className="text-lg text-slate-900">My Profile Credentials</CardTitle>
-                <CardDescription className="text-sm text-slate-500">Edit your user metadata and login passwords</CardDescription>
+            <Card className="border-slate-200 bg-white text-slate-700 w-full shadow-xs">
+              <CardHeader className="border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg text-slate-900">My Profile</CardTitle>
+                    <CardDescription className="text-xs text-slate-500 mt-0.5">
+                      Update your avatar image, personal details, and account credentials
+                    </CardDescription>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100 capitalize">
+                    <Shield className="h-3 w-3" />
+                    {currentUser?.role?.replace('_', ' ') || 'Staff'}
+                  </div>
+                </div>
               </CardHeader>
               <form onSubmit={handleUserSubmit}>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5 pt-5">
+                  {/* Success notification banner */}
+                  {profileSuccess && (
+                    <div className="flex items-center gap-2.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-xs text-emerald-800 animate-in fade-in">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                      <span className="font-medium">Profile and avatar updated! Changes are reflected in your sidebar and header.</span>
+                    </div>
+                  )}
+
+                  {/* Profile / Avatar Image Section */}
+                  <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-4">
+                    <label className="text-xs font-semibold text-slate-700 block mb-2.5">
+                      Profile Picture / Logo Image
+                    </label>
+                    <div className="flex items-center gap-4">
+                      {/* Avatar preview */}
+                      <div className="relative group shrink-0">
+                        <div className="h-16 w-16 rounded-full border-2 border-slate-200 bg-white shadow-xs overflow-hidden flex items-center justify-center">
+                          {userProfile.avatar ? (
+                            <img
+                              src={userProfile.avatar}
+                              alt="Avatar"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xl font-bold text-indigo-600 uppercase">
+                              {userProfile.name ? userProfile.name[0] : 'U'}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('avatar-file-input')?.click()}
+                          className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                          title="Change Photo"
+                        >
+                          <Camera className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <input
+                          type="file"
+                          id="avatar-file-input"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                          onChange={handleAvatarUpload}
+                          className="hidden"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={avatarUploading}
+                            onClick={() => document.getElementById('avatar-file-input')?.click()}
+                            className="text-xs h-8 bg-white border-slate-200"
+                          >
+                            {avatarUploading ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin text-indigo-600" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="h-3.5 w-3.5 mr-1.5" />
+                                Upload Image
+                              </>
+                            )}
+                          </Button>
+
+                          {userProfile.avatar && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRemoveAvatar}
+                              className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          JPG, PNG, WebP or SVG up to 5MB. Shows in top-right header and sidebar.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-500">Full Name</label>
+                    <label className="text-xs font-semibold text-slate-600">Full Name</label>
                     <Input
                       required
                       value={userProfile.name}
                       onChange={(e) => setUserProfile({ ...userProfile, name: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
+                      className="border-slate-200 bg-white text-slate-900 text-sm h-9"
                     />
                   </div>
+
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-500">Email Login</label>
+                    <label className="text-xs font-semibold text-slate-600">Email Login</label>
                     <Input
                       required
                       type="email"
                       value={userProfile.email}
                       onChange={(e) => setUserProfile({ ...userProfile, email: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
+                      className="border-slate-200 bg-white text-slate-900 text-sm h-9"
                     />
                   </div>
+
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-500">Contact Phone</label>
+                    <label className="text-xs font-semibold text-slate-600">Contact Phone</label>
                     <Input
                       value={userProfile.phone}
                       onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
+                      placeholder="+1 (555) 000-0000"
+                      className="border-slate-200 bg-white text-slate-900 text-sm h-9"
                     />
                   </div>
+
                   <hr className="border-slate-100 my-2" />
+
                   <div className="space-y-1">
-                    <label className="text-sm font-semibold text-slate-500">Change Password (Optional)</label>
+                    <label className="text-xs font-semibold text-slate-600">Change Password (Optional)</label>
                     <Input
                       type="password"
-                      placeholder="Leave empty to keep existing"
+                      placeholder="Leave empty to keep existing password"
                       value={userProfile.password}
                       onChange={(e) => setUserProfile({ ...userProfile, password: e.target.value })}
-                      className="border-slate-200 bg-slate-50 text-slate-900 text-sm"
+                      className="border-slate-200 bg-white text-slate-900 text-sm h-9"
                     />
                   </div>
                 </CardContent>
-                <CardFooter className="border-t border-slate-100 pt-4">
-                  <Button type="submit" disabled={userLoading} className="bg-indigo-650 hover:bg-indigo-500 text-white text-sm">
-                    {userLoading ? 'Saving...' : 'Update Profile'}
+
+                <CardFooter className="border-t border-slate-100 pt-4 flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Available to all user roles</span>
+                  <Button type="submit" disabled={userLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm h-9 px-4">
+                    {userLoading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Update Profile'
+                    )}
                   </Button>
                 </CardFooter>
               </form>

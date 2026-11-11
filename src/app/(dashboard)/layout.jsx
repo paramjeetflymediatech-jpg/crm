@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 import Sidebar from '@/components/Sidebar';
@@ -10,13 +10,24 @@ import { apiFetch } from '@/lib/clientApi';
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('user');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [notifications, setNotifications] = useState([]);
   const [searchVal, setSearchVal] = useState('');
   const [loading, setLoading] = useState(true);
   const [toastAlert, setToastAlert] = useState(null);
-  const [socket, setSocket] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const socketRef = useRef(null);
+  const sidebarOpenState = useState(false);
+  const [sidebarOpen, setSidebarOpen] = sidebarOpenState;
 
   // Synthesizes a double-ding chime as a fallback if HTML5 Audio is blocked
   const playSynthesizedBeep = (volume = 0.8) => {
@@ -110,6 +121,29 @@ export default function DashboardLayout({ children }) {
 
 
   useEffect(() => {
+    const handleProfileUpdate = (e) => {
+      if (e?.detail) {
+        setUser(prev => ({ ...prev, ...e.detail }));
+      } else {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored));
+          } catch (err) {
+            console.error('Error parsing stored user:', err);
+          }
+        }
+      }
+    };
+    window.addEventListener('user-profile-updated', handleProfileUpdate);
+    window.addEventListener('storage', handleProfileUpdate);
+    return () => {
+      window.removeEventListener('user-profile-updated', handleProfileUpdate);
+      window.removeEventListener('storage', handleProfileUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     // 1. Session verification
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
@@ -118,7 +152,20 @@ export default function DashboardLayout({ children }) {
     }
 
     const userData = JSON.parse(storedUser);
-    setUser(userData);
+
+    // Refresh user profile details to ensure fresh avatar/logo
+    apiFetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.user) {
+          setUser(prev => {
+            const merged = { ...prev, ...data.user };
+            localStorage.setItem('user', JSON.stringify(merged));
+            return merged;
+          });
+        }
+      })
+      .catch(err => console.warn('Could not refresh user profile:', err));
 
     // 2. Fetch notifications
     const fetchNotifications = async () => {
@@ -140,7 +187,7 @@ export default function DashboardLayout({ children }) {
     // 3. Connect Socket.IO
     const socketUrl = window.location.origin;
     const socketConnection = io(socketUrl);
-    setSocket(socketConnection);
+    socketRef.current = socketConnection;
 
     socketConnection.on('connect', () => {
       console.log('Socket.IO connected from client dashboard.');
@@ -282,6 +329,7 @@ export default function DashboardLayout({ children }) {
           onSearchChange={setSearchVal}
           searchValue={searchVal}
           onMenuToggle={() => setSidebarOpen(prev => !prev)}
+          onLogout={handleLogout}
         />
 
         {/* Content Panel */}

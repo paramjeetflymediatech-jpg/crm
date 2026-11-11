@@ -12,14 +12,16 @@ import {
   Switch,
   Platform,
   KeyboardAvoidingView,
-  useWindowDimensions
+  useWindowDimensions,
+  Image
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { setAuth, logoutUser } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mobileApiFetch, getBaseUrl } from '../api/client';
+import { mobileApiFetch, getBaseUrl, getImageUrl, uploadMobileFile } from '../api/client';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { 
   showSuccess, 
   showError, 
@@ -50,11 +52,14 @@ import {
   Tag, 
   Volume2, 
   Layers,
-  X
+  X,
+  Camera,
+  Upload
 } from 'lucide-react-native';
 
 interface SettingsScreenProps {
   onBack?: () => void;
+  initialTab?: 'profile' | 'company' | 'team';
 }
 
 const PRESET_COLORS = [
@@ -68,7 +73,7 @@ const PRESET_COLORS = [
   '#64748b', // Slate
 ];
 
-export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
+export default function SettingsScreen({ onBack, initialTab }: SettingsScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
 
@@ -84,7 +89,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
 
   // Tabs: 'profile' | 'company' | 'team'
   const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'team'>(
-    isStaff ? 'profile' : 'company'
+    initialTab || (isStaff ? 'profile' : 'company')
   );
 
   const [loading, setLoading] = useState(true);
@@ -95,11 +100,15 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
     name: currentUser?.name || '',
     email: currentUser?.email || '',
     phone: currentUser?.phone || '',
+    avatar: currentUser?.avatar || currentUser?.companyLogo || '',
     password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // --- Company State ---
   const [company, setCompany] = useState<{
@@ -177,12 +186,36 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
     try {
       // 1. Refresh user profile form from state or stored
       if (currentUser) {
-        setProfileForm({
+        setProfileForm(prev => ({
+          ...prev,
           name: currentUser.name || '',
           email: currentUser.email || '',
           phone: currentUser.phone || '',
-          password: '',
-        });
+          avatar: currentUser.avatar || currentUser.companyLogo || '',
+        }));
+      }
+
+      // Fetch fresh profile for all roles
+      try {
+        const resProf = await mobileApiFetch('/api/settings/profile');
+        if (resProf.ok) {
+          const profData = await resProf.json();
+          if (profData?.user) {
+            const u = profData.user;
+            setProfileForm(prev => ({
+              ...prev,
+              name: u.name || '',
+              email: u.email || '',
+              phone: u.phone || '',
+              avatar: u.avatar || u.companyLogo || '',
+            }));
+            const updatedUser = { ...currentUser, ...u };
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            dispatch(setAuth({ token: auth.token, user: updatedUser }));
+          }
+        }
+      } catch (e) {
+        console.warn('[Settings] Failed to fetch fresh profile:', e);
       }
 
       // If user is not staff, fetch company, pipeline, and team data
@@ -266,6 +299,7 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
         name: profileForm.name.trim(),
         email: profileForm.email.trim(),
         phone: profileForm.phone.trim(),
+        avatar: profileForm.avatar || null,
       };
       if (profileForm.password.trim() !== '') {
         payload.password = profileForm.password;
@@ -290,6 +324,136 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
       showError('Network Error', err.message || 'Unable to update profile. Please try again.', undefined, 'Proceed');
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  // Handle Pick Image from Local Device Gallery
+  const handlePickFromGallery = async () => {
+    try {
+      const response = await launchImageLibrary({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      });
+
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        showError('Gallery Error', response.errorMessage || 'Failed to open photo library.', undefined, 'Proceed');
+        return;
+      }
+
+      const asset = response.assets?.[0];
+      if (!asset || !asset.uri) return;
+
+      setUploadingImage(true);
+      const res = await uploadMobileFile(
+        asset.uri,
+        asset.fileName || `avatar_${Date.now()}.jpg`,
+        asset.type || 'image/jpeg'
+      );
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setProfileForm(prev => ({ ...prev, avatar: data.url }));
+        setImageUrlInput(data.url);
+        setImageModalOpen(false);
+
+        // Auto-save to profile
+        try {
+          const saveRes = await mobileApiFetch('/api/settings/profile', {
+            method: 'PUT',
+            bodyData: {
+              name: profileForm.name.trim() || currentUser?.name,
+              email: profileForm.email.trim() || currentUser?.email,
+              phone: profileForm.phone.trim() || currentUser?.phone,
+              avatar: data.url,
+            },
+          });
+          const saveData = await saveRes.json();
+          if (saveRes.ok && saveData.user) {
+            const token = await AsyncStorage.getItem('token');
+            const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            dispatch(setAuth({ token, user: updatedUser }));
+          }
+        } catch (e) {
+          console.warn('Auto-save error:', e);
+        }
+
+        showSuccess('Photo Uploaded', 'Your profile / logo image has been uploaded and updated.', undefined, 'Proceed');
+      } else {
+        showError('Upload Failed', data.error || 'Failed to upload selected image.', undefined, 'Proceed');
+      }
+    } catch (err: any) {
+      showError('Upload Error', err.message || 'An error occurred during image upload.', undefined, 'Proceed');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Handle Capture Photo with Device Camera
+  const handleTakePhoto = async () => {
+    try {
+      const response = await launchCamera({
+        mediaType: 'photo',
+        quality: 0.8,
+        maxWidth: 1200,
+        maxHeight: 1200,
+      });
+
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        showError('Camera Error', response.errorMessage || 'Failed to open camera.', undefined, 'Proceed');
+        return;
+      }
+
+      const asset = response.assets?.[0];
+      if (!asset || !asset.uri) return;
+
+      setUploadingImage(true);
+      const res = await uploadMobileFile(
+        asset.uri,
+        asset.fileName || `camera_${Date.now()}.jpg`,
+        asset.type || 'image/jpeg'
+      );
+
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setProfileForm(prev => ({ ...prev, avatar: data.url }));
+        setImageUrlInput(data.url);
+        setImageModalOpen(false);
+
+        // Auto-save to profile
+        try {
+          const saveRes = await mobileApiFetch('/api/settings/profile', {
+            method: 'PUT',
+            bodyData: {
+              name: profileForm.name.trim() || currentUser?.name,
+              email: profileForm.email.trim() || currentUser?.email,
+              phone: profileForm.phone.trim() || currentUser?.phone,
+              avatar: data.url,
+            },
+          });
+          const saveData = await saveRes.json();
+          if (saveRes.ok && saveData.user) {
+            const token = await AsyncStorage.getItem('token');
+            const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
+            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+            dispatch(setAuth({ token, user: updatedUser }));
+          }
+        } catch (e) {
+          console.warn('Auto-save error:', e);
+        }
+
+        showSuccess('Photo Uploaded', 'Your profile / logo image has been captured and updated.', undefined, 'Proceed');
+      } else {
+        showError('Upload Failed', data.error || 'Failed to upload photo.', undefined, 'Proceed');
+      }
+    } catch (err: any) {
+      showError('Camera Error', err.message || 'An error occurred capturing photo.', undefined, 'Proceed');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -1179,6 +1343,63 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
             {/* ============================================================== */}
             {activeTab === 'profile' && (
               <View style={styles.tabContent}>
+                {/* Profile Picture / Logo Image Card */}
+                <View style={styles.card}>
+                  <View style={styles.cardHeader}>
+                    <View style={styles.cardIconBox}>
+                      <Camera size={18} color="#2563eb" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cardTitle}>Profile Picture / Logo Image</Text>
+                      <Text style={styles.cardSubtitle}>Shows in header, drawer, and across the CRM</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.avatarRow}>
+                    <View style={styles.avatarLarge}>
+                      {getImageUrl(profileForm.avatar || currentUser?.companyLogo || currentUser?.avatar) ? (
+                        <Image
+                          source={{ uri: getImageUrl(profileForm.avatar || currentUser?.companyLogo || currentUser?.avatar)! }}
+                          style={styles.avatarLargeImg}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text style={styles.avatarLargeText}>
+                          {profileForm.name ? profileForm.name[0].toUpperCase() : 'U'}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.avatarActions}>
+                      <TouchableOpacity
+                        style={styles.avatarBtn}
+                        onPress={() => {
+                          setImageUrlInput(profileForm.avatar || currentUser?.companyLogo || '');
+                          setImageModalOpen(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Upload size={14} color="#2563eb" style={{ marginRight: 6 }} />
+                        <Text style={styles.avatarBtnText}>Set / Update Image</Text>
+                      </TouchableOpacity>
+
+                      {(profileForm.avatar || currentUser?.avatar) ? (
+                        <TouchableOpacity
+                          style={styles.avatarRemoveBtn}
+                          onPress={() => setProfileForm(prev => ({ ...prev, avatar: '' }))}
+                          activeOpacity={0.7}
+                        >
+                          <Trash2 size={14} color="#ef4444" style={{ marginRight: 6 }} />
+                          <Text style={styles.avatarRemoveBtnText}>Remove Image</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
+                  <Text style={styles.avatarHelpText}>
+                    Available for all user roles (Super Admin, Company Admin, and Staff).
+                  </Text>
+                </View>
+
                 {/* Credentials Card */}
                 <View style={styles.card}>
                   <View style={styles.cardHeader}>
@@ -1637,6 +1858,131 @@ export default function SettingsScreen({ onBack }: SettingsScreenProps = {}) {
                 ) : (
                   <Text style={styles.modalSubmitBtnText}>Save Changes</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Profile Image & Logo Update Modal */}
+      <Modal
+        visible={imageModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImageModalOpen(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={[styles.modalBackdrop, isTablet && styles.modalBackdropTablet]}
+        >
+          <View style={[styles.modalCard, isTablet && styles.modalCardTablet]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Update Profile / Logo Image</Text>
+                <Text style={styles.modalSubtitle}>Appears in header, drawer, and system</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.modalCloseBtn}
+                onPress={() => setImageModalOpen(false)}
+              >
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {uploadingImage ? (
+              <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="large" color="#2563eb" />
+                <Text style={{ marginTop: 14, fontSize: 14, fontWeight: '700', color: '#0f172a' }}>
+                  Uploading local image to server...
+                </Text>
+                <Text style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                  Please wait while your image is saved.
+                </Text>
+              </View>
+            ) : (
+              <View style={{ marginVertical: 14 }}>
+                <Text style={styles.modalSectionLabel}>UPLOAD LOCAL PHOTO</Text>
+                
+                <View style={styles.uploadOptionsRow}>
+                  <TouchableOpacity
+                    style={styles.uploadOptionCard}
+                    onPress={handlePickFromGallery}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.uploadOptionIconBox, { backgroundColor: '#eff6ff' }]}>
+                      <Upload size={22} color="#2563eb" />
+                    </View>
+                    <Text style={styles.uploadOptionTitle}>Device Gallery</Text>
+                    <Text style={styles.uploadOptionSub}>Pick from photos</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.uploadOptionCard}
+                    onPress={handleTakePhoto}
+                    activeOpacity={0.75}
+                  >
+                    <View style={[styles.uploadOptionIconBox, { backgroundColor: '#f0fdf4' }]}>
+                      <Camera size={22} color="#16a34a" />
+                    </View>
+                    <Text style={styles.uploadOptionTitle}>Take Photo</Text>
+                    <Text style={styles.uploadOptionSub}>Use phone camera</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Divider */}
+                <View style={styles.modalDividerRow}>
+                  <View style={styles.modalDividerLine} />
+                  <Text style={styles.modalDividerText}>OR IMAGE URL</Text>
+                  <View style={styles.modalDividerLine} />
+                </View>
+
+                {/* Direct URL */}
+                <View style={styles.inputBox}>
+                  <Globe size={16} color="#94a3b8" style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.textInput}
+                    value={imageUrlInput}
+                    onChangeText={setImageUrlInput}
+                    placeholder="https://example.com/logo.png"
+                    placeholderTextColor="#94a3b8"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                {currentUser?.companyLogo && (
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}
+                    onPress={() => setImageUrlInput(currentUser.companyLogo || '')}
+                    activeOpacity={0.7}
+                  >
+                    <Building2 size={14} color="#2563eb" style={{ marginRight: 6 }} />
+                    <Text style={{ color: '#2563eb', fontSize: 13, fontWeight: '600' }}>
+                      Use Active Company Logo
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setImageModalOpen(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalSubmitBtn}
+                onPress={() => {
+                  setProfileForm(prev => ({ ...prev, avatar: imageUrlInput.trim() }));
+                  setImageModalOpen(false);
+                  showSuccess('Image Attached', 'Click "Save Profile Changes" to save to your account.', undefined, 'Proceed');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalSubmitBtnText}>Apply Image</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2446,5 +2792,133 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+
+  // Avatar / Logo Styles
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  avatarLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarLargeImg: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarLargeText: {
+    color: '#2563eb',
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  avatarActions: {
+    flex: 1,
+    gap: 8,
+  },
+  avatarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  avatarBtnText: {
+    color: '#2563eb',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  avatarRemoveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  avatarRemoveBtnText: {
+    color: '#ef4444',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  avatarHelpText: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginTop: 4,
+  },
+
+  // Upload Local Image Modal Styles
+  modalSectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  uploadOptionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  uploadOptionCard: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadOptionIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  uploadOptionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  uploadOptionSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  modalDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 14,
+  },
+  modalDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  modalDividerText: {
+    paddingHorizontal: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94a3b8',
   },
 });

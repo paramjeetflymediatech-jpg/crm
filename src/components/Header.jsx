@@ -1,17 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { 
   Bell, 
   Search, 
   CheckCheck,
   Calendar,
-  User,
-  ShieldCheck,
-  ExternalLink,
-  Info,
-  Menu,
-  Trash2
+  User, 
+  ShieldCheck, 
+  ExternalLink, 
+  Info, 
+  Menu, 
+  Trash2,
+  Settings as SettingsIcon,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -34,7 +38,8 @@ export default function Header({
   onClearNotification,
   onSearchChange,
   searchValue,
-  onMenuToggle
+  onMenuToggle,
+  onLogout
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -113,7 +118,7 @@ export default function Header({
                     variant="ghost" 
                     size="sm" 
                     onClick={onMarkAllRead}
-                    className="h-7 text-xs text-indigo-700 hover:text-indigo-800 hover:bg-slate-50 flex items-center gap-1 px-2"
+                    className="h-7 text-xs text-indigo-700 hover:text-indigo-800 hover:bg-slate-50 flex items-center gap-1 px-2 cursor-pointer"
                   >
                     <CheckCheck className="h-3.5 w-3.5" /> Read all
                   </Button>
@@ -123,7 +128,7 @@ export default function Header({
                     variant="ghost" 
                     size="sm" 
                     onClick={onClearAll}
-                    className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1 px-2"
+                    className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1 px-2 cursor-pointer"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Clear all
                   </Button>
@@ -174,7 +179,7 @@ export default function Header({
                         onClearNotification && onClearNotification(n.id);
                       }}
                       title="Clear notification"
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition p-1 text-slate-400 hover:text-red-600 hover:bg-slate-200/60 rounded"
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition p-1 text-slate-400 hover:text-red-600 hover:bg-slate-200/60 rounded cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -185,17 +190,69 @@ export default function Header({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* User Identity */}
+        {/* User Identity Dropdown */}
         <div className="h-6 w-px bg-slate-200" />
-        <div className="flex items-center gap-3">
-          <div className="hidden md:flex flex-col text-right">
-            <span className="text-xs font-semibold text-slate-800">{user?.name}</span>
-            <span className="text-[10px] text-slate-400 font-medium capitalize">{user?.role?.replace('_', ' ')}</span>
-          </div>
-          <div className="h-9 w-9 rounded-full bg-indigo-600/10 text-indigo-600 border border-indigo-500/10 flex items-center justify-center text-sm font-semibold uppercase">
-            {user?.name ? user.name[0] : 'U'}
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition duration-150 cursor-pointer outline-none border border-transparent hover:border-slate-200">
+            <div className="h-9 w-9 rounded-full bg-indigo-600/10 text-indigo-600 border border-slate-200 overflow-hidden flex items-center justify-center text-sm font-semibold uppercase shrink-0 shadow-xs">
+              {user?.companyLogo || user?.avatar ? (
+                <img
+                  src={user?.companyLogo || user?.avatar}
+                  alt={user?.name || 'Avatar'}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{user?.name ? user.name[0] : 'U'}</span>
+              )}
+            </div>
+            <div className="hidden md:flex flex-col text-left">
+              <span className="text-xs font-semibold text-slate-800 leading-tight truncate max-w-[120px]">
+                {user?.name}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium capitalize">
+                {user?.role?.replace('_', ' ')}
+              </span>
+            </div>
+            <ChevronDown className="h-3.5 w-3.5 text-slate-400 hidden sm:block" />
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end" className="w-56 border-slate-200 bg-white text-slate-800 shadow-xl rounded-xl p-1.5">
+            {/* Header info */}
+            <div className="px-3 py-2 border-b border-slate-100 mb-1">
+              <p className="text-xs font-bold text-slate-900 truncate">{user?.name}</p>
+              <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
+              <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-50 text-indigo-700 capitalize">
+                {user?.role?.replace('_', ' ')}
+              </span>
+            </div>
+
+            {/* Profile Navigation */}
+            <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+              <Link href="/profile" className="flex items-center gap-2.5 w-full">
+                <User className="h-4 w-4 text-indigo-600" />
+                <span>My Profile & Settings</span>
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild className="cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-slate-900">
+              <Link href="/settings" className="flex items-center gap-2.5 w-full">
+                <SettingsIcon className="h-4 w-4 text-slate-500" />
+                <span>Configurations</span>
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-1 border-slate-100" />
+
+            {/* Logout button */}
+            <DropdownMenuItem
+              onClick={onLogout}
+              className="cursor-pointer rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700 flex items-center gap-2.5"
+            >
+              <LogOut className="h-4 w-4 text-red-500" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

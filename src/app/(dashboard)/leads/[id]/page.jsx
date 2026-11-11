@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiFetch as fetch } from '@/lib/clientApi';
+import { showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
 
 export default function LeadDetailPage({ params: paramsPromise }) {
   const router = useRouter();
@@ -119,12 +120,14 @@ export default function LeadDetailPage({ params: paramsPromise }) {
       });
       if (res.ok) {
         refreshLead();
+        Toast.fire({ icon: 'success', title: 'Field updated' });
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Update Failed', err.error || 'Failed to update field.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred.');
     }
   };
 
@@ -141,9 +144,14 @@ export default function LeadDetailPage({ params: paramsPromise }) {
       if (res.ok) {
         setNoteContent('');
         refreshLead();
+        Toast.fire({ icon: 'success', title: 'Note added to lead' });
+      } else {
+        const err = await res.json();
+        showError('Failed', err.error || 'Could not add note');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred.');
     }
   };
 
@@ -151,7 +159,7 @@ export default function LeadDetailPage({ params: paramsPromise }) {
   const handleAddTask = async (e) => {
     e.preventDefault();
     if (!taskForm.title || !taskForm.due_date || !taskForm.assigned_to) {
-      alert('Task title, due date, and assignee are required.');
+      showError('Incomplete Task', 'Task title, due date, and assignee are required.');
       return;
     }
     try {
@@ -169,12 +177,14 @@ export default function LeadDetailPage({ params: paramsPromise }) {
         setTaskForm({ title: '', description: '', due_date: '', assigned_to: '' });
         setShowTaskForm(false);
         refreshLead();
+        Toast.fire({ icon: 'success', title: 'Task scheduled successfully' });
       } else {
         const err = await res.json();
-        alert(err.error);
+        showError('Task Failed', err.error || 'Failed to schedule task.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred.');
     }
   };
 
@@ -182,10 +192,6 @@ export default function LeadDetailPage({ params: paramsPromise }) {
   const handleToggleTask = async (task) => {
     try {
       const nextStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
-      // We can update task status via PUT leads task route, but since we didn't define a dedicated PUT endpoint, we can support a fast fetch call or implement it. 
-      // Let's call the generic update task endpoint or directly update in DB. Since we are in next, let's look at how tasks are modeled.
-      // We can mock it or let's create a dedicated PUT task endpoint if needed, or update via a PUT API `/api/tasks/[id]`. Let's verify: we can build a quick route, or implement updating task in a dedicated endpoint `/api/tasks/route.js`. Yes! Let's do a fast PUT request to `/api/tasks` or write it.
-      // Wait, we can implement the task complete toggle by requesting:
       const res = await fetch(`/api/tasks`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -201,16 +207,28 @@ export default function LeadDetailPage({ params: paramsPromise }) {
 
   // Delete Lead
   const handleDeleteLead = async () => {
-    if (!window.confirm('Are you sure you want to permanently delete this lead?')) return;
+    const confirmed = await showConfirm({
+      title: 'Permanently delete this lead?',
+      text: 'This action will delete this lead, including all communication history and scheduled follow-ups.',
+      confirmButtonText: 'Yes, delete lead',
+      isDanger: true
+    });
+    if (!confirmed) return;
+
     try {
       const res = await fetch(`/api/leads/${lead.id}`, {
         method: 'DELETE'
       });
       if (res.ok) {
+        Toast.fire({ icon: 'success', title: 'Lead deleted successfully' });
         router.push('/leads');
+      } else {
+        const err = await res.json();
+        showError('Delete Failed', err.error || 'Failed to delete lead.');
       }
     } catch (err) {
       console.error(err);
+      showError('Error', 'An unexpected error occurred while deleting lead.');
     }
   };
 
