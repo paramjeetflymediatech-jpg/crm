@@ -241,7 +241,7 @@ export default function AppTabs() {
               resizeMode="contain" 
             />
             <Text style={styles.brandTitle}>Enterprise CRM</Text>
-            <Text style={styles.brandVersion}>v1.0.8 • Production Build</Text>
+            <Text style={styles.brandVersion}>v1.1.0 • Production Build</Text>
           </View>
 
           <TouchableOpacity 
