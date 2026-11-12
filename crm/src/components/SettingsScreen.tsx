@@ -2093,7 +2093,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
               <View style={{ marginVertical: 14 }}>
                 <Text style={styles.modalSectionLabel}>UPLOAD LOCAL PHOTO</Text>
                 
-                <View style={styles.uploadOptionsRow}>
+......                <View style={styles.uploadOptionsRow}>
                   <TouchableOpacity
                     style={styles.uploadOptionCard}
                     onPress={handlePickFromGallery}

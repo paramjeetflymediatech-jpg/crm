@@ -9,11 +9,6 @@ async function getHandler(request) {
     const user = request.user;
     const companyId = request.companyId;
 
-    // Direct access to only Admin roles
-    if (user.role === 'staff') {
-      return NextResponse.json({ error: 'Forbidden: Staff users cannot view user lists.' }, { status: 403 });
-    }
-
     const where = {};
     if (user.role !== 'super_admin') {
       where.company_id = companyId;

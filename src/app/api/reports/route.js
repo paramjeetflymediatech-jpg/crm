@@ -17,9 +17,12 @@ async function handler(request) {
       taskWhere.company_id = companyId;
 
       if (user.role === 'staff') {
-        // Staff can only view their own performance metrics
-        where.assigned_to = user.id;
-        taskWhere.assigned_to = user.id;
+        // If staff has assigned leads, show their metrics; otherwise fallback to company leads
+        const assignedCount = await Lead.count({ where: { company_id: companyId, assigned_to: user.id } });
+        if (assignedCount > 0) {
+          where.assigned_to = user.id;
+          taskWhere.assigned_to = user.id;
+        }
       }
     }
 

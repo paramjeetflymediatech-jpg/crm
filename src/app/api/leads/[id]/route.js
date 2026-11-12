@@ -31,11 +31,6 @@ async function getAuthorizedLead(leadId, currentUser, currentCompanyId) {
   // Enforce tenant boundary
   if (currentUser.role !== 'super_admin') {
     if (lead.company_id !== currentCompanyId) return null;
-    
-    // Staff user: only access assigned leads
-    if (currentUser.role === 'staff' && lead.assigned_to !== currentUser.id) {
-      return null;
-    }
   }
 
   return lead;

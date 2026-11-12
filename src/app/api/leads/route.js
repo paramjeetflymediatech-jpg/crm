@@ -33,24 +33,24 @@ async function getHandler(request) {
       if (filterCompanyId) {
         where.company_id = filterCompanyId;
       }
-    } else if (user.role === 'company_admin') {
-      // Company Admin: view all leads in their company
-      where.company_id = companyId;
     } else {
-      // Staff User: view ONLY assigned leads
+      // Company Admin & Staff: view leads belonging to their company
       where.company_id = companyId;
-      where.assigned_to = user.id;
     }
 
     // 2. Field Filters (ignore the '_all' sentinel used by frontend dropdowns)
     if (status && status !== '_all') where.status = status;
     if (source && source !== '_all') where.source = source;
     if (priority && priority !== '_all') where.priority = priority;
-    // Parse to integer — URL params are always strings but assigned_to is an INTEGER column
-    // Also skip if user is staff (their isolation is already set above and cannot be overridden)
-    if (assignedTo && assignedTo !== '_all' && user.role !== 'staff') {
-      const assignedToInt = parseInt(assignedTo, 10);
-      if (!isNaN(assignedToInt)) where.assigned_to = assignedToInt;
+    
+    // Assigned Representative Filter
+    if (assignedTo && assignedTo !== '_all') {
+      if (assignedTo === 'unassigned') {
+        where.assigned_to = null;
+      } else {
+        const assignedToInt = parseInt(assignedTo, 10);
+        if (!isNaN(assignedToInt)) where.assigned_to = assignedToInt;
+      }
     }
 
     // Date Range filter (using created_at)
@@ -133,10 +133,14 @@ async function postHandler(request) {
     }
 
     const leadData = validation.data;
+    const finalAssignedTo = leadData.assigned_to !== undefined 
+      ? leadData.assigned_to 
+      : (user.role === 'staff' ? user.id : null);
 
     // Create Lead
     const newLead = await Lead.create({
       ...leadData,
+      assigned_to: finalAssignedTo,
       company_id: targetCompanyId
     });
 

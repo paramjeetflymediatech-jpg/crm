@@ -1338,6 +1338,39 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                     );
                   })}
                 </View>
+
+                {/* Assigned Representative Selector */}
+                {team.length > 0 && (
+                  <>
+                    <Text style={[styles.selectorSectionTitle, { marginTop: 16 }]}>Assigned Representative</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity 
+                          style={[styles.statusSelectChip, !selectedLead?.assigned_to && styles.statusSelectChipActive]}
+                          onPress={() => handleFieldChange('assigned_to', null)}
+                        >
+                          <Text style={[styles.statusSelectChipText, !selectedLead?.assigned_to && styles.statusSelectChipTextActive]}>
+                            Unassigned
+                          </Text>
+                        </TouchableOpacity>
+                        {team.map(member => {
+                          const isAssigned = selectedLead?.assigned_to === member.id;
+                          return (
+                            <TouchableOpacity 
+                              key={member.id} 
+                              style={[styles.statusSelectChip, isAssigned && styles.statusSelectChipActive]}
+                              onPress={() => handleFieldChange('assigned_to', member.id)}
+                            >
+                              <Text style={[styles.statusSelectChipText, isAssigned && styles.statusSelectChipTextActive]}>
+                                {member.name || member.email}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  </>
+                )}
               </View>
 
               {/* Modern Segmented Tabs */}
