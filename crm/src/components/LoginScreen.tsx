@@ -34,9 +34,10 @@ import { TOKENS } from '../theme/tokens';
 interface LoginScreenProps {
   onForgotPassword: () => void;
   onBackToWelcome?: () => void;
+  onOpenLegal?: (tab: 'privacy' | 'terms') => void;
 }
 
-export default function LoginScreen({ onForgotPassword, onBackToWelcome }: LoginScreenProps) {
+export default function LoginScreen({ onForgotPassword, onBackToWelcome, onOpenLegal }: LoginScreenProps) {
   const dispatch = useDispatch();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
@@ -263,19 +264,33 @@ export default function LoginScreen({ onForgotPassword, onBackToWelcome }: Login
           </View>
 
           {/* Help & Support Note */}
-          <View style={styles.helpSection}>
+          {/* <View style={styles.helpSection}>
             <Text style={styles.helpText}>
               Need an account or access assistance?{' '}
               <Text style={styles.helpLink}>Contact Organization Admin</Text>
             </Text>
-          </View>
+          </View> */}
 
-          {/* Footer Security Badge */}
+          {/* Footer Security Badge & Legal Links */}
           <View style={styles.footer}>
-            <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
-            <Text style={styles.footerText}>
-              256-bit SSL Encrypted • Multi-Tenant Protected
-            </Text>
+            <View style={styles.footerSecurityRow}>
+              <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
+              <Text style={styles.footerText}>
+                256-bit SSL Encrypted • Multi-Tenant Protected
+              </Text>
+            </View>
+
+            {onOpenLegal && (
+              <View style={styles.legalLinksRow}>
+                <TouchableOpacity onPress={() => onOpenLegal('privacy')} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.legalLinkText}>Privacy Policy</Text>
+                </TouchableOpacity>
+                <Text style={styles.legalDot}>•</Text>
+                <TouchableOpacity onPress={() => onOpenLegal('terms')} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.legalLinkText}>Terms of Service</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -493,15 +508,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 8,
     marginTop: 20,
+    gap: 8,
+  },
+  footerSecurityRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerText: {
     color: TOKENS.colors.secondary,
     fontSize: 11,
     textAlign: 'center',
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  legalLinkText: {
+    color: TOKENS.colors.primary,
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  legalDot: {
+    color: TOKENS.colors.secondary,
+    fontSize: 10,
   },
 });

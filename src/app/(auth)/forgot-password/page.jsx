@@ -232,6 +232,17 @@ export default function ForgotPasswordPage() {
                 </div>
               </form>
             )}
+
+            {/* Legal Links */}
+            <div className="mt-8 text-center text-xs text-slate-500">
+              <Link href="/privacy-policy" className="hover:text-indigo-600 hover:underline dark:hover:text-indigo-400">
+                Privacy Policy
+              </Link>
+              <span className="mx-2">•</span>
+              <Link href="/terms-and-conditions" className="hover:text-indigo-600 hover:underline dark:hover:text-indigo-400">
+                Terms of Service
+              </Link>
+            </div>
           </div>
         </div>
       </div>

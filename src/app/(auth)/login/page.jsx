@@ -266,6 +266,18 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+
+            {/* Legal Links */}
+            <div className="mt-8 text-center text-xs text-slate-500">
+              <span>By signing in, you agree to our </span>
+              <Link href="/terms-and-conditions" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                Terms
+              </Link>
+              <span> and </span>
+              <Link href="/privacy-policy" className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                Privacy Policy
+              </Link>
+            </div>
           </div>
         </div>
       </div>

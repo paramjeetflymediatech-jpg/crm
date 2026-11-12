@@ -19,9 +19,10 @@ import { TOKENS } from '../theme/tokens';
 
 interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
+  onOpenLegal?: (tab: 'privacy' | 'terms') => void;
 }
 
-export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProps) {
+export default function ForgotPasswordScreen({ onBackToLogin, onOpenLegal }: ForgotPasswordScreenProps) {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -200,12 +201,26 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
             )}
           </View>
 
-          {/* Footer Security Badge */}
+          {/* Footer Security Badge & Legal Links */}
           <View style={styles.footer}>
-            <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
-            <Text style={styles.footerText}>
-              Protected by Enterprise Multi-Tenant Identity Verification
-            </Text>
+            <View style={styles.footerSecurityRow}>
+              <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
+              <Text style={styles.footerText}>
+                Protected by Enterprise Multi-Tenant Identity Verification
+              </Text>
+            </View>
+
+            {onOpenLegal && (
+              <View style={styles.legalLinksRow}>
+                <TouchableOpacity onPress={() => onOpenLegal('privacy')} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.legalLinkText}>Privacy Policy</Text>
+                </TouchableOpacity>
+                <Text style={styles.legalDot}>•</Text>
+                <TouchableOpacity onPress={() => onOpenLegal('terms')} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={styles.legalLinkText}>Terms of Service</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -433,15 +448,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 22,
     paddingHorizontal: 12,
+    gap: 8,
+  },
+  footerSecurityRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   footerText: {
     color: TOKENS.colors.secondary,
     fontSize: 11,
     textAlign: 'center',
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  legalLinkText: {
+    color: TOKENS.colors.primary,
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  legalDot: {
+    color: TOKENS.colors.secondary,
+    fontSize: 10,
   },
 });

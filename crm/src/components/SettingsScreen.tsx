@@ -707,34 +707,34 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
   };
 
   // Handle Regenerate Key
-  const handleRegenerateKey = () => {
-    showConfirm({
-      title: 'Regenerate API Key',
-      message: 'Regenerating will break existing WordPress and webhook integrations using the current key. Continue?',
-      isDestructive: true,
-      proceedText: 'Proceed',
-      cancelText: 'Cancel',
-      onProceed: async () => {
-        setRegeneratingKey(true);
-        try {
-          const res = await mobileApiFetch('/api/settings/company', {
-            method: 'POST',
-          });
-          const data = await res.json();
-          if (res.ok && data.api_key) {
-            setCompany(prev => ({ ...prev, api_key: data.api_key }));
-            showSuccess('Key Regenerated', 'A new REST API token has been generated successfully.', undefined, 'Proceed');
-          } else {
-            showError('Regenerate Failed', data.error || 'Failed to regenerate API key.', undefined, 'Proceed');
-          }
-        } catch (err: any) {
-          showError('Error', err.message || 'Network error while regenerating API key.', undefined, 'Proceed');
-        } finally {
-          setRegeneratingKey(false);
-        }
-      },
-    });
-  };
+  // const handleRegenerateKey = () => {
+  //   showConfirm({
+  //     title: 'Regenerate API Key',
+  //     message: 'Regenerating will break existing WordPress and webhook integrations using the current key. Continue?',
+  //     isDestructive: true,
+  //     proceedText: 'Proceed',
+  //     cancelText: 'Cancel',
+  //     onProceed: async () => {
+  //       setRegeneratingKey(true);
+  //       try {
+  //         const res = await mobileApiFetch('/api/settings/company', {
+  //           method: 'POST',
+  //         });
+  //         const data = await res.json();
+  //         if (res.ok && data.api_key) {
+  //           setCompany(prev => ({ ...prev, api_key: data.api_key }));
+  //           showSuccess('Key Regenerated', 'A new REST API token has been generated successfully.', undefined, 'Proceed');
+  //         } else {
+  //           showError('Regenerate Failed', data.error || 'Failed to regenerate API key.', undefined, 'Proceed');
+  //         }
+  //       } catch (err: any) {
+  //         showError('Error', err.message || 'Network error while regenerating API key.', undefined, 'Proceed');
+  //       } finally {
+  //         setRegeneratingKey(false);
+  //       }
+  //     },
+  //   });
+  // };
 
   // Team: Refresh
   const refreshTeam = async () => {
@@ -1333,7 +1333,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
                     </View>
                   </View>
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={[styles.outlineBtn, regeneratingKey && styles.btnDisabled, { marginTop: 10 }]}
                     onPress={handleRegenerateKey}
                     disabled={regeneratingKey}
@@ -1347,7 +1347,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
                         <Text style={[styles.outlineBtnText, { color: '#ef4444' }]}>Regenerate API Key</Text>
                       </>
                     )}
-                  </TouchableOpacity>
+                  </TouchableOpacity> */}
 
                   <View style={styles.infoCallout}>
                     <Text style={styles.calloutTitle}>API Ingestion Target:</Text>

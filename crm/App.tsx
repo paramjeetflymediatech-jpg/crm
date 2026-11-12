@@ -8,6 +8,7 @@ import AppTabs from './src/components/app-tabs';
 import WelcomeScreen from './src/components/WelcomeScreen';
 import LoginScreen from './src/components/LoginScreen';
 import ForgotPasswordScreen from './src/components/ForgotPasswordScreen';
+import LegalScreen from './src/components/LegalScreen';
 import CustomAlertModal from './src/components/common/CustomAlertModal';
 import { initAlertPolyfill } from './src/services/alertService';
 
@@ -17,7 +18,8 @@ initAlertPolyfill();
 function AppContent() {
   const dispatch = useDispatch();
   const [appReady, setAppReady] = useState(false);
-  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'forgot-password'>('welcome');
+  const [authScreen, setAuthScreen] = useState<'welcome' | 'login' | 'forgot-password' | 'legal'>('welcome');
+  const [legalTab, setLegalTab] = useState<'privacy' | 'terms'>('privacy');
   
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -49,7 +51,21 @@ function AppContent() {
       return (
         <>
           <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-          <ForgotPasswordScreen onBackToLogin={() => setAuthScreen('login')} />
+          <ForgotPasswordScreen 
+            onBackToLogin={() => setAuthScreen('login')} 
+            onOpenLegal={(tab) => { setLegalTab(tab); setAuthScreen('legal'); }}
+          />
+        </>
+      );
+    }
+    if (authScreen === 'legal') {
+      return (
+        <>
+          <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+          <LegalScreen 
+            onBack={() => setAuthScreen('login')} 
+            initialTab={legalTab} 
+          />
         </>
       );
     }
@@ -59,6 +75,7 @@ function AppContent() {
         <LoginScreen 
           onForgotPassword={() => setAuthScreen('forgot-password')} 
           onBackToWelcome={() => setAuthScreen('welcome')}
+          onOpenLegal={(tab) => { setLegalTab(tab); setAuthScreen('legal'); }}
         />
       </>
     );

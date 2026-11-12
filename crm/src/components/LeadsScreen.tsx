@@ -44,7 +44,10 @@ import {
   Share2,
   Trash2,
   ExternalLink,
-  PhoneCall
+  PhoneCall,
+  SlidersHorizontal,
+  Check,
+  RotateCcw
 } from 'lucide-react-native';
 
 interface LeadsScreenProps {
@@ -52,6 +55,26 @@ interface LeadsScreenProps {
   clearInitialLeadId?: () => void;
   openCreateModalDirectly?: boolean;
 }
+
+const DEFAULT_STATUSES = [
+  { id: 'def-new', name: 'New' },
+  { id: 'def-contacted', name: 'Contacted' },
+  { id: 'def-qualified', name: 'Qualified' },
+  { id: 'def-proposal', name: 'Proposal' },
+  { id: 'def-converted', name: 'Converted' },
+  { id: 'def-lost', name: 'Lost' },
+];
+
+const DEFAULT_SOURCES = [
+  'Website',
+  'WhatsApp',
+  'Facebook Ads',
+  'Google Ads',
+  'Referral',
+  'Manual',
+  'Direct',
+  'JustDial'
+];
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string }> = {
   'New': { bg: TOKENS.colors.primaryLight, text: TOKENS.colors.primary, dot: TOKENS.colors.primary },
@@ -76,12 +99,25 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('_all');
   const [sourceFilter, setSourceFilter] = useState('_all');
+  const [priorityFilter, setPriorityFilter] = useState('_all');
+  const [assignedFilter, setAssignedFilter] = useState('_all');
   
-  const [statuses, setStatuses] = useState<any[]>([]);
+  // Filter Modal & Draft States
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [draftStatus, setDraftStatus] = useState('_all');
+  const [draftSource, setDraftSource] = useState('_all');
+  const [draftPriority, setDraftPriority] = useState('_all');
+  const [draftAssigned, setDraftAssigned] = useState('_all');
+
+  const [statuses, setStatuses] = useState<any[]>(DEFAULT_STATUSES);
+  const [sources, setSources] = useState<string[]>(DEFAULT_SOURCES);
   const [team, setTeam] = useState<any[]>([]);
   
+  const fetchRequestIdRef = React.useRef(0);
+
   // Lead Details Modal State
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -123,17 +159,49 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     }
   }, [openCreateModalDirectly]);
 
+  // Debounce search keystrokes (300ms) to eliminate typing lag and race conditions
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [resStatus, resUsers] = await Promise.all([
+        const [resStatus, resSource, resUsers] = await Promise.all([
           mobileApiFetch('/api/leads/statuses'),
+          mobileApiFetch('/api/leads/sources'),
           mobileApiFetch('/api/users')
         ]);
+
         if (resStatus.ok) {
           const d = await resStatus.json();
-          setStatuses(d.statuses || []);
+          const apiStatuses = d.statuses || [];
+          const existingNames = new Set(apiStatuses.map((s: any) => (s.name || '').trim().toLowerCase()));
+          const merged = [...apiStatuses];
+          DEFAULT_STATUSES.forEach(def => {
+            if (!existingNames.has(def.name.toLowerCase())) {
+              merged.push(def);
+            }
+          });
+          setStatuses(merged);
         }
+
+        if (resSource.ok) {
+          const d = await resSource.json();
+          const apiSources = (d.sources || []).map((s: any) => typeof s === 'string' ? s : s.source_name).filter(Boolean);
+          const existingSet = new Set(apiSources.map((s: string) => s.trim().toLowerCase()));
+          const mergedSources = [...apiSources];
+          DEFAULT_SOURCES.forEach(s => {
+            if (!existingSet.has(s.toLowerCase())) {
+              mergedSources.push(s);
+            }
+          });
+          setSources(mergedSources);
+        }
+
         if (resUsers.ok) {
           const d = await resUsers.json();
           setTeam(d.users || []);
@@ -146,35 +214,89 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   }, []);
 
   const fetchLeads = async (isRefresh = false) => {
+    const currentReqId = ++fetchRequestIdRef.current;
     if (!isRefresh) setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append('search', search);
+      if (debouncedSearch.trim()) params.append('search', debouncedSearch.trim());
       if (statusFilter !== '_all') params.append('status', statusFilter);
       if (sourceFilter !== '_all') params.append('source', sourceFilter);
-      params.append('limit', '50');
+      if (priorityFilter !== '_all') params.append('priority', priorityFilter);
+      if (assignedFilter !== '_all') params.append('assignedTo', assignedFilter);
+      params.append('limit', '100');
 
       const res = await mobileApiFetch(`/api/leads?${params.toString()}`);
+      if (currentReqId !== fetchRequestIdRef.current) {
+        // Discard stale responses to prevent out-of-order race conditions
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
       }
     } catch (err) {
-      console.error(err);
+      if (currentReqId === fetchRequestIdRef.current) {
+        console.error('Fetch leads error:', err);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (currentReqId === fetchRequestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchLeads();
-  }, [search, statusFilter, sourceFilter]);
+  }, [debouncedSearch, statusFilter, sourceFilter, priorityFilter, assignedFilter]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchLeads(true);
-  }, [search, statusFilter, sourceFilter]);
+  }, [debouncedSearch, statusFilter, sourceFilter, priorityFilter, assignedFilter]);
+
+  // Active filter badge count (excluding search text)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (statusFilter !== '_all') count++;
+    if (sourceFilter !== '_all') count++;
+    if (priorityFilter !== '_all') count++;
+    if (assignedFilter !== '_all') count++;
+    return count;
+  }, [statusFilter, sourceFilter, priorityFilter, assignedFilter]);
+
+  const hasActiveFilters = activeFilterCount > 0 || search.trim().length > 0;
+
+  const handleOpenFilterModal = () => {
+    setDraftStatus(statusFilter);
+    setDraftSource(sourceFilter);
+    setDraftPriority(priorityFilter);
+    setDraftAssigned(assignedFilter);
+    setFilterModalVisible(true);
+  };
+
+  const handleApplyFilters = () => {
+    setStatusFilter(draftStatus);
+    setSourceFilter(draftSource);
+    setPriorityFilter(draftPriority);
+    setAssignedFilter(draftAssigned);
+    setFilterModalVisible(false);
+  };
+
+  const handleResetAllFilters = () => {
+    setSearch('');
+    setDebouncedSearch('');
+    setStatusFilter('_all');
+    setSourceFilter('_all');
+    setPriorityFilter('_all');
+    setAssignedFilter('_all');
+    setDraftStatus('_all');
+    setDraftSource('_all');
+    setDraftPriority('_all');
+    setDraftAssigned('_all');
+    setFilterModalVisible(false);
+  };
 
   const fetchLeadDetail = async (leadId: number) => {
     setDetailLoading(true);
@@ -505,25 +627,40 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchWrapper}>
-          <Search size={18} color="#2563eb" style={styles.searchIcon} />
-          <TextInput 
-            style={styles.searchInput}
-            placeholder="Search leads by name, email, phone..."
-            placeholderTextColor="#94a3b8"
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
-          />
-          {search.length > 0 && (
-            <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <X size={16} color="#64748b" />
-            </TouchableOpacity>
-          )}
+        {/* Search Bar & Filter Button */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchWrapper}>
+            <Search size={18} color="#2563eb" style={styles.searchIcon} />
+            <TextInput 
+              style={styles.searchInput}
+              placeholder="Search leads by name, email, phone..."
+              placeholderTextColor="#94a3b8"
+              value={search}
+              onChangeText={setSearch}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <X size={16} color="#64748b" />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity 
+            style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+            onPress={handleOpenFilterModal}
+            activeOpacity={0.8}
+          >
+            <SlidersHorizontal size={18} color={activeFilterCount > 0 ? '#2563eb' : '#64748b'} />
+            {activeFilterCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
-        {/* Filter Pills */}
+        {/* Status Horizontal Filter Pills */}
         <View style={styles.filterRow}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
             <TouchableOpacity 
@@ -540,9 +677,9 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
               const cfg = STATUS_CONFIG[s.name];
               return (
                 <TouchableOpacity 
-                  key={s.id}
+                  key={s.id || s.name}
                   style={[styles.filterChip, isActive && styles.filterChipActive]}
-                  onPress={() => setStatusFilter(s.name)}
+                  onPress={() => setStatusFilter(isActive ? '_all' : s.name)}
                   activeOpacity={0.7}
                 >
                   {cfg && (
@@ -556,6 +693,59 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
             })}
           </ScrollView>
         </View>
+
+        {/* Active Removable Tags Row (when source, priority, or assignee are active) */}
+        {(sourceFilter !== '_all' || priorityFilter !== '_all' || assignedFilter !== '_all') && (
+          <View style={styles.activeFiltersRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.activeFiltersScroll}>
+              {sourceFilter !== '_all' && (
+                <TouchableOpacity 
+                  style={styles.activeFilterTag}
+                  onPress={() => setSourceFilter('_all')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.activeFilterTagLabel}>Source:</Text>
+                  <Text style={styles.activeFilterTagValue}>{sourceFilter}</Text>
+                  <X size={12} color="#2563eb" />
+                </TouchableOpacity>
+              )}
+              {priorityFilter !== '_all' && (
+                <TouchableOpacity 
+                  style={styles.activeFilterTag}
+                  onPress={() => setPriorityFilter('_all')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.activeFilterTagLabel}>Priority:</Text>
+                  <Text style={styles.activeFilterTagValue}>{priorityFilter}</Text>
+                  <X size={12} color="#2563eb" />
+                </TouchableOpacity>
+              )}
+              {assignedFilter !== '_all' && (
+                <TouchableOpacity 
+                  style={styles.activeFilterTag}
+                  onPress={() => setAssignedFilter('_all')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.activeFilterTagLabel}>Assignee:</Text>
+                  <Text style={styles.activeFilterTagValue}>
+                    {team.find(u => u.id?.toString() === assignedFilter.toString())?.name || assignedFilter}
+                  </Text>
+                  <X size={12} color="#2563eb" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity 
+                style={styles.clearAllBtn}
+                onPress={() => {
+                  setSourceFilter('_all');
+                  setPriorityFilter('_all');
+                  setAssignedFilter('_all');
+                }}
+              >
+                <Text style={styles.clearAllBtnText}>Clear More</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* Main Leads List */}
@@ -581,16 +771,16 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
               </View>
               <Text style={styles.emptyTitle}>No Leads Found</Text>
               <Text style={styles.emptyText}>
-                {search || statusFilter !== '_all' 
+                {hasActiveFilters 
                   ? 'No contacts matched your search or active filters.'
                   : 'Start growing your business by creating your first lead.'}
               </Text>
-              {(search || statusFilter !== '_all') ? (
+              {hasActiveFilters ? (
                 <TouchableOpacity 
                   style={styles.resetFiltersBtn}
-                  onPress={() => { setSearch(''); setStatusFilter('_all'); }}
+                  onPress={handleResetAllFilters}
                 >
-                  <Text style={styles.resetFiltersBtnText}>Reset Filters</Text>
+                  <Text style={styles.resetFiltersBtnText}>Reset All Filters</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 
@@ -605,6 +795,217 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
           }
         />
       )}
+
+      {/* Comprehensive Filter Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={filterModalVisible}
+        onRequestClose={() => setFilterModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.filterModalCard}>
+            {/* Modal Header */}
+            <View style={styles.filterModalHeader}>
+              <View>
+                <Text style={styles.filterModalTitle}>Filter Leads</Text>
+                <Text style={styles.filterModalSubtitle}>Narrow down your sales pipeline</Text>
+              </View>
+              <View style={styles.modalHeaderActions}>
+                {(draftStatus !== '_all' || draftSource !== '_all' || draftPriority !== '_all' || draftAssigned !== '_all') && (
+                  <TouchableOpacity 
+                    style={styles.modalResetHeaderBtn}
+                    onPress={() => {
+                      setDraftStatus('_all');
+                      setDraftSource('_all');
+                      setDraftPriority('_all');
+                      setDraftAssigned('_all');
+                    }}
+                  >
+                    <RotateCcw size={12} color="#2563eb" />
+                    <Text style={styles.modalResetHeaderText}>Reset</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity 
+                  style={styles.closeModalBtn}
+                  onPress={() => setFilterModalVisible(false)}
+                >
+                  <X size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView 
+              style={styles.filterModalBody}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* 1. Status Section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>LEAD STAGE (STATUS)</Text>
+                <View style={styles.filterWrapGroup}>
+                  <TouchableOpacity
+                    style={[styles.filterChoiceChip, draftStatus === '_all' && styles.filterChoiceChipActive]}
+                    onPress={() => setDraftStatus('_all')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterChoiceText, draftStatus === '_all' && styles.filterChoiceTextActive]}>
+                      All Status
+                    </Text>
+                  </TouchableOpacity>
+                  {statuses.map(st => {
+                    const isSelected = draftStatus === st.name;
+                    const cfg = STATUS_CONFIG[st.name];
+                    return (
+                      <TouchableOpacity
+                        key={st.id || st.name}
+                        style={[styles.filterChoiceChip, isSelected && styles.filterChoiceChipActive]}
+                        onPress={() => setDraftStatus(st.name)}
+                        activeOpacity={0.7}
+                      >
+                        {cfg && (
+                          <View style={[styles.filterChipDot, { backgroundColor: isSelected ? '#ffffff' : cfg.dot }]} />
+                        )}
+                        <Text style={[styles.filterChoiceText, isSelected && styles.filterChoiceTextActive]}>
+                          {st.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* 2. Priority Section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>DEAL PRIORITY</Text>
+                <View style={styles.filterWrapGroup}>
+                  <TouchableOpacity
+                    style={[styles.filterChoiceChip, draftPriority === '_all' && styles.filterChoiceChipActive]}
+                    onPress={() => setDraftPriority('_all')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterChoiceText, draftPriority === '_all' && styles.filterChoiceTextActive]}>
+                      All Priority
+                    </Text>
+                  </TouchableOpacity>
+                  {['High', 'Medium', 'Low'].map(p => {
+                    const isSelected = draftPriority === p;
+                    const cfg = PRIORITY_CONFIG[p];
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        style={[styles.filterChoiceChip, isSelected && styles.filterChoiceChipActive]}
+                        onPress={() => setDraftPriority(p)}
+                        activeOpacity={0.7}
+                      >
+                        {cfg && (
+                          <View style={[styles.filterChipDot, { backgroundColor: isSelected ? '#ffffff' : cfg.text }]} />
+                        )}
+                        <Text style={[styles.filterChoiceText, isSelected && styles.filterChoiceTextActive]}>
+                          {p}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* 3. Acquisition Source Section */}
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>ACQUISITION SOURCE</Text>
+                <View style={styles.filterWrapGroup}>
+                  <TouchableOpacity
+                    style={[styles.filterChoiceChip, draftSource === '_all' && styles.filterChoiceChipActive]}
+                    onPress={() => setDraftSource('_all')}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.filterChoiceText, draftSource === '_all' && styles.filterChoiceTextActive]}>
+                      All Sources
+                    </Text>
+                  </TouchableOpacity>
+                  {sources.map(src => {
+                    const isSelected = draftSource === src;
+                    return (
+                      <TouchableOpacity
+                        key={src}
+                        style={[styles.filterChoiceChip, isSelected && styles.filterChoiceChipActive]}
+                        onPress={() => setDraftSource(src)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.filterChoiceText, isSelected && styles.filterChoiceTextActive]}>
+                          {src}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* 4. Assignee Section (only for non-staff roles) */}
+              {currentUser?.role !== 'staff' && team.length > 0 && (
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterSectionTitle}>ASSIGNED TEAM MEMBER</Text>
+                  <View style={styles.filterWrapGroup}>
+                    <TouchableOpacity
+                      style={[styles.filterChoiceChip, draftAssigned === '_all' && styles.filterChoiceChipActive]}
+                      onPress={() => setDraftAssigned('_all')}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.filterChoiceText, draftAssigned === '_all' && styles.filterChoiceTextActive]}>
+                        All Members
+                      </Text>
+                    </TouchableOpacity>
+                    {team.map(member => {
+                      const memberIdStr = member.id.toString();
+                      const isSelected = draftAssigned === memberIdStr;
+                      return (
+                        <TouchableOpacity
+                          key={member.id}
+                          style={[styles.filterChoiceChip, isSelected && styles.filterChoiceChipActive]}
+                          onPress={() => setDraftAssigned(memberIdStr)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={[styles.filterChoiceText, isSelected && styles.filterChoiceTextActive]}>
+                            {member.name || member.email}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Modal Footer Actions */}
+            <View style={styles.filterModalFooter}>
+              <TouchableOpacity
+                style={styles.filterResetBtn}
+                onPress={() => {
+                  setDraftStatus('_all');
+                  setDraftSource('_all');
+                  setDraftPriority('_all');
+                  setDraftAssigned('_all');
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.filterResetBtnText}>Reset</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.filterApplyBtn}
+                onPress={handleApplyFilters}
+                activeOpacity={0.8}
+              >
+                <Check size={16} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 6 }} />
+                <Text style={styles.filterApplyBtnText}>Apply Filters</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Create Lead Modal */}
       <Modal
@@ -690,7 +1091,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
               <View style={styles.formCol}>
                 <Text style={styles.inputLabel}>ACQUISITION SOURCE</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-                  {['Website', 'WhatsApp', 'Facebook Ads', 'Google Ads', 'Referral', 'Manual'].map(src => (
+                  {sources.map(src => (
                     <TouchableOpacity 
                       key={src}
                       style={[styles.segmentChip, createForm.source === src && styles.segmentChipActive]}
@@ -710,7 +1111,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
                   {statuses.map(st => (
                     <TouchableOpacity 
-                      key={st.id}
+                      key={st.id || st.name}
                       style={[styles.segmentChip, createForm.status === st.name && styles.segmentChipActive]}
                       onPress={() => setCreateForm(prev => ({ ...prev, status: st.name }))}
                     >
@@ -1219,7 +1620,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
   searchWrapper: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: TOKENS.colors.background,
@@ -1227,7 +1635,80 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: TOKENS.colors.border,
     paddingHorizontal: 12,
-    marginBottom: 10,
+  },
+  filterBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: TOKENS.radius.md,
+    backgroundColor: TOKENS.colors.background,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  filterBtnActive: {
+    backgroundColor: TOKENS.colors.primaryLight,
+    borderColor: TOKENS.colors.primary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: TOKENS.colors.primary,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: TOKENS.colors.white,
+  },
+  filterBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  activeFiltersRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+  },
+  activeFiltersScroll: {
+    gap: 6,
+    paddingRight: 10,
+    alignItems: 'center',
+  },
+  activeFilterTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TOKENS.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    gap: 5,
+  },
+  activeFilterTagLabel: {
+    fontSize: 11,
+    color: TOKENS.colors.secondary,
+    fontWeight: '500',
+  },
+  activeFilterTagValue: {
+    fontSize: 11,
+    color: TOKENS.colors.primary,
+    fontWeight: '700',
+  },
+  clearAllBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearAllBtnText: {
+    fontSize: 11,
+    color: TOKENS.colors.secondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   searchIcon: {
     marginRight: 8,
@@ -1468,6 +1949,134 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(16, 24, 40, 0.45)',
     justifyContent: 'flex-end',
+  },
+  filterModalCard: {
+    backgroundColor: TOKENS.colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '88%',
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderColor: TOKENS.colors.border,
+  },
+  filterModalTitle: {
+    color: TOKENS.colors.heading,
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  filterModalSubtitle: {
+    color: TOKENS.colors.secondary,
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalResetHeaderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: TOKENS.colors.primaryLight,
+  },
+  modalResetHeaderText: {
+    color: TOKENS.colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterModalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  filterSection: {
+    marginBottom: 18,
+  },
+  filterSectionTitle: {
+    color: TOKENS.colors.heading,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    marginBottom: 10,
+  },
+  filterWrapGroup: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChoiceChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TOKENS.colors.background,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.border,
+    borderRadius: TOKENS.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    gap: 6,
+  },
+  filterChoiceChipActive: {
+    backgroundColor: TOKENS.colors.primary,
+    borderColor: TOKENS.colors.primary,
+  },
+  filterChoiceText: {
+    color: TOKENS.colors.heading,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  filterChoiceTextActive: {
+    color: TOKENS.colors.white,
+    fontWeight: '700',
+  },
+  filterModalFooter: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+    borderTopWidth: 1,
+    borderColor: TOKENS.colors.border,
+    backgroundColor: TOKENS.colors.surface,
+    gap: 12,
+  },
+  filterResetBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: TOKENS.radius.md,
+    backgroundColor: TOKENS.colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: TOKENS.colors.border,
+  },
+  filterResetBtnText: {
+    color: TOKENS.colors.heading,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterApplyBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    paddingVertical: 12,
+    borderRadius: TOKENS.radius.md,
+    backgroundColor: TOKENS.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterApplyBtnText: {
+    color: TOKENS.colors.white,
+    fontSize: 14,
+    fontWeight: '700',
   },
   createModalCard: {
     backgroundColor: TOKENS.colors.surface,

@@ -16,6 +16,7 @@ import SettingsScreen from './SettingsScreen';
 import CalendarScreen from './CalendarScreen';
 import ReportsScreen from './ReportsScreen';
 import AdminScreen from './AdminScreen';
+import LegalScreen from './LegalScreen';
 
 // Icons
 import { 
@@ -33,7 +34,10 @@ import {
   Building2,
   Shield,
   Volume2,
-  Edit3
+  Edit3,
+  Scale,
+  ShieldCheck,
+  FileText
 } from 'lucide-react-native';
 import { showConfirm } from '../services/alertService';
 import { TOKENS } from '../theme/tokens';
@@ -44,8 +48,9 @@ export default function AppTabs() {
   const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more'>('dashboard');
-  const [moreView, setMoreView] = useState<'menu' | 'alerts' | 'settings' | 'admin'>('menu');
+  const [moreView, setMoreView] = useState<'menu' | 'alerts' | 'settings' | 'admin' | 'legal'>('menu');
   const [settingsInitialTab, setSettingsInitialTab] = useState<'profile' | 'company' | 'team'>('company');
+  const [legalInitialTab, setLegalInitialTab] = useState<'privacy' | 'terms'>('privacy');
   const [targetLeadId, setTargetLeadId] = useState<number | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsSourceTab, setNotificationsSourceTab] = useState<'dashboard' | 'leads' | 'calendar' | 'reports' | 'more' | null>(null);
@@ -206,6 +211,14 @@ export default function AppTabs() {
     }
     if (moreView === 'admin') {
       return <AdminScreen onBack={() => setMoreView('menu')} />;
+    }
+    if (moreView === 'legal') {
+      return (
+        <LegalScreen 
+          onBack={() => setMoreView('menu')} 
+          initialTab={legalInitialTab} 
+        />
+      );
     }
 
     const isStaff = user?.role === 'staff';
@@ -420,6 +433,48 @@ export default function AppTabs() {
               <View style={styles.menuCardTextContainer}>
                 <Text style={styles.menuCardTitle}>Lead Alert Ringtone</Text>
                 <Text style={styles.menuCardSubtitle}>Audible sound for new assigned & hot leads</Text>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Section: Legal & Compliance */}
+          <Text style={styles.sectionHeaderTitle}>LEGAL & POLICIES</Text>
+          <View style={styles.menuCardGroup}>
+            <TouchableOpacity 
+              style={styles.menuCardRow} 
+              onPress={() => {
+                setLegalInitialTab('privacy');
+                setMoreView('legal');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#eff6ff' }]}>
+                <ShieldCheck size={18} color="#2563eb" />
+              </View>
+              <View style={styles.menuCardTextContainer}>
+                <Text style={styles.menuCardTitle}>Privacy Policy</Text>
+                <Text style={styles.menuCardSubtitle}>Data protection, row isolation & GDPR standards</Text>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={styles.menuRowDivider} />
+
+            <TouchableOpacity 
+              style={styles.menuCardRow} 
+              onPress={() => {
+                setLegalInitialTab('terms');
+                setMoreView('legal');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.menuIconBox, { backgroundColor: '#f8fafc' }]}>
+                <Scale size={18} color="#475569" />
+              </View>
+              <View style={styles.menuCardTextContainer}>
+                <Text style={styles.menuCardTitle}>Terms of Service</Text>
+                <Text style={styles.menuCardSubtitle}>Enterprise SaaS agreement & acceptable use</Text>
               </View>
               <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>
