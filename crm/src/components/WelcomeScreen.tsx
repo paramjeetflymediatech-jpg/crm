@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react-native';
+import { TOKENS } from '../theme/tokens';
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
@@ -17,14 +18,14 @@ interface WelcomeScreenProps {
 export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+      <StatusBar barStyle="dark-content" backgroundColor={TOKENS.colors.background} />
 
-      {/* Top Badge */}
+      {/* Top Section */}
       <View style={styles.topSection}>
-        {/* <View style={styles.badgePill}>
-          <Sparkles size={12} color="#2563eb" style={{ marginRight: 6 }} />
+        <View style={styles.badgePill}>
+          <Sparkles size={13} color={TOKENS.colors.primary} style={{ marginRight: 6 }} />
           <Text style={styles.badgeText}>Enterprise Cloud CRM</Text>
-        </View> */}
+        </View>
       </View>
 
       {/* Centered Logo & Branding */}
@@ -53,15 +54,15 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
           activeOpacity={0.88}
         >
           <Text style={styles.getStartedText}>Get Started</Text>
-          <ArrowRight size={20} color="#ffffff" style={{ marginLeft: 8 }} />
+          <ArrowRight size={20} color={TOKENS.colors.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
 
-        {/* <View style={styles.securityRow}>
-          <ShieldCheck size={14} color="#64748b" style={{ marginRight: 6 }} />
+        <View style={styles.securityRow}>
+          <ShieldCheck size={14} color={TOKENS.colors.secondary} style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>
-            256-bit SSL Encrypted • Hardware Secure
+            256-bit SSL Encrypted • Multi-Tenant Architecture
           </Text>
-        </View> */}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -70,27 +71,27 @@ export default function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
     justifyContent: 'space-between',
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
   topSection: {
     alignItems: 'center',
-    paddingTop: 16,
+    paddingTop: 12,
   },
   badgePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#BFDBFE',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
   },
   badgeText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -102,12 +103,12 @@ const styles = StyleSheet.create({
   },
   logoWrapper: {
     padding: 10,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderRadius: 36,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#DBEAFE',
     marginBottom: 24,
-    shadowColor: '#2563eb',
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.15,
     shadowRadius: 20,
@@ -117,7 +118,7 @@ const styles = StyleSheet.create({
     width: 108,
     height: 108,
     borderRadius: 28,
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   title: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.6,
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 22,
@@ -146,12 +147,12 @@ const styles = StyleSheet.create({
   },
   getStartedBtn: {
     flexDirection: 'row',
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
     borderRadius: 14,
     paddingVertical: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   getStartedText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -169,8 +170,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   securityText: {
-    color: '#94a3b8',
-    fontSize: 11,
+    color: TOKENS.colors.secondary,
+    fontSize: 12,
     textAlign: 'center',
   },
 });

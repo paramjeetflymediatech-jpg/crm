@@ -22,41 +22,63 @@ function isFirebaseAvailable(): boolean {
   }
 }
 
-async function requestUserPermission() {
-  if (!isFirebaseAvailable()) {
+function getSafeMessaging() {
+  try {
+    if (!isFirebaseAvailable()) return null;
+    return getMessaging();
+  } catch (err) {
+    console.warn('[PushNotification] getMessaging() failed:', err);
+    return null;
+  }
+}
+
+async function requestUserPermission(): Promise<boolean> {
+  try {
+    if (!isFirebaseAvailable()) {
+      return false;
+    }
+
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+      );
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        return false;
+      }
+    }
+
+    const msg = getSafeMessaging();
+    if (!msg) return false;
+
+    const authStatus = await requestPermission(msg);
+    const enabled =
+      authStatus === AuthorizationStatus.AUTHORIZED ||
+      authStatus === AuthorizationStatus.PROVISIONAL;
+
+    return enabled;
+  } catch (err) {
+    console.warn('[PushNotification] requestUserPermission error:', err);
     return false;
   }
-
-  if (Platform.OS === 'android' && Platform.Version >= 33) {
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-    );
-    return granted === PermissionsAndroid.RESULTS.GRANTED;
-  }
-
-  const msg = getMessaging();
-  const authStatus = await requestPermission(msg);
-  const enabled =
-    authStatus === AuthorizationStatus.AUTHORIZED ||
-    authStatus === AuthorizationStatus.PROVISIONAL;
-
-  return enabled;
 }
 
 export async function registerDeviceToken() {
-  if (!isFirebaseAvailable()) {
-    console.log('[PushNotification] Firebase is not initialized. Skipping device token registration.');
-    return;
-  }
   try {
+    if (!isFirebaseAvailable()) {
+      console.log('[PushNotification] Firebase is not initialized. Skipping device token registration.');
+      return;
+    }
     const hasPermission = await requestUserPermission();
     if (!hasPermission) {
       console.log('[PushNotification] User denied notification permissions.');
       return;
     }
 
-    const msg = getMessaging();
+    const msg = getSafeMessaging();
+    if (!msg) return;
+
     const token = await getToken(msg);
+    if (!token) return;
     console.log('[PushNotification] FCM Device Token retrieved:', token);
 
     // Save token locally in AsyncStorage to compare or delete on logout
@@ -73,15 +95,15 @@ export async function registerDeviceToken() {
       console.warn('[PushNotification] Failed to register token on server:', response.status);
     }
   } catch (error) {
-    console.error('[PushNotification] registerDeviceToken error:', error);
+    console.warn('[PushNotification] registerDeviceToken error:', error);
   }
 }
 
 export async function unregisterDeviceToken() {
-  if (!isFirebaseAvailable()) {
-    return;
-  }
   try {
+    if (!isFirebaseAvailable()) {
+      return;
+    }
     const token = await AsyncStorage.getItem('fcm_token');
     if (!token) return;
 
@@ -97,7 +119,7 @@ export async function unregisterDeviceToken() {
       console.warn('[PushNotification] Failed to unregister token on server:', response.status);
     }
   } catch (error) {
-    console.error('[PushNotification] unregisterDeviceToken error:', error);
+    console.warn('[PushNotification] unregisterDeviceToken error:', error);
   }
 }
 
@@ -110,102 +132,161 @@ export function setOnNotificationPressed(callback: () => void) {
   if (hasPendingNotificationClick) {
     console.log('[PushNotification] Executing pending notification press callback.');
     hasPendingNotificationClick = false;
-    callback();
+    try {
+      callback();
+    } catch (e) {
+      console.warn('[PushNotification] onNotificationPressedCallback error:', e);
+    }
   }
 }
 
 export function initPushNotifications() {
-  if (!isFirebaseAvailable()) {
-    console.log('[PushNotification] Firebase is not initialized. Skipping push notification listeners.');
-    return () => {};
-  }
+  try {
+    if (!isFirebaseAvailable()) {
+      console.log('[PushNotification] Firebase is not initialized. Skipping push notification listeners.');
+      return () => {};
+    }
 
-  const msg = getMessaging();
+    const msg = getSafeMessaging();
+    if (!msg) {
+      return () => {};
+    }
 
-  // 1. Listen for token refresh
-  const unsubscribeTokenRefresh = onTokenRefresh(msg, async (token) => {
-    console.log('[PushNotification] FCM Token refreshed:', token);
-    await AsyncStorage.setItem('fcm_token', token);
-    await mobileApiFetch('/api/device-token', {
-      method: 'POST',
-      bodyData: { token }
-    });
-  });
+    let unsubscribeTokenRefresh: (() => void) | null = null;
+    let unsubscribeForeground: (() => void) | null = null;
+    let unsubscribeNotificationOpened: (() => void) | null = null;
+    let unsubscribeNotifeeForeground: (() => void) | null = null;
 
-  // 2. Foreground messages
-  const unsubscribeForeground = onMessage(msg, async (remoteMessage) => {
-    console.log('[PushNotification] Foreground message received:', remoteMessage);
-    const { notification } = remoteMessage;
-    if (notification) {
-      try {
-        // Create the channel (required for Android)
-        const channelId = await notifee.createChannel({
-          id: 'default',
-          name: 'Default Channel',
-          importance: AndroidImportance.HIGH,
-          sound: 'default',
-        });
+    // 1. Listen for token refresh
+    try {
+      unsubscribeTokenRefresh = onTokenRefresh(msg, async (token) => {
+        try {
+          console.log('[PushNotification] FCM Token refreshed:', token);
+          await AsyncStorage.setItem('fcm_token', token);
+          await mobileApiFetch('/api/device-token', {
+            method: 'POST',
+            bodyData: { token }
+          });
+        } catch (e) {
+          console.warn('[PushNotification] onTokenRefresh sync error:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('[PushNotification] onTokenRefresh registration failed:', e);
+    }
 
-        // Display the system banner (plays default notification sound)
-        await notifee.displayNotification({
-          title: notification.title || 'Notification',
-          body: notification.body || '',
-          android: {
-            channelId,
-            importance: AndroidImportance.HIGH,
-            pressAction: {
+    // 2. Foreground messages
+    try {
+      unsubscribeForeground = onMessage(msg, async (remoteMessage) => {
+        console.log('[PushNotification] Foreground message received:', remoteMessage);
+        const { notification } = remoteMessage;
+        if (notification) {
+          try {
+            // Create the channel (required for Android)
+            const channelId = await notifee.createChannel({
               id: 'default',
-              launchActivity: 'default',
-            },
-          },
-        });
-      } catch (err) {
-        console.error('[PushNotification] Notifee display notification failed:', err);
-        // Fallback to basic Alert if Notifee fails
-        Alert.alert(notification.title || 'Notification', notification.body || '');
-      }
-    }
-  });
+              name: 'Default Channel',
+              importance: AndroidImportance.HIGH,
+              sound: 'default',
+            });
 
-  // 3. Notification opened app from background state
-  const unsubscribeNotificationOpened = onNotificationOpenedApp(msg, (remoteMessage) => {
-    console.log('[PushNotification] Notification caused app to open from background:', remoteMessage);
-    if (onNotificationPressedCallback) {
-      onNotificationPressedCallback();
-    } else {
-      hasPendingNotificationClick = true;
+            // Display the system banner (plays default notification sound)
+            await notifee.displayNotification({
+              title: notification.title || 'Notification',
+              body: notification.body || '',
+              android: {
+                channelId,
+                importance: AndroidImportance.HIGH,
+                pressAction: {
+                  id: 'default',
+                  launchActivity: 'default',
+                },
+              },
+            });
+          } catch (err) {
+            console.error('[PushNotification] Notifee display notification failed:', err);
+            Alert.alert(notification.title || 'Notification', notification.body || '');
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[PushNotification] onMessage registration failed:', e);
     }
-  });
 
-  // 4. Notification opened app from quit state
-  getInitialNotification(msg)
-    .then((remoteMessage) => {
-      if (remoteMessage) {
-        console.log('[PushNotification] Notification caused app to open from quit state:', remoteMessage);
+    // 3. Notification opened app from background state
+    try {
+      unsubscribeNotificationOpened = onNotificationOpenedApp(msg, (remoteMessage) => {
+        console.log('[PushNotification] Notification caused app to open from background:', remoteMessage);
         if (onNotificationPressedCallback) {
-          onNotificationPressedCallback();
+          try {
+            onNotificationPressedCallback();
+          } catch (e) {
+            console.warn('[PushNotification] onNotificationPressedCallback error:', e);
+          }
         } else {
           hasPendingNotificationClick = true;
         }
-      }
-    });
-
-  // 5. Notifee Foreground Event Listener
-  const unsubscribeNotifeeForeground = notifee.onForegroundEvent(({ type, detail }) => {
-    if (type === EventType.PRESS) {
-      console.log('[PushNotification] User pressed foreground notification:', detail.notification);
-      if (onNotificationPressedCallback) {
-        onNotificationPressedCallback();
-      } else {
-        hasPendingNotificationClick = true;
-      }
+      });
+    } catch (e) {
+      console.warn('[PushNotification] onNotificationOpenedApp registration failed:', e);
     }
-  });
 
-  return () => {
-    if (typeof unsubscribeTokenRefresh === 'function') unsubscribeTokenRefresh();
-    if (typeof unsubscribeForeground === 'function') unsubscribeForeground();
-    if (typeof unsubscribeNotificationOpened === 'function') unsubscribeNotificationOpened();
-    if (typeof unsubscribeNotifeeForeground === 'function') unsubscribeNotifeeForeground();
-  };
+    // 4. Notification opened app from quit state
+    try {
+      getInitialNotification(msg)
+        .then((remoteMessage) => {
+          if (remoteMessage) {
+            console.log('[PushNotification] Notification caused app to open from quit state:', remoteMessage);
+            if (onNotificationPressedCallback) {
+              try {
+                onNotificationPressedCallback();
+              } catch (e) {
+                console.warn('[PushNotification] onNotificationPressedCallback error:', e);
+              }
+            } else {
+              hasPendingNotificationClick = true;
+            }
+          }
+        })
+        .catch((err) => {
+          console.warn('[PushNotification] getInitialNotification error:', err);
+        });
+    } catch (e) {
+      console.warn('[PushNotification] getInitialNotification call failed:', e);
+    }
+
+    // 5. Notifee Foreground Event Listener
+    try {
+      unsubscribeNotifeeForeground = notifee.onForegroundEvent(({ type, detail }) => {
+        if (type === EventType.PRESS) {
+          console.log('[PushNotification] User pressed foreground notification:', detail.notification);
+          if (onNotificationPressedCallback) {
+            try {
+              onNotificationPressedCallback();
+            } catch (e) {
+              console.warn('[PushNotification] onNotificationPressedCallback error:', e);
+            }
+          } else {
+            hasPendingNotificationClick = true;
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[PushNotification] notifee.onForegroundEvent failed:', e);
+    }
+
+    return () => {
+      try {
+        if (typeof unsubscribeTokenRefresh === 'function') unsubscribeTokenRefresh();
+        if (typeof unsubscribeForeground === 'function') unsubscribeForeground();
+        if (typeof unsubscribeNotificationOpened === 'function') unsubscribeNotificationOpened();
+        if (typeof unsubscribeNotifeeForeground === 'function') unsubscribeNotifeeForeground();
+      } catch (e) {
+        console.warn('[PushNotification] unsubscribe cleanup error:', e);
+      }
+    };
+  } catch (outerErr) {
+    console.warn('[PushNotification] initPushNotifications outer exception:', outerErr);
+    return () => {};
+  }
 }

@@ -36,6 +36,7 @@ import {
   Edit3
 } from 'lucide-react-native';
 import { showConfirm } from '../services/alertService';
+import { TOKENS } from '../theme/tokens';
 
 export default function AppTabs() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -59,6 +60,14 @@ export default function AppTabs() {
   const dynamicBottomPadding = insets.bottom > 0
     ? (isGestureNav ? Math.max(insets.bottom - 6, 6) : insets.bottom + 2)
     : (Platform.OS === 'ios' ? 12 : 8);
+
+  const navBg = TOKENS.colors.white;
+  const navBorder = TOKENS.colors.border;
+  const inactiveIconColor = TOKENS.colors.secondary;
+  const activeIconColor = TOKENS.colors.primary;
+  const activePillBg = TOKENS.colors.primaryLight;
+  const activePillBorder = TOKENS.colors.primaryBorder;
+  const activeIndicatorColor = TOKENS.colors.primary;
 
   useEffect(() => {
     if (!user) return;
@@ -129,9 +138,11 @@ export default function AppTabs() {
     setMoreView('alerts');
   };
 
-  const handleNavigateToLeads = (leadId: number) => {
+  const handleNavigateToLeads = (leadId?: number) => {
     setActiveTab('leads');
-    setTargetLeadId(leadId);
+    if (typeof leadId === 'number') {
+      setTargetLeadId(leadId);
+    }
   };
 
   useEffect(() => {
@@ -452,6 +463,8 @@ export default function AppTabs() {
           <DashboardScreen 
             onNotificationPress={() => handleNavigateToAlerts('dashboard')} 
             unreadCount={unreadCount} 
+            onNavigateToLeads={handleNavigateToLeads}
+            onNavigateToTab={setActiveTab}
           />
         );
       case 'leads':
@@ -487,21 +500,29 @@ export default function AppTabs() {
         {renderContent()}
       </View>
 
-      <View style={[styles.tabBarContainer, { paddingBottom: dynamicBottomPadding }]}>
-        <View style={styles.tabBar}>
+      <View style={[styles.tabBarContainer, { backgroundColor: navBg, borderTopColor: navBorder, paddingBottom: dynamicBottomPadding }]}>
+        <View style={[styles.tabBar, { backgroundColor: navBg }]}>
           <TouchableOpacity 
             style={styles.tabItem} 
             onPress={() => setActiveTab('dashboard')}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconPill, activeTab === 'dashboard' && styles.iconPillActive]}>
+            {activeTab === 'dashboard' && <View style={[styles.activeTopIndicator, { backgroundColor: activeIndicatorColor }]} />}
+            <View style={[
+              styles.iconPill, 
+              activeTab === 'dashboard' && [styles.iconPillActive, { backgroundColor: activePillBg, borderColor: activePillBorder }]
+            ]}>
               <LayoutDashboard 
                 size={20} 
-                color={activeTab === 'dashboard' ? '#2563eb' : '#64748b'} 
-                strokeWidth={activeTab === 'dashboard' ? 2.4 : 1.9}
+                color={activeTab === 'dashboard' ? activeIconColor : inactiveIconColor} 
+                strokeWidth={activeTab === 'dashboard' ? 2.5 : 1.8}
               />
             </View>
-            <Text style={[styles.tabLabel, activeTab === 'dashboard' && styles.tabLabelActive]}>
+            <Text style={[
+              styles.tabLabel, 
+              { color: inactiveIconColor },
+              activeTab === 'dashboard' && [styles.tabLabelActive, { color: activeIconColor }]
+            ]}>
               Dashboard
             </Text>
           </TouchableOpacity>
@@ -511,14 +532,22 @@ export default function AppTabs() {
             onPress={() => setActiveTab('leads')}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconPill, activeTab === 'leads' && styles.iconPillActive]}>
+            {activeTab === 'leads' && <View style={[styles.activeTopIndicator, { backgroundColor: activeIndicatorColor }]} />}
+            <View style={[
+              styles.iconPill, 
+              activeTab === 'leads' && [styles.iconPillActive, { backgroundColor: activePillBg, borderColor: activePillBorder }]
+            ]}>
               <Users 
                 size={20} 
-                color={activeTab === 'leads' ? '#2563eb' : '#64748b'} 
-                strokeWidth={activeTab === 'leads' ? 2.4 : 1.9}
+                color={activeTab === 'leads' ? activeIconColor : inactiveIconColor} 
+                strokeWidth={activeTab === 'leads' ? 2.5 : 1.8}
               />
             </View>
-            <Text style={[styles.tabLabel, activeTab === 'leads' && styles.tabLabelActive]}>
+            <Text style={[
+              styles.tabLabel, 
+              { color: inactiveIconColor },
+              activeTab === 'leads' && [styles.tabLabelActive, { color: activeIconColor }]
+            ]}>
               Leads
             </Text>
           </TouchableOpacity>
@@ -528,14 +557,22 @@ export default function AppTabs() {
             onPress={() => setActiveTab('calendar')}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconPill, activeTab === 'calendar' && styles.iconPillActive]}>
+            {activeTab === 'calendar' && <View style={[styles.activeTopIndicator, { backgroundColor: activeIndicatorColor }]} />}
+            <View style={[
+              styles.iconPill, 
+              activeTab === 'calendar' && [styles.iconPillActive, { backgroundColor: activePillBg, borderColor: activePillBorder }]
+            ]}>
               <CalendarIcon 
                 size={20} 
-                color={activeTab === 'calendar' ? '#2563eb' : '#64748b'} 
-                strokeWidth={activeTab === 'calendar' ? 2.4 : 1.9}
+                color={activeTab === 'calendar' ? activeIconColor : inactiveIconColor} 
+                strokeWidth={activeTab === 'calendar' ? 2.5 : 1.8}
               />
             </View>
-            <Text style={[styles.tabLabel, activeTab === 'calendar' && styles.tabLabelActive]}>
+            <Text style={[
+              styles.tabLabel, 
+              { color: inactiveIconColor },
+              activeTab === 'calendar' && [styles.tabLabelActive, { color: activeIconColor }]
+            ]}>
               Calendar
             </Text>
           </TouchableOpacity>
@@ -545,14 +582,22 @@ export default function AppTabs() {
             onPress={() => setActiveTab('reports')}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconPill, activeTab === 'reports' && styles.iconPillActive]}>
+            {activeTab === 'reports' && <View style={[styles.activeTopIndicator, { backgroundColor: activeIndicatorColor }]} />}
+            <View style={[
+              styles.iconPill, 
+              activeTab === 'reports' && [styles.iconPillActive, { backgroundColor: activePillBg, borderColor: activePillBorder }]
+            ]}>
               <TrendingUp 
                 size={20} 
-                color={activeTab === 'reports' ? '#2563eb' : '#64748b'} 
-                strokeWidth={activeTab === 'reports' ? 2.4 : 1.9}
+                color={activeTab === 'reports' ? activeIconColor : inactiveIconColor} 
+                strokeWidth={activeTab === 'reports' ? 2.5 : 1.8}
               />
             </View>
-            <Text style={[styles.tabLabel, activeTab === 'reports' && styles.tabLabelActive]}>
+            <Text style={[
+              styles.tabLabel, 
+              { color: inactiveIconColor },
+              activeTab === 'reports' && [styles.tabLabelActive, { color: activeIconColor }]
+            ]}>
               Reports
             </Text>
           </TouchableOpacity>
@@ -565,11 +610,15 @@ export default function AppTabs() {
             }}
             activeOpacity={0.7}
           >
-            <View style={[styles.iconPill, activeTab === 'more' && styles.iconPillActive]}>
+            {activeTab === 'more' && <View style={[styles.activeTopIndicator, { backgroundColor: activeIndicatorColor }]} />}
+            <View style={[
+              styles.iconPill, 
+              activeTab === 'more' && [styles.iconPillActive, { backgroundColor: activePillBg, borderColor: activePillBorder }]
+            ]}>
               <Menu 
                 size={20} 
-                color={activeTab === 'more' ? '#2563eb' : '#64748b'} 
-                strokeWidth={activeTab === 'more' ? 2.4 : 1.9}
+                color={activeTab === 'more' ? activeIconColor : inactiveIconColor} 
+                strokeWidth={activeTab === 'more' ? 2.5 : 1.8}
               />
               {unreadCount > 0 && (
                 <View style={styles.badge}>
@@ -577,7 +626,11 @@ export default function AppTabs() {
                 </View>
               )}
             </View>
-            <Text style={[styles.tabLabel, activeTab === 'more' && styles.tabLabelActive]}>
+            <Text style={[
+              styles.tabLabel, 
+              { color: inactiveIconColor },
+              activeTab === 'more' && [styles.tabLabelActive, { color: activeIconColor }]
+            ]}>
               More
             </Text>
           </TouchableOpacity>
@@ -590,80 +643,91 @@ export default function AppTabs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.appBackground,
   },
   content: {
     flex: 1,
   },
   tabBarContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: -3 },
+    borderTopColor: TOKENS.colors.border,
+    shadowColor: TOKENS.colors.heading,
+    shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 8,
-    paddingTop: 5,
+    paddingTop: 4,
   },
   tabBar: {
     flexDirection: 'row',
-    height: 48,
+    height: 52,
     justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 4,
+    backgroundColor: TOKENS.colors.white,
+    paddingHorizontal: 6,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 2,
+    position: 'relative',
+  },
+  activeTopIndicator: {
+    position: 'absolute',
+    top: -4,
+    width: 20,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: TOKENS.colors.primary,
   },
   iconPill: {
-    width: 44,
-    height: 28,
-    borderRadius: 14,
+    width: 46,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   iconPillActive: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.primaryBorder,
   },
   tabLabel: {
     fontSize: 10.5,
     marginTop: 2,
     fontWeight: '500',
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     letterSpacing: -0.1,
   },
   tabLabelActive: {
-    color: '#2563eb',
-    fontWeight: '700',
+    color: TOKENS.colors.primary,
+    fontWeight: '800',
   },
   badge: {
     position: 'absolute',
-    right: -4,
-    top: -3,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
+    right: 1,
+    top: -2,
+    backgroundColor: TOKENS.colors.error,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: '#ffffff',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: TOKENS.colors.white,
   },
   badgeText: {
-    color: '#ffffff',
-    fontSize: 8.5,
+    color: TOKENS.colors.white,
+    fontSize: 9,
     fontWeight: '800',
   },
   moreContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.appBackground,
   },
   moreHeader: {
     flexDirection: 'row',
@@ -671,18 +735,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
   },
   moreHeaderTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 22,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   moreHeaderSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     marginTop: 2,
     fontWeight: '500',
@@ -690,7 +754,7 @@ const styles = StyleSheet.create({
   onlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f0fdf4',
+    backgroundColor: TOKENS.colors.successLight,
     borderWidth: 1,
     borderColor: '#bbf7d0',
     borderRadius: 20,
@@ -701,13 +765,13 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#16a34a',
+    backgroundColor: TOKENS.colors.success,
     marginRight: 5,
   },
   onlineBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#16a34a',
+    color: TOKENS.colors.success,
     letterSpacing: 0.5,
   },
   moreScroll: {
@@ -717,17 +781,17 @@ const styles = StyleSheet.create({
   heroProfileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 16,
     marginBottom: 20,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowColor: TOKENS.colors.heading,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   heroAvatarContainer: {
     position: 'relative',
@@ -737,9 +801,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 2,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.primaryBorder,
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -749,7 +813,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   heroAvatarText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 22,
     fontWeight: '800',
   },
@@ -760,9 +824,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#22c55e',
+    backgroundColor: TOKENS.colors.success,
     borderWidth: 2.5,
-    borderColor: '#ffffff',
+    borderColor: TOKENS.colors.white,
   },
   heroProfileDetails: {
     flex: 1,
@@ -771,11 +835,11 @@ const styles = StyleSheet.create({
   heroProfileName: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
   },
   heroProfileEmail: {
     fontSize: 12,
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginTop: 2,
   },
   heroBadgesRow: {
@@ -796,7 +860,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3e8ff',
   },
   heroRoleBadgeAdmin: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
   },
   heroRoleBadgeStaff: {
     backgroundColor: '#f1f5f9',
@@ -809,9 +873,9 @@ const styles = StyleSheet.create({
   heroCompanyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.cardSubtle,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingHorizontal: 7,
     paddingVertical: 2.5,
     borderRadius: 6,
@@ -820,15 +884,15 @@ const styles = StyleSheet.create({
   heroCompanyBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
   },
   heroEditPill: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.primaryBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
@@ -836,23 +900,23 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     letterSpacing: 0.6,
     marginBottom: 8,
     marginTop: 4,
     paddingHorizontal: 4,
   },
   menuCardGroup: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     overflow: 'hidden',
     marginBottom: 18,
-    shadowColor: '#64748b',
+    shadowColor: TOKENS.colors.heading,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
     elevation: 2,
   },
   menuCardRow: {
@@ -876,11 +940,11 @@ const styles = StyleSheet.create({
   menuCardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
   },
   menuCardSubtitle: {
     fontSize: 11,
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginTop: 2,
   },
   menuCardRight: {
@@ -889,7 +953,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   unreadCountPill: {
-    backgroundColor: '#ef4444',
+    backgroundColor: TOKENS.colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -898,21 +962,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
   },
   unreadCountText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 10,
     fontWeight: '800',
   },
   menuRowDivider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: TOKENS.colors.border,
     marginLeft: 68,
   },
   brandingCard: {
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingVertical: 20,
     paddingHorizontal: 16,
     marginTop: 4,
@@ -927,20 +991,20 @@ const styles = StyleSheet.create({
   brandingTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     letterSpacing: 0.2,
   },
   brandingVersion: {
     fontSize: 11,
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     marginTop: 2,
   },
   brandingTenantBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.cardSubtle,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -948,25 +1012,25 @@ const styles = StyleSheet.create({
   },
   brandingTenantText: {
     fontSize: 11,
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontWeight: '500',
   },
   logoutActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#ef4444',
+    backgroundColor: TOKENS.colors.error,
     borderRadius: 14,
     paddingVertical: 14,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: TOKENS.colors.error,
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 3,
     marginBottom: 16,
   },
   logoutActionBtnText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 14,
     fontWeight: '700',
   },

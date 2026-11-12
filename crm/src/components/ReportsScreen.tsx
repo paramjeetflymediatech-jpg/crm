@@ -9,13 +9,15 @@ import {
   Dimensions,
   TouchableOpacity
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mobileApiFetch } from '../api/client';
+import { TOKENS } from '../theme/tokens';
 import { Svg, Path, Circle, Rect } from 'react-native-svg';
 import { Users, AlertCircle, TrendingUp, CheckCircle2, Award, PieChart as ChartIcon, Bell } from 'lucide-react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0284c7', '#0d9488'];
+const COLORS = [TOKENS.colors.primary, TOKENS.colors.success, TOKENS.colors.warning, TOKENS.colors.error, '#7C3AED', '#0284C7', '#0D9488'];
 
 interface ReportsScreenProps {
   onNotificationPress?: () => void;
@@ -23,6 +25,7 @@ interface ReportsScreenProps {
 }
 
 export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: ReportsScreenProps) {
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -244,7 +247,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) + 10 }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Reports & Analytics</Text>
           <Text style={styles.headerSubtitle}>Review performance metrics and team conversions</Text>
@@ -255,7 +258,7 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
             onPress={onNotificationPress}
             activeOpacity={0.7}
           >
-            <Bell size={20} color="#2563eb" />
+            <Bell size={20} color={TOKENS.colors.heading} />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -347,46 +350,47 @@ export default function ReportsScreen({ onNotificationPress, unreadCount = 0 }: 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   infoText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginTop: 12,
     fontSize: 14,
     fontWeight: '500',
   },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: TOKENS.spacing.md,
+    paddingBottom: 16,
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    ...TOKENS.shadows.sm,
+    zIndex: 10,
   },
   bellButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.border,
   },
   bellBadge: {
     position: 'absolute',
-    right: -4,
-    top: -4,
-    backgroundColor: '#ef4444',
+    right: 2,
+    top: 2,
+    backgroundColor: TOKENS.colors.error,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -395,36 +399,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   bellBadgeText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 8,
     fontWeight: 'bold',
   },
   headerTitle: {
-    color: '#0f172a',
-    fontSize: 22,
-    fontWeight: '700',
+    color: TOKENS.colors.heading,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: '#64748b',
-    fontSize: 13,
+    color: TOKENS.colors.secondary,
+    fontSize: 12,
+    fontWeight: '500',
     marginTop: 2,
   },
   scrollContent: {
-    padding: 16,
+    padding: TOKENS.spacing.md,
     paddingBottom: 40,
   },
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: 12,
+    borderColor: '#FECACA',
+    borderRadius: TOKENS.radius.md,
     padding: 14,
     marginBottom: 16,
   },
   errorText: {
-    color: '#b91c1c',
+    color: TOKENS.colors.error,
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 10,
@@ -437,18 +443,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   kpiCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     padding: 14,
     width: '48%',
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: TOKENS.colors.border,
+    ...TOKENS.shadows.card,
   },
   iconWrapper: {
     width: 34,
@@ -459,39 +461,35 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   kpiVal: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 22,
     fontWeight: '800',
     marginBottom: 2,
   },
   kpiLbl: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
   sectionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 16,
-    marginBottom: 20,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 18,
+    ...TOKENS.shadows.card,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingBottom: 10,
   },
   sectionTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -506,7 +504,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   chartXText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -527,7 +525,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   legendText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     fontWeight: '500',
   },
@@ -544,18 +542,18 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sourceName: {
-    color: '#334155',
+    color: TOKENS.colors.heading,
     fontSize: 12,
     fontWeight: '600',
   },
   sourceVal: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
     fontWeight: '500',
   },
   progressBarBg: {
     height: 8,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: TOKENS.colors.background,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -569,7 +567,7 @@ const styles = StyleSheet.create({
   teamRow: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: TOKENS.colors.border,
     paddingBottom: 14,
   },
   teamHeaderRow: {
@@ -579,18 +577,18 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   teamName: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     fontWeight: '700',
   },
   teamBadge: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: TOKENS.colors.successLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
   teamBadgeText: {
-    color: '#059669',
+    color: TOKENS.colors.success,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -600,12 +598,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   teamDetailText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
     fontWeight: '500',
   },
   teamDetailDivider: {
-    color: '#cbd5e1',
+    color: TOKENS.colors.border,
     marginHorizontal: 8,
     fontSize: 10,
   },
@@ -613,7 +611,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   emptyText: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     textAlign: 'center',
     paddingVertical: 24,

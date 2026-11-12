@@ -22,6 +22,7 @@ import {
   Sparkles
 } from 'lucide-react-native';
 import { alertService, AlertOptions, AlertType } from '../../services/alertService';
+import { TOKENS } from '../../theme/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -106,36 +107,36 @@ export default function CustomAlertModal() {
     switch (type) {
       case 'success':
         return {
-          icon: <CheckCircle2 size={32} color="#059669" />,
-          iconBg: '#ecfdf5',
-          iconBorder: '#a7f3d0',
-          accentColor: '#059669',
-          shadowColor: '#059669',
+          icon: <CheckCircle2 size={32} color={TOKENS.colors.success} />,
+          iconBg: TOKENS.colors.successLight,
+          iconBorder: '#A7F3D0',
+          accentColor: TOKENS.colors.success,
+          shadowColor: TOKENS.colors.success,
         };
       case 'danger':
         return {
-          icon: isDestructive ? <AlertTriangle size={32} color="#dc2626" /> : <AlertCircle size={32} color="#dc2626" />,
-          iconBg: '#fef2f2',
-          iconBorder: '#fecaca',
-          accentColor: '#dc2626',
-          shadowColor: '#dc2626',
+          icon: isDestructive ? <AlertTriangle size={32} color={TOKENS.colors.error} /> : <AlertCircle size={32} color={TOKENS.colors.error} />,
+          iconBg: TOKENS.colors.errorLight,
+          iconBorder: '#FECACA',
+          accentColor: TOKENS.colors.error,
+          shadowColor: TOKENS.colors.error,
         };
       case 'warning':
         return {
-          icon: <AlertCircle size={32} color="#d97706" />,
-          iconBg: '#fffbeb',
-          iconBorder: '#fde68a',
-          accentColor: '#d97706',
-          shadowColor: '#d97706',
+          icon: <AlertCircle size={32} color={TOKENS.colors.warning} />,
+          iconBg: TOKENS.colors.warningLight,
+          iconBorder: '#FDE68A',
+          accentColor: TOKENS.colors.warning,
+          shadowColor: TOKENS.colors.warning,
         };
       case 'info':
       default:
         return {
-          icon: <Sparkles size={30} color="#2563eb" />,
-          iconBg: '#eff6ff',
-          iconBorder: '#bfdbfe',
-          accentColor: '#2563eb',
-          shadowColor: '#2563eb',
+          icon: <Sparkles size={30} color={TOKENS.colors.primary} />,
+          iconBg: TOKENS.colors.primaryLight,
+          iconBorder: '#BFDBFE',
+          accentColor: TOKENS.colors.primary,
+          shadowColor: TOKENS.colors.primary,
         };
     }
   };

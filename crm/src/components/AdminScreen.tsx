@@ -11,9 +11,11 @@ import {
   Modal,
   TextInput
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { mobileApiFetch } from '../api/client';
+import { TOKENS } from '../theme/tokens';
 import { ShieldAlert, Building2, Activity, Ban, CheckCircle2, Globe, Mail, Clock, ChevronLeft, Plus, X, Lock } from 'lucide-react-native';
 
 interface AdminScreenProps {
@@ -21,6 +23,7 @@ interface AdminScreenProps {
 }
 
 export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
+  const insets = useSafeAreaInsets();
   const currentUser = useSelector((state: RootState) => state.auth.user);
   
   const [companies, setCompanies] = useState<any[]>([]);
@@ -199,10 +202,10 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) + 10 }]}>
         {onBack && (
           <TouchableOpacity onPress={onBack} style={{ marginRight: 12 }}>
-            <ChevronLeft size={24} color="#2563eb" />
+            <ChevronLeft size={24} color={TOKENS.colors.primary} />
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }}>
@@ -214,7 +217,7 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
           onPress={() => setModalVisible(true)}
           activeOpacity={0.7}
         >
-          <Plus size={20} color="#ffffff" />
+          <Plus size={20} color={TOKENS.colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -508,16 +511,16 @@ export default function AdminScreen({ onBack }: AdminScreenProps = {}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   infoText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginTop: 12,
     fontSize: 14,
   },
@@ -525,28 +528,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
     padding: 32,
   },
   restrictedIconWrapper: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#fee2e2',
+    borderColor: '#FEE2E2',
   },
   restrictedTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
   },
   restrictedDesc: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
@@ -554,25 +557,27 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 56,
+    paddingHorizontal: TOKENS.spacing.md,
     paddingBottom: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
+    ...TOKENS.shadows.sm,
+    zIndex: 10,
   },
   headerTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     marginTop: 2,
   },
   scrollContent: {
-    padding: 16,
+    padding: TOKENS.spacing.md,
     paddingBottom: 40,
   },
   sectionHeader: {
@@ -582,38 +587,34 @@ const styles = StyleSheet.create({
     paddingLeft: 4,
   },
   sectionTitle: {
-    color: '#475569',
+    color: TOKENS.colors.heading,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   emptyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.md,
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
   },
   emptyText: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
     fontStyle: 'italic',
   },
   companyCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 16,
     marginBottom: 14,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    ...TOKENS.shadows.card,
   },
   companyHeader: {
     flexDirection: 'row',
@@ -622,9 +623,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   companyName: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     flex: 1,
     marginRight: 8,
   },
@@ -647,7 +648,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   metaText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
   },
   companyDetailsRow: {
@@ -655,32 +656,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     marginBottom: 14,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 8,
-    borderRadius: 8,
+    borderRadius: TOKENS.radius.sm,
   },
   detailText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
   },
   planText: {
-    color: '#2563eb',
-    fontWeight: '600',
+    color: TOKENS.colors.primary,
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
   statsText: {
-    color: '#0f172a',
-    fontWeight: '600',
+    color: TOKENS.colors.heading,
+    fontWeight: '700',
   },
   detailDivider: {
-    color: '#cbd5e1',
+    color: TOKENS.colors.border,
     marginHorizontal: 8,
     fontSize: 10,
   },
   actionBtn: {
-    borderRadius: 8,
+    borderRadius: TOKENS.radius.sm,
     paddingVertical: 9,
     justifyContent: 'center',
     alignItems: 'center',
@@ -688,39 +689,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   suspendBtn: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   suspendBtnText: {
-    color: '#dc2626',
+    color: TOKENS.colors.error,
     fontSize: 12,
     fontWeight: '600',
   },
   activateBtn: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#a7f3d0',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
   },
   activateBtnText: {
-    color: '#059669',
+    color: TOKENS.colors.success,
     fontSize: 12,
     fontWeight: '600',
   },
   logsContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     overflow: 'hidden',
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    ...TOKENS.shadows.card,
   },
   logItem: {
     padding: 14,
     borderBottomWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: TOKENS.colors.border,
   },
   logHeader: {
     flexDirection: 'row',
@@ -729,22 +726,22 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   logTenant: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   logModule: {
-    backgroundColor: '#eff6ff',
-    color: '#2563eb',
+    backgroundColor: TOKENS.colors.primaryLight,
+    color: TOKENS.colors.primary,
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
     textTransform: 'uppercase',
   },
   logAction: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 8,
@@ -755,7 +752,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logUser: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
   },
   logTimeContainer: {
@@ -763,17 +760,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logTime: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
   },
   headerAddBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -781,16 +778,16 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    backgroundColor: 'rgba(16, 24, 40, 0.45)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '90%',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -799,19 +796,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
   },
   modalTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   modalScroll: {
     padding: 20,
     paddingBottom: 40,
   },
   formSectionTitle: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -822,7 +819,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: '#334155',
+    color: TOKENS.colors.heading,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 6,
@@ -830,10 +827,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
+    backgroundColor: TOKENS.colors.background,
+    borderRadius: TOKENS.radius.md,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: TOKENS.colors.border,
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -841,55 +838,56 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     paddingVertical: 10,
   },
   planSelector: {
     flexDirection: 'row',
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
+    backgroundColor: TOKENS.colors.background,
+    borderRadius: TOKENS.radius.md,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
   },
   planOption: {
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: TOKENS.radius.sm,
   },
   planOptionActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
   },
   planOptionText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
     fontWeight: '600',
   },
   planOptionTextActive: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
+    fontWeight: '700',
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: TOKENS.colors.border,
     marginVertical: 20,
   },
   submitBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 8,
+    backgroundColor: TOKENS.colors.primary,
+    borderRadius: TOKENS.radius.md,
     paddingVertical: 12,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#2563eb',
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
   submitBtnText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

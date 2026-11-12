@@ -11,11 +11,15 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    // Prevent screenshots, screen recording, and app switcher previews
-    window.setFlags(
-      WindowManager.LayoutParams.FLAG_SECURE,
-      WindowManager.LayoutParams.FLAG_SECURE
-    )
+    try {
+      // Prevent screenshots, screen recording, and app switcher previews
+      window.setFlags(
+        WindowManager.LayoutParams.FLAG_SECURE,
+        WindowManager.LayoutParams.FLAG_SECURE
+      )
+    } catch (e: Exception) {
+      // Ignore if window flags fail on custom OEM ROMs
+    }
   }
 
   /**

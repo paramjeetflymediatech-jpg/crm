@@ -8,7 +8,9 @@ import {
   ActivityIndicator, 
   RefreshControl 
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mobileApiFetch } from '../api/client';
+import { TOKENS } from '../theme/tokens';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, User, ArrowRight, AlertCircle, Bell } from 'lucide-react-native';
 
 interface CalendarScreenProps {
@@ -18,6 +20,7 @@ interface CalendarScreenProps {
 }
 
 export default function CalendarScreen({ onNavigateToLeads, onNotificationPress, unreadCount = 0 }: CalendarScreenProps) {
+  const insets = useSafeAreaInsets();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState<any[]>([]);
@@ -142,7 +145,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) + 10 }]}>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Follow-up Calendar</Text>
           <Text style={styles.headerSubtitle}>Check scheduled appointments and lead actions</Text>
@@ -153,7 +156,7 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
             onPress={onNotificationPress}
             activeOpacity={0.7}
           >
-            <Bell size={20} color="#2563eb" />
+            <Bell size={20} color={TOKENS.colors.heading} />
             {unreadCount > 0 && (
               <View style={styles.bellBadge}>
                 <Text style={styles.bellBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -263,52 +266,45 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
                 <Text style={styles.emptyText}>No follow-ups scheduled for this day.</Text>
               </View>
             ) : (
-              selectedTasks.map((task) => (
-                <TouchableOpacity 
-                  key={task.id}
-                  style={styles.taskCard}
-                  onPress={() => onNavigateToLeads(task.leadId)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.taskHeader}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    <View style={[
-                      styles.priorityBadge,
-                      {
-                        backgroundColor: 
-                          task.priority === 'High' ? 'rgba(239, 68, 68, 0.15)' :
-                          task.priority === 'Medium' ? 'rgba(245, 158, 11, 0.15)' :
-                          'rgba(148, 163, 184, 0.15)'
-                      }
-                    ]}>
-                      <Text style={[
-                        styles.priorityText,
-                        {
-                          color: 
-                            task.priority === 'High' ? '#f87171' :
-                            task.priority === 'Medium' ? '#fbbf24' :
-                            '#cbd5e1'
-                        }
-                      ]}>
-                        {task.priority}
-                      </Text>
-                    </View>
-                  </View>
+              selectedTasks.map((task) => {
+                const priorityBg = task.priority === 'High' ? TOKENS.colors.errorLight :
+                  task.priority === 'Medium' ? TOKENS.colors.warningLight :
+                  TOKENS.colors.primaryLight;
+                const priorityColor = task.priority === 'High' ? TOKENS.colors.error :
+                  task.priority === 'Medium' ? TOKENS.colors.warning :
+                  TOKENS.colors.secondary;
 
-                  <Text style={styles.taskDesc}>{task.description}</Text>
+                return (
+                  <TouchableOpacity 
+                    key={task.id}
+                    style={styles.taskCard}
+                    onPress={() => onNavigateToLeads(task.leadId)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.taskHeader}>
+                      <Text style={styles.taskTitle}>{task.title}</Text>
+                      <View style={[styles.priorityBadge, { backgroundColor: priorityBg }]}>
+                        <Text style={[styles.priorityText, { color: priorityColor }]}>
+                          {task.priority}
+                        </Text>
+                      </View>
+                    </View>
 
-                  <View style={styles.taskFooter}>
-                    <View style={styles.assigneeContainer}>
-                      <User size={12} color="#64748b" style={{ marginRight: 4 }} />
-                      <Text style={styles.assigneeText}>Rep: {task.assignee}</Text>
+                    <Text style={styles.taskDesc}>{task.description}</Text>
+
+                    <View style={styles.taskFooter}>
+                      <View style={styles.assigneeContainer}>
+                        <User size={12} color={TOKENS.colors.secondary} style={{ marginRight: 4 }} />
+                        <Text style={styles.assigneeText}>Rep: {task.assignee}</Text>
+                      </View>
+                      <View style={styles.viewLinkContainer}>
+                        <Text style={styles.viewLinkText}>View Profile</Text>
+                        <ArrowRight size={12} color={TOKENS.colors.primary} style={{ marginLeft: 2 }} />
+                      </View>
                     </View>
-                    <View style={styles.viewLinkContainer}>
-                      <Text style={styles.viewLinkText}>View Profile</Text>
-                      <ArrowRight size={12} color="#818cf8" style={{ marginLeft: 2 }} />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
         </View>
@@ -320,46 +316,47 @@ export default function CalendarScreen({ onNavigateToLeads, onNotificationPress,
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   infoText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginTop: 12,
     fontSize: 14,
     fontWeight: '500',
   },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: TOKENS.spacing.md,
+    paddingBottom: 16,
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    ...TOKENS.shadows.sm,
+    zIndex: 10,
   },
   bellButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.border,
   },
   bellBadge: {
     position: 'absolute',
-    right: -4,
-    top: -4,
-    backgroundColor: '#ef4444',
+    right: 2,
+    top: 2,
+    backgroundColor: TOKENS.colors.error,
     borderRadius: 8,
     minWidth: 16,
     height: 16,
@@ -368,53 +365,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   bellBadgeText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 8,
     fontWeight: 'bold',
   },
   headerTitle: {
-    color: '#0f172a',
-    fontSize: 22,
-    fontWeight: '700',
+    color: TOKENS.colors.heading,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: '#64748b',
-    fontSize: 13,
+    color: TOKENS.colors.secondary,
+    fontSize: 12,
+    fontWeight: '500',
     marginTop: 2,
   },
   scrollContent: {
-    padding: 16,
+    padding: TOKENS.spacing.md,
     paddingBottom: 40,
   },
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: 12,
+    borderColor: '#FECACA',
+    borderRadius: TOKENS.radius.md,
     padding: 14,
     marginBottom: 16,
   },
   errorText: {
-    color: '#b91c1c',
+    color: TOKENS.colors.error,
     fontSize: 13,
     fontWeight: '500',
     marginLeft: 10,
     flex: 1,
   },
   calendarCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 16,
-    marginBottom: 20,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    marginBottom: 18,
+    ...TOKENS.shadows.card,
   },
   monthSelector: {
     flexDirection: 'row',
@@ -427,14 +422,14 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.border,
   },
   monthText: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -445,7 +440,7 @@ const styles = StyleSheet.create({
   },
   weekLabel: {
     width: '14.28%',
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
@@ -461,23 +456,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 2,
-    borderRadius: 8,
+    borderRadius: TOKENS.radius.sm,
     position: 'relative',
   },
   cellSelected: {
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
   },
   cellText: {
-    color: '#334155',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     fontWeight: '500',
   },
   cellTextSelected: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontWeight: '700',
   },
   cellTextWithTask: {
-    color: '#0f172a',
+    color: TOKENS.colors.primary,
     fontWeight: '700',
   },
   dot: {
@@ -488,15 +483,15 @@ const styles = StyleSheet.create({
     bottom: 4,
   },
   dotActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
   },
   dotSelected: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
   },
   legend: {
     marginTop: 16,
     borderTopWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingTop: 12,
   },
   legendItem: {
@@ -511,35 +506,31 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   legendText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     fontWeight: '500',
   },
   agendaCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 16,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    ...TOKENS.shadows.card,
   },
   agendaHeader: {
     marginBottom: 16,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingBottom: 12,
   },
   agendaTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 16,
     fontWeight: '700',
   },
   agendaSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     marginTop: 2,
   },
@@ -552,15 +543,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
     fontStyle: 'italic',
   },
   taskCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    backgroundColor: TOKENS.colors.background,
+    borderRadius: TOKENS.radius.md,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 14,
     marginBottom: 12,
   },
@@ -571,7 +562,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   taskTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
@@ -588,7 +579,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   taskDesc: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     lineHeight: 16,
     marginBottom: 12,
@@ -598,7 +589,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingTop: 8,
   },
   assigneeContainer: {
@@ -606,7 +597,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   assigneeText: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
   },
   viewLinkContainer: {
@@ -614,7 +605,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewLinkText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 11,
     fontWeight: '600',
   },

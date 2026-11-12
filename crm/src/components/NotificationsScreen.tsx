@@ -9,7 +9,9 @@ import {
   RefreshControl,
   Alert
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { mobileApiFetch } from '../api/client';
+import { TOKENS } from '../theme/tokens';
 import { Bell, CheckSquare, BellOff, ChevronLeft } from 'lucide-react-native';
 
 interface NotificationsScreenProps {
@@ -18,6 +20,7 @@ interface NotificationsScreenProps {
 }
 
 export default function NotificationsScreen({ onBack, onOpenLead }: NotificationsScreenProps = {}) {
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -114,11 +117,11 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 16) + 10 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           {onBack && (
             <TouchableOpacity onPress={onBack} style={{ marginRight: 12 }}>
-              <ChevronLeft size={24} color="#2563eb" />
+              <ChevronLeft size={24} color={TOKENS.colors.primary} />
             </TouchableOpacity>
           )}
           <Text style={styles.title}>Notifications</Text>
@@ -128,7 +131,7 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
           onPress={handleMarkAllRead}
           activeOpacity={0.7}
         >
-          <CheckSquare size={16} color="#2563eb" style={{ marginRight: 6 }} />
+          <CheckSquare size={16} color={TOKENS.colors.primary} style={{ marginRight: 6 }} />
           <Text style={styles.markReadBtnText}>Mark all read</Text>
         </TouchableOpacity>
       </View>
@@ -161,103 +164,106 @@ export default function NotificationsScreen({ onBack, onOpenLead }: Notification
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 64,
-    paddingBottom: 20,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: TOKENS.spacing.md,
+    paddingBottom: 16,
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
+    ...TOKENS.shadows.sm,
+    zIndex: 10,
   },
   title: {
-    color: '#0f172a',
-    fontSize: 22,
-    fontWeight: '700',
+    color: TOKENS.colors.heading,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   markReadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: TOKENS.colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: TOKENS.radius.sm,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.primaryBorder,
   },
   markReadBtnText: {
-    color: '#2563eb',
-    fontSize: 13,
-    fontWeight: '600',
+    color: TOKENS.colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
   },
   listContent: {
-    padding: 16,
+    padding: TOKENS.spacing.md,
     paddingBottom: 40,
   },
   notiCard: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     alignItems: 'center',
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    ...TOKENS.shadows.card,
   },
   notiCardUnread: {
-    borderColor: '#bfdbfe',
-    backgroundColor: '#f0f7ff',
+    borderColor: TOKENS.colors.primaryBorder,
+    backgroundColor: TOKENS.colors.primaryLight,
   },
   notiIconWrapper: {
-    marginRight: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#eff6ff',
+    marginRight: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: TOKENS.colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: TOKENS.colors.border,
   },
   notiTextContainer: {
     flex: 1,
   },
   notiTitle: {
-    color: '#64748b',
-    fontSize: 14,
+    color: TOKENS.colors.secondary,
+    fontSize: 13,
     fontWeight: '500',
     marginBottom: 4,
   },
   notiTitleUnread: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontWeight: '700',
   },
   notiMessage: {
-    color: '#334155',
+    color: TOKENS.colors.heading,
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 6,
   },
   notiTime: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 10,
+    fontWeight: '500',
   },
   unreadIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
     marginLeft: 12,
   },
   emptyContainer: {
@@ -266,7 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 14,
     fontWeight: '500',
   },

@@ -12,15 +12,17 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getBaseUrl } from '../api/client';
 import { Mail, ArrowLeft, KeyRound, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react-native';
+import { TOKENS } from '../theme/tokens';
 
 interface ForgotPasswordScreenProps {
   onBackToLogin: () => void;
 }
 
 export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordScreenProps) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -66,14 +68,16 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: Math.max(insets.top, 14), paddingBottom: Math.max(insets.bottom, 14) }]}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        enabled={Platform.OS === 'ios'}
         style={styles.container}
       >
         <ScrollView 
           contentContainerStyle={styles.scrollContainer} 
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           {/* Top Back Navigation Bar */}
@@ -166,11 +170,13 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
                       value={email}
                       onChangeText={(val) => { setEmail(val); if (error) setError(null); }}
                       autoCapitalize="none"
+                      autoCorrect={false}
                       keyboardType="email-address"
-                      autoComplete="email"
                       editable={!loading}
                       onFocus={() => setIsFocused(true)}
                       onBlur={() => setIsFocused(false)}
+                      returnKeyType="done"
+                      onSubmitEditing={handleForgotPassword}
                     />
                   </View>
                 </View>
@@ -203,23 +209,23 @@ export default function ForgotPasswordScreen({ onBackToLogin }: ForgotPasswordSc
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   container: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingTop: 16,
+    paddingBottom: 28,
   },
   backButton: {
     flexDirection: 'row',
@@ -231,15 +237,15 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#dbeafe',
+    borderColor: '#DBEAFE',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   backButtonText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -251,35 +257,35 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 22,
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#2563eb',
+    borderColor: TOKENS.colors.border,
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 3,
   },
   badgePill: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: '#BFDBFE',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 20,
     marginBottom: 12,
   },
   badgeText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.3,
   },
   heroTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -287,37 +293,37 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   heroSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 290,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.white,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#64748b',
+    borderColor: TOKENS.colors.border,
+    shadowColor: TOKENS.colors.heading,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.05,
     shadowRadius: 18,
-    elevation: 3,
+    elevation: 2,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#fef2f2',
+    backgroundColor: TOKENS.colors.errorLight,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: '#FECACA',
     borderRadius: 10,
     padding: 12,
     marginBottom: 18,
   },
   errorText: {
     flex: 1,
-    color: '#b91c1c',
+    color: TOKENS.colors.error,
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
@@ -326,7 +332,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   fieldLabel: {
-    color: '#334155',
+    color: TOKENS.colors.heading,
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
@@ -334,40 +340,35 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#cbd5e1',
+    borderColor: TOKENS.colors.border,
     paddingHorizontal: 12,
   },
   inputWrapperFocused: {
-    borderColor: '#2563eb',
-    backgroundColor: '#ffffff',
+    borderColor: TOKENS.colors.primary,
+    backgroundColor: TOKENS.colors.white,
     borderWidth: 1.5,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 1,
   },
   fieldIcon: {
     marginRight: 10,
   },
   input: {
     flex: 1,
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 15,
     paddingVertical: 12,
   },
   primaryButton: {
     flexDirection: 'row',
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
     borderRadius: 12,
     paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#2563eb',
+    shadowColor: TOKENS.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -389,33 +390,33 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#ecfdf5',
+    backgroundColor: TOKENS.colors.successLight,
     borderWidth: 1,
-    borderColor: '#a7f3d0',
+    borderColor: '#A7F3D0',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   successTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 8,
   },
   successBody: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
     textAlign: 'center',
   },
   successEmail: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 14,
     fontWeight: '700',
     marginTop: 4,
     marginBottom: 12,
   },
   successNote: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
@@ -427,7 +428,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   resendBtnText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   footerText: {
-    color: '#94a3b8',
+    color: TOKENS.colors.secondary,
     fontSize: 11,
     textAlign: 'center',
   },

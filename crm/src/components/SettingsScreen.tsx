@@ -21,7 +21,19 @@ import { RootState } from '../store';
 import { setAuth, logoutUser } from '../store/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { mobileApiFetch, getBaseUrl, getImageUrl, uploadMobileFile } from '../api/client';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import { TOKENS } from '../theme/tokens';
+// Safe lazy helper for react-native-image-picker to prevent startup crashes on older APK builds
+let imagePickerModule: any = null;
+function getImagePicker() {
+  if (!imagePickerModule) {
+    try {
+      imagePickerModule = require('react-native-image-picker');
+    } catch (e) {
+      console.warn('[SettingsScreen] react-native-image-picker native module is not available in binary:', e);
+    }
+  }
+  return imagePickerModule;
+}
 import { 
   showSuccess, 
   showError, 
@@ -334,7 +346,18 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
   // Handle Pick Image from Local Device Gallery
   const handlePickFromGallery = async () => {
     try {
-      const response = await launchImageLibrary({
+      const picker = getImagePicker();
+      if (!picker?.launchImageLibrary) {
+        showError(
+          'Feature Unavailable',
+          'Gallery picker native module is not linked in this APK build. Please update the app or enter an image URL directly.',
+          undefined,
+          'Proceed'
+        );
+        return;
+      }
+
+      const response = await picker.launchImageLibrary({
         mediaType: 'photo',
         quality: 0.8,
         maxWidth: 1200,
@@ -432,7 +455,18 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
   // Handle Capture Photo with Device Camera
   const handleTakePhoto = async () => {
     try {
-      const response = await launchCamera({
+      const picker = getImagePicker();
+      if (!picker?.launchCamera) {
+        showError(
+          'Feature Unavailable',
+          'Camera native module is not linked in this APK build. Please update the app or enter an image URL directly.',
+          undefined,
+          'Proceed'
+        );
+        return;
+      }
+
+      const response = await picker.launchCamera({
         mediaType: 'photo',
         quality: 0.8,
         maxWidth: 1200,
@@ -2176,14 +2210,16 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingBottom: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: TOKENS.spacing.md,
+    ...TOKENS.shadows.sm,
+    zIndex: 10,
   },
   headerInner: {
     flexDirection: 'row',
@@ -2202,21 +2238,21 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   headerTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: -0.3,
   },
   headerSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     fontWeight: '500',
     marginTop: 1,
   },
   refreshIconBtn: {
     padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#eff6ff',
+    borderRadius: TOKENS.radius.sm,
+    backgroundColor: TOKENS.colors.primaryLight,
   },
 
   // Max Container for Tablets / Large Screens
@@ -2231,13 +2267,13 @@ const styles = StyleSheet.create({
 
   // Segmented Tabs
   tabBarContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: TOKENS.colors.surface,
     borderBottomWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     paddingVertical: 8,
   },
   tabBarScroll: {
-    paddingHorizontal: 16,
+    paddingHorizontal: TOKENS.spacing.md,
     gap: 8,
   },
   tabBarScrollTablet: {
@@ -2250,21 +2286,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: TOKENS.colors.background,
+    borderWidth: 1,
+    borderColor: TOKENS.colors.border,
   },
   tabPillSmall: {
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   tabPillActive: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: TOKENS.colors.primaryBorder,
   },
   tabPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     marginLeft: 6,
   },
   tabPillTextSmall: {
@@ -2272,31 +2310,31 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   tabPillTextActive: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontWeight: '700',
   },
   tabBadge: {
     marginLeft: 6,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: TOKENS.colors.border,
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 10,
   },
   tabBadgeActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: TOKENS.colors.primary,
   },
   tabBadgeText: {
-    color: '#ffffff',
+    color: TOKENS.colors.secondary,
     fontSize: 10,
     fontWeight: '700',
   },
   tabBadgeTextActive: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
   },
 
   // Content
   scrollContent: {
-    padding: 16,
+    padding: TOKENS.spacing.md,
   },
   tabContent: {
     gap: 16,
@@ -2309,22 +2347,18 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 13,
   },
 
   // Cards
   card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 18,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    ...TOKENS.shadows.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -2335,23 +2369,23 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 10,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   cardTitle: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 15,
     fontWeight: '700',
   },
   cardSubtitle: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     marginTop: 1,
   },
   cardMiniTitle: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -2375,8 +2409,8 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
+    borderColor: TOKENS.colors.border,
+    backgroundColor: TOKENS.colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -2395,46 +2429,46 @@ const styles = StyleSheet.create({
   uploadLogoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: 8,
+    borderColor: TOKENS.colors.primaryBorder,
+    borderRadius: TOKENS.radius.sm,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   uploadLogoBtnText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 13,
     fontWeight: '700',
   },
   removeLogoBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: TOKENS.colors.errorLight,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    borderRadius: 8,
+    borderColor: '#FECACA',
+    borderRadius: TOKENS.radius.sm,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   removeLogoBtnText: {
-    color: '#ef4444',
+    color: TOKENS.colors.error,
     fontSize: 12,
     fontWeight: '600',
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: TOKENS.colors.heading,
     marginBottom: 6,
   },
   inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: TOKENS.colors.background,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
+    borderColor: TOKENS.colors.border,
+    borderRadius: TOKENS.radius.md,
     paddingHorizontal: 12,
     minHeight: 46,
   },
@@ -2443,7 +2477,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     height: '100%',
     padding: 0,
@@ -2457,30 +2491,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563eb',
-    borderRadius: 10,
+    backgroundColor: TOKENS.colors.primary,
+    borderRadius: TOKENS.radius.md,
     paddingVertical: 12,
     marginTop: 8,
     minHeight: 46,
   },
   primaryBtnText: {
-    color: '#ffffff',
+    color: TOKENS.colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   secondaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    borderRadius: 10,
+    borderColor: TOKENS.colors.primaryBorder,
+    borderRadius: TOKENS.radius.md,
     paddingVertical: 11,
     minHeight: 44,
   },
   secondaryBtnText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -2709,17 +2743,13 @@ const styles = StyleSheet.create({
 
   // Member Card
   memberCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
+    backgroundColor: TOKENS.colors.surface,
+    borderRadius: TOKENS.radius.lg,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: TOKENS.colors.border,
     padding: 14,
     marginBottom: 10,
-    shadowColor: '#64748b',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    ...TOKENS.shadows.card,
   },
   memberCardHeader: {
     flexDirection: 'row',
@@ -2729,7 +2759,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#eff6ff',
+    backgroundColor: TOKENS.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -2741,7 +2771,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   memberAvatarText: {
-    color: '#2563eb',
+    color: TOKENS.colors.primary,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -2756,25 +2786,25 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   memberName: {
-    color: '#0f172a',
+    color: TOKENS.colors.heading,
     fontSize: 14,
     fontWeight: '700',
     flexShrink: 1,
   },
   youBadge: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: TOKENS.colors.primaryLight,
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
     marginLeft: 6,
   },
   youBadgeText: {
-    color: '#1d4ed8',
+    color: TOKENS.colors.primary,
     fontSize: 9,
     fontWeight: '700',
   },
   memberEmail: {
-    color: '#64748b',
+    color: TOKENS.colors.secondary,
     fontSize: 12,
     marginTop: 1,
     flexShrink: 1,

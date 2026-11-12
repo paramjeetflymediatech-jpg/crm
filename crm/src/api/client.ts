@@ -2,11 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { store } from '../store';
 import { setAuth, logoutUser } from '../store/authSlice';
-// For production:
-const BaseUrl = "https://demo.socialflymediatech.com";
+// Production backend URL (Live Server)
+const LIVE_URL = 'https://demo.socialflymediatech.com';
 
-// For local development (Next.js server runs on port 3000):
-//const BaseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+// Local development URLs (commented out for live deployment)
+// const USE_LOCAL_EMULATOR = false;
+// const LOCAL_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+
+const BaseUrl = LIVE_URL;
 
 export const getBaseUrl = () => {
   return `${BaseUrl}`;
