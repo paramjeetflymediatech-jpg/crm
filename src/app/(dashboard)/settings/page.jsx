@@ -508,6 +508,33 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRemoveCompanyLogo = async () => {
+    setCompany(prev => ({ ...prev, logo: '' }));
+    try {
+      const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+      const saveRes = await fetch('/api/settings/company', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: targetCid,
+          logo: null
+        })
+      });
+      if (saveRes.ok) {
+        const updatedUser = {
+          ...currentUser,
+          companyLogo: null
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
+        Toast.fire({ icon: 'success', title: 'Company logo removed' });
+      }
+    } catch (err) {
+      console.warn('Could not auto-save company logo removal:', err);
+    }
+  };
+
   // Save User settings
   const handleUserSubmit = async (e) => {
     e.preventDefault();
@@ -683,7 +710,7 @@ export default function SettingsPage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setCompany(prev => ({ ...prev, logo: '' }))}
+                                onClick={handleRemoveCompanyLogo}
                                 className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2 className="h-3.5 w-3.5 mr-1" /> Remove

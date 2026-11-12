@@ -6,7 +6,7 @@ const loginSchema = z.object({
 });
 
 const companySettingsSchema = z.object({
-  company_name: z.string().min(2, 'Company name must be at least 2 characters'),
+  company_name: z.string().min(2, 'Company name must be at least 2 characters').optional().or(z.literal('')),
   website: z.string().nullable().optional().or(z.literal('')),
   email: z.string().email('Invalid email address').nullable().optional().or(z.literal('')),
   phone: z.string().nullable().optional().or(z.literal('')),

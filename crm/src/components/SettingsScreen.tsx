@@ -109,6 +109,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadTarget, setImageUploadTarget] = useState<'profile' | 'company'>('profile');
 
   // --- Company State ---
   const [company, setCompany] = useState<{
@@ -117,6 +118,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
     website: string;
     email: string;
     phone: string;
+    logo?: string;
     api_key: string;
     subscription_plan?: string;
   }>({
@@ -124,6 +126,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
     website: currentUser?.Company?.website || '',
     email: currentUser?.Company?.email || '',
     phone: currentUser?.Company?.phone || '',
+    logo: currentUser?.companyLogo || '',
     api_key: currentUser?.Company?.api_key || '',
     subscription_plan: '',
   });
@@ -232,6 +235,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
                 website: dataComp.company.website || '',
                 email: dataComp.company.email || '',
                 phone: dataComp.company.phone || '',
+                logo: dataComp.company.logo || '',
                 api_key: dataComp.company.api_key || '',
                 subscription_plan: dataComp.company.subscription_plan || '',
               });
@@ -355,33 +359,66 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
 
       const data = await res.json();
       if (res.ok && data.url) {
-        setProfileForm(prev => ({ ...prev, avatar: data.url }));
-        setImageUrlInput(data.url);
-        setImageModalOpen(false);
+        if (imageUploadTarget === 'company') {
+          setCompany(prev => ({ ...prev, logo: data.url }));
+          setImageUrlInput(data.url);
+          setImageModalOpen(false);
 
-        // Auto-save to profile
-        try {
-          const saveRes = await mobileApiFetch('/api/settings/profile', {
-            method: 'PUT',
-            bodyData: {
-              name: profileForm.name.trim() || currentUser?.name,
-              email: profileForm.email.trim() || currentUser?.email,
-              phone: profileForm.phone.trim() || currentUser?.phone,
-              avatar: data.url,
-            },
-          });
-          const saveData = await saveRes.json();
-          if (saveRes.ok && saveData.user) {
-            const token = await AsyncStorage.getItem('token');
-            const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
-            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-            dispatch(setAuth({ token, user: updatedUser }));
+          try {
+            const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+            const saveRes = await mobileApiFetch('/api/settings/company', {
+              method: 'PUT',
+              bodyData: {
+                ...company,
+                logo: data.url,
+                company_id: targetCid,
+              },
+            });
+            const saveData = await saveRes.json();
+            if (saveRes.ok) {
+              const token = await AsyncStorage.getItem('token');
+              const updatedUser = { 
+                ...currentUser, 
+                companyName: saveData.company?.company_name || currentUser?.companyName,
+                companyLogo: data.url 
+              };
+              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+              dispatch(setAuth({ token, user: updatedUser }));
+            }
+          } catch (e) {
+            console.warn('Auto-save company logo error:', e);
           }
-        } catch (e) {
-          console.warn('Auto-save error:', e);
-        }
 
-        showSuccess('Photo Uploaded', 'Your profile / logo image has been uploaded and updated.', undefined, 'Proceed');
+          showSuccess('Logo Uploaded', 'Company logo has been uploaded and saved.', undefined, 'Proceed');
+        } else {
+          setProfileForm(prev => ({ ...prev, avatar: data.url }));
+          setImageUrlInput(data.url);
+          setImageModalOpen(false);
+
+          // Auto-save to profile
+          try {
+            const saveRes = await mobileApiFetch('/api/settings/profile', {
+              method: 'PUT',
+              bodyData: {
+                name: profileForm.name.trim() || currentUser?.name,
+                email: profileForm.email.trim() || currentUser?.email,
+                phone: profileForm.phone.trim() || currentUser?.phone,
+                avatar: data.url,
+              },
+            });
+            const saveData = await saveRes.json();
+            if (saveRes.ok && saveData.user) {
+              const token = await AsyncStorage.getItem('token');
+              const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
+              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+              dispatch(setAuth({ token, user: updatedUser }));
+            }
+          } catch (e) {
+            console.warn('Auto-save error:', e);
+          }
+
+          showSuccess('Photo Uploaded', 'Your profile image has been uploaded and updated.', undefined, 'Proceed');
+        }
       } else {
         showError('Upload Failed', data.error || 'Failed to upload selected image.', undefined, 'Proceed');
       }
@@ -420,33 +457,66 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
 
       const data = await res.json();
       if (res.ok && data.url) {
-        setProfileForm(prev => ({ ...prev, avatar: data.url }));
-        setImageUrlInput(data.url);
-        setImageModalOpen(false);
+        if (imageUploadTarget === 'company') {
+          setCompany(prev => ({ ...prev, logo: data.url }));
+          setImageUrlInput(data.url);
+          setImageModalOpen(false);
 
-        // Auto-save to profile
-        try {
-          const saveRes = await mobileApiFetch('/api/settings/profile', {
-            method: 'PUT',
-            bodyData: {
-              name: profileForm.name.trim() || currentUser?.name,
-              email: profileForm.email.trim() || currentUser?.email,
-              phone: profileForm.phone.trim() || currentUser?.phone,
-              avatar: data.url,
-            },
-          });
-          const saveData = await saveRes.json();
-          if (saveRes.ok && saveData.user) {
-            const token = await AsyncStorage.getItem('token');
-            const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
-            await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-            dispatch(setAuth({ token, user: updatedUser }));
+          try {
+            const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+            const saveRes = await mobileApiFetch('/api/settings/company', {
+              method: 'PUT',
+              bodyData: {
+                ...company,
+                logo: data.url,
+                company_id: targetCid,
+              },
+            });
+            const saveData = await saveRes.json();
+            if (saveRes.ok) {
+              const token = await AsyncStorage.getItem('token');
+              const updatedUser = { 
+                ...currentUser, 
+                companyName: saveData.company?.company_name || currentUser?.companyName,
+                companyLogo: data.url 
+              };
+              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+              dispatch(setAuth({ token, user: updatedUser }));
+            }
+          } catch (e) {
+            console.warn('Auto-save company logo error:', e);
           }
-        } catch (e) {
-          console.warn('Auto-save error:', e);
-        }
 
-        showSuccess('Photo Uploaded', 'Your profile / logo image has been captured and updated.', undefined, 'Proceed');
+          showSuccess('Logo Uploaded', 'Company logo has been captured and saved.', undefined, 'Proceed');
+        } else {
+          setProfileForm(prev => ({ ...prev, avatar: data.url }));
+          setImageUrlInput(data.url);
+          setImageModalOpen(false);
+
+          // Auto-save to profile
+          try {
+            const saveRes = await mobileApiFetch('/api/settings/profile', {
+              method: 'PUT',
+              bodyData: {
+                name: profileForm.name.trim() || currentUser?.name,
+                email: profileForm.email.trim() || currentUser?.email,
+                phone: profileForm.phone.trim() || currentUser?.phone,
+                avatar: data.url,
+              },
+            });
+            const saveData = await saveRes.json();
+            if (saveRes.ok && saveData.user) {
+              const token = await AsyncStorage.getItem('token');
+              const updatedUser = { ...currentUser, ...saveData.user, avatar: data.url };
+              await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+              dispatch(setAuth({ token, user: updatedUser }));
+            }
+          } catch (e) {
+            console.warn('Auto-save error:', e);
+          }
+
+          showSuccess('Photo Uploaded', 'Your profile image has been captured and updated.', undefined, 'Proceed');
+        }
       } else {
         showError('Upload Failed', data.error || 'Failed to upload photo.', undefined, 'Proceed');
       }
@@ -454,6 +524,31 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
       showError('Camera Error', err.message || 'An error occurred capturing photo.', undefined, 'Proceed');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Handle Remove Company Logo
+  const handleRemoveCompanyLogo = async () => {
+    setCompany(prev => ({ ...prev, logo: '' }));
+    try {
+      const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+      const res = await mobileApiFetch('/api/settings/company', {
+        method: 'PUT',
+        bodyData: {
+          ...company,
+          logo: null,
+          company_id: targetCid,
+        },
+      });
+      if (res.ok) {
+        const token = await AsyncStorage.getItem('token');
+        const updatedUser = { ...currentUser, companyLogo: null };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        dispatch(setAuth({ token, user: updatedUser }));
+        showSuccess('Logo Removed', 'Company logo has been removed.', undefined, 'Proceed');
+      }
+    } catch (e: any) {
+      console.warn('Remove company logo error:', e);
     }
   };
 
@@ -466,6 +561,7 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
 
     setCompanySaving(true);
     try {
+      const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
       const res = await mobileApiFetch('/api/settings/company', {
         method: 'PUT',
         bodyData: {
@@ -473,11 +569,22 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
           website: company.website.trim(),
           email: company.email.trim(),
           phone: company.phone.trim(),
+          logo: company.logo !== undefined ? (company.logo || null) : undefined,
+          company_id: targetCid,
         },
       });
 
       const data = await res.json();
       if (res.ok) {
+        const token = await AsyncStorage.getItem('token');
+        const updatedUser = {
+          ...currentUser,
+          companyName: data.company?.company_name || company.company_name,
+          companyLogo: data.company?.logo !== undefined ? data.company.logo : company.logo,
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+        dispatch(setAuth({ token, user: updatedUser }));
+
         showSuccess('Company Saved', 'Company configurations have been saved successfully.', undefined, 'Proceed');
       } else {
         showError('Save Failed', data.error || 'Failed to save company settings.', undefined, 'Proceed');
@@ -890,6 +997,48 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
                     <View style={{ flex: 1 }}>
                       <Text style={styles.cardTitle}>Company Details</Text>
                       <Text style={styles.cardSubtitle}>Edit workspace branding & contact metadata</Text>
+                    </View>
+                  </View>
+
+                  {/* Company Logo Upload Section */}
+                  <View style={styles.formGroup}>
+                    <Text style={styles.fieldLabel}>Company Logo</Text>
+                    <View style={styles.companyLogoRow}>
+                      <View style={styles.companyLogoBox}>
+                        {getImageUrl(company.logo || currentUser?.companyLogo) ? (
+                          <Image
+                            source={{ uri: getImageUrl(company.logo || currentUser?.companyLogo)! }}
+                            style={styles.companyLogoImage}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <Building2 size={24} color="#94a3b8" />
+                        )}
+                      </View>
+                      <View style={styles.companyLogoBtnCol}>
+                        <TouchableOpacity
+                          style={styles.uploadLogoBtn}
+                          onPress={() => {
+                            setImageUploadTarget('company');
+                            setImageUrlInput(company.logo || currentUser?.companyLogo || '');
+                            setImageModalOpen(true);
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Upload size={14} color="#2563eb" style={{ marginRight: 6 }} />
+                          <Text style={styles.uploadLogoBtnText}>Upload Logo</Text>
+                        </TouchableOpacity>
+                        {(company.logo || currentUser?.companyLogo) ? (
+                          <TouchableOpacity
+                            style={styles.removeLogoBtn}
+                            onPress={handleRemoveCompanyLogo}
+                            activeOpacity={0.8}
+                          >
+                            <Trash2 size={13} color="#ef4444" style={{ marginRight: 4 }} />
+                            <Text style={styles.removeLogoBtnText}>Remove</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
                     </View>
                   </View>
 
@@ -1374,7 +1523,8 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
                       <TouchableOpacity
                         style={styles.avatarBtn}
                         onPress={() => {
-                          setImageUrlInput(profileForm.avatar || currentUser?.companyLogo || '');
+                          setImageUploadTarget('profile');
+                          setImageUrlInput(profileForm.avatar || currentUser?.avatar || '');
                           setImageModalOpen(true);
                         }}
                         activeOpacity={0.7}
@@ -1878,8 +2028,14 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
           <View style={[styles.modalCard, isTablet && styles.modalCardTablet]}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Update Profile / Logo Image</Text>
-                <Text style={styles.modalSubtitle}>Appears in header, drawer, and system</Text>
+                <Text style={styles.modalTitle}>
+                  {imageUploadTarget === 'company' ? 'Update Company Logo' : 'Update Profile Photo'}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {imageUploadTarget === 'company'
+                    ? 'Displayed on sidebar brand, app bar, and company documents'
+                    : 'Appears on your avatar, profile, and system comments'}
+                </Text>
               </View>
               <TouchableOpacity 
                 style={styles.modalCloseBtn}
@@ -1976,9 +2132,34 @@ export default function SettingsScreen({ onBack, initialTab }: SettingsScreenPro
               <TouchableOpacity
                 style={styles.modalSubmitBtn}
                 onPress={() => {
-                  setProfileForm(prev => ({ ...prev, avatar: imageUrlInput.trim() }));
-                  setImageModalOpen(false);
-                  showSuccess('Image Attached', 'Click "Save Profile Changes" to save to your account.', undefined, 'Proceed');
+                  const finalUrl = imageUrlInput.trim();
+                  if (imageUploadTarget === 'company') {
+                    setCompany(prev => ({ ...prev, logo: finalUrl }));
+                    setImageModalOpen(false);
+
+                    const targetCid = company.id || currentUser?.companyId || currentUser?.company_id;
+                    mobileApiFetch('/api/settings/company', {
+                      method: 'PUT',
+                      bodyData: {
+                        ...company,
+                        logo: finalUrl,
+                        company_id: targetCid,
+                      },
+                    }).then(async res => {
+                      if (res.ok) {
+                        const token = await AsyncStorage.getItem('token');
+                        const updatedUser = { ...currentUser, companyLogo: finalUrl };
+                        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+                        dispatch(setAuth({ token, user: updatedUser }));
+                      }
+                    }).catch(console.warn);
+
+                    showSuccess('Logo Attached', 'Company logo updated and saved.', undefined, 'Proceed');
+                  } else {
+                    setProfileForm(prev => ({ ...prev, avatar: finalUrl }));
+                    setImageModalOpen(false);
+                    showSuccess('Image Attached', 'Click "Save Profile Changes" to save to your account.', undefined, 'Proceed');
+                  }
                 }}
                 activeOpacity={0.8}
               >
@@ -2181,6 +2362,65 @@ const styles = StyleSheet.create({
   // Forms
   formGroup: {
     marginBottom: 14,
+  },
+  companyLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  companyLogoBox: {
+    width: 58,
+    height: 58,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: 3,
+  },
+  companyLogoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  companyLogoBtnCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  uploadLogoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  uploadLogoBtnText: {
+    color: '#2563eb',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  removeLogoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  removeLogoBtnText: {
+    color: '#ef4444',
+    fontSize: 12,
+    fontWeight: '600',
   },
   fieldLabel: {
     fontSize: 12,

@@ -195,9 +195,9 @@ export default function Header({
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2.5 rounded-xl p-1.5 hover:bg-slate-50 transition duration-150 cursor-pointer outline-none border border-transparent hover:border-slate-200">
             <div className="h-9 w-9 rounded-full bg-indigo-600/10 text-indigo-600 border border-slate-200 overflow-hidden flex items-center justify-center text-sm font-semibold uppercase shrink-0 shadow-xs">
-              {user?.companyLogo || user?.avatar ? (
+              {user?.avatar || user?.companyLogo ? (
                 <img
-                  src={user?.companyLogo || user?.avatar}
+                  src={user?.avatar || user?.companyLogo}
                   alt={user?.name || 'Avatar'}
                   className="h-full w-full object-cover"
                 />

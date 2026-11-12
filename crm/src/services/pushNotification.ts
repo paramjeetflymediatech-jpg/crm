@@ -45,7 +45,7 @@ async function requestUserPermission() {
 
 export async function registerDeviceToken() {
   if (!isFirebaseAvailable()) {
-    console.warn('[PushNotification] Firebase is not initialized. Skipping device token registration.');
+    console.log('[PushNotification] Firebase is not initialized. Skipping device token registration.');
     return;
   }
   try {
@@ -116,7 +116,7 @@ export function setOnNotificationPressed(callback: () => void) {
 
 export function initPushNotifications() {
   if (!isFirebaseAvailable()) {
-    console.warn('[PushNotification] Firebase is not initialized. Skipping push notification listeners.');
+    console.log('[PushNotification] Firebase is not initialized. Skipping push notification listeners.');
     return () => {};
   }
 

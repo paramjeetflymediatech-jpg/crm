@@ -86,12 +86,12 @@ async function putHandler(request) {
 
     const { company_name, website, email, phone, logo, facebook_page_id, facebook_access_token } = validation.data;
 
-    // Update fields
+    // Update fields (preserve existing if omitted or empty during partial updates like logo)
     await company.update({
-      company_name,
-      website: website || null,
-      email: email || null,
-      phone: phone || null,
+      company_name: company_name || company.company_name,
+      website: website !== undefined ? (website || null) : company.website,
+      email: email !== undefined ? (email || null) : company.email,
+      phone: phone !== undefined ? (phone || null) : company.phone,
       logo: logo !== undefined ? (logo || null) : company.logo,
       facebook_page_id: facebook_page_id !== undefined ? (facebook_page_id || null) : company.facebook_page_id,
       facebook_access_token: facebook_access_token !== undefined ? (facebook_access_token || null) : company.facebook_access_token

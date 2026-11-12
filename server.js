@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const next = require('next');
 const { Server } = require('socket.io');
 const { createClient } = require('redis');
@@ -87,7 +88,11 @@ app.prepare().then(async () => {
 
   console.log('Cron schedulers started.');
 
-  // 6. Delegate routing to Next.js handler
+  // 6. Serve static uploads directly via Express
+  expressApp.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+  expressApp.use(express.static(path.join(__dirname, 'public')));
+
+  // 7. Delegate routing to Next.js handler
   expressApp.use((req, res) => {
     return handle(req, res);
   });
