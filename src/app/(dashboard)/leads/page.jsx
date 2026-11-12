@@ -14,7 +14,8 @@ import {
   User,
   MoreVertical,
   Loader2,
-  CalendarDays
+  CalendarDays,
+  MessageCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -594,14 +595,37 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell className="text-sm">
                       <div className="text-black font-medium">{lead.email || 'N/A'}</div>
-                      <div className="text-black mt-0.5">{lead.phone || 'N/A'}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-black">{lead.phone || 'N/A'}</span>
+                        {lead.phone && (
+                          <a
+                            href={`https://wa.me/${lead.phone.replace(/[^\d]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Chat on WhatsApp"
+                            className="inline-flex items-center text-emerald-600 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5 fill-emerald-500 text-emerald-500" />
+                          </a>
+                        )}
+                      </div>
                     </TableCell>
                     {currentUser?.role === 'super_admin' && (
                       <TableCell className="text-sm font-medium text-indigo-700">
                         {lead.Company?.company_name || <span className="text-slate-400 italic font-normal">—</span>}
                       </TableCell>
                     )}
-                    <TableCell className="text-sm text-black font-medium">{lead.source}</TableCell>
+                    <TableCell className="text-sm">
+                      {lead.source?.toLowerCase().includes('whatsapp') ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <MessageCircle className="h-3 w-3 fill-emerald-600 text-emerald-600" />
+                          {lead.source}
+                        </span>
+                      ) : (
+                        <span className="text-black font-medium">{lead.source || 'N/A'}</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                         lead.priority === 'High' ? 'bg-red-50 text-red-700 border border-red-100' :

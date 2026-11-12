@@ -47,7 +47,8 @@ import {
   PhoneCall,
   SlidersHorizontal,
   Check,
-  RotateCcw
+  RotateCcw,
+  MessageCircle
 } from 'lucide-react-native';
 
 interface LeadsScreenProps {
@@ -517,6 +518,23 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     });
   };
 
+  const handleOpenWhatsApp = (phoneStr?: string) => {
+    if (!phoneStr) return;
+    const cleanPhone = phoneStr.replace(/[^0-9]/g, '');
+    const waUrl = `whatsapp://send?phone=${cleanPhone}`;
+    Linking.canOpenURL(waUrl)
+      .then(supported => {
+        if (supported) {
+          return Linking.openURL(waUrl);
+        } else {
+          return Linking.openURL(`https://wa.me/${cleanPhone}`);
+        }
+      })
+      .catch(() => {
+        Linking.openURL(`https://wa.me/${cleanPhone}`);
+      });
+  };
+
   const renderLeadItem = ({ item }: { item: any }) => {
     const statusCfg = STATUS_CONFIG[item.status] || { bg: '#f1f5f9', text: '#475569', dot: '#94a3b8' };
     const priorityCfg = PRIORITY_CONFIG[item.priority] || { bg: '#f1f5f9', text: '#475569', icon: '#64748b' };
@@ -537,8 +555,17 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
           <View style={styles.nameContainer}>
             <Text style={styles.leadName} numberOfLines={1}>{fullName}</Text>
             <View style={styles.sourceTagRow}>
-              <Globe size={11} color="#64748b" />
-              <Text style={styles.sourceTagText}>{item.source || 'Manual'}</Text>
+              {item.source?.toLowerCase().includes('whatsapp') ? (
+                <View style={styles.whatsappBadge}>
+                  <MessageCircle size={10} color="#15803d" />
+                  <Text style={styles.whatsappBadgeText}>WhatsApp</Text>
+                </View>
+              ) : (
+                <>
+                  <Globe size={11} color="#64748b" />
+                  <Text style={styles.sourceTagText}>{item.source || 'Manual'}</Text>
+                </>
+              )}
               {item.priority && (
                 <>
                   <Text style={styles.dotSeparator}>•</Text>
@@ -561,16 +588,25 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         {/* Contact Info Row */}
         <View style={styles.cardContactsRow}>
           {item.phone ? (
-            <TouchableOpacity 
-              style={styles.contactItem}
-              onPress={() => handleDialNumber(item.phone)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.contactIconCircle, { backgroundColor: '#ecfdf5' }]}>
-                <Phone size={11} color="#059669" />
-              </View>
-              <Text style={styles.contactItemText} numberOfLines={1}>{item.phone}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity 
+                style={styles.contactItem}
+                onPress={() => handleDialNumber(item.phone)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.contactIconCircle, { backgroundColor: '#ecfdf5' }]}>
+                  <Phone size={11} color="#059669" />
+                </View>
+                <Text style={styles.contactItemText} numberOfLines={1}>{item.phone}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.contactIconCircle, { backgroundColor: '#dcfce7', marginLeft: 6 }]}
+                onPress={() => handleOpenWhatsApp(item.phone)}
+                activeOpacity={0.7}
+              >
+                <MessageCircle size={11} color="#16a34a" />
+              </TouchableOpacity>
+            </View>
           ) : null}
 
           {item.email ? (
@@ -1274,12 +1310,19 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                 </Text>
 
                 <View style={styles.profileMetaRow}>
-                  <Text style={styles.profileMetaText}>Source: {selectedLead?.source || 'Manual'}</Text>
+                  {selectedLead?.source?.toLowerCase().includes('whatsapp') ? (
+                    <View style={styles.whatsappBadge}>
+                      <MessageCircle size={10} color="#15803d" />
+                      <Text style={styles.whatsappBadgeText}>WhatsApp</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.profileMetaText}>Source: {selectedLead?.source || 'Manual'}</Text>
+                  )}
                   <Text style={styles.profileMetaDot}>•</Text>
                   <Text style={styles.profileMetaText}>Assigned: {selectedLead?.AssignedUser?.name || 'Unassigned'}</Text>
                 </View>
 
-                {/* Quick Action Buttons (Call / Email) */}
+                {/* Quick Action Buttons (Call / WhatsApp / Email) */}
                 <View style={styles.quickContactsBar}>
                   <TouchableOpacity 
                     style={[styles.quickContactBtn, !selectedLead?.phone && styles.quickContactDisabled]}
@@ -1288,6 +1331,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                   >
                     <Phone size={16} color={selectedLead?.phone ? '#059669' : '#94a3b8'} />
                     <Text style={[styles.quickContactText, !selectedLead?.phone && { color: '#94a3b8' }]}>Call</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.quickContactBtn, !selectedLead?.phone && styles.quickContactDisabled]}
+                    onPress={() => handleOpenWhatsApp(selectedLead?.phone)}
+                    disabled={!selectedLead?.phone}
+                  >
+                    <MessageCircle size={16} color={selectedLead?.phone ? '#16a34a' : '#94a3b8'} />
+                    <Text style={[styles.quickContactText, !selectedLead?.phone && { color: '#16a34a' }]}>WhatsApp</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
@@ -1838,6 +1890,22 @@ const styles = StyleSheet.create({
     color: TOKENS.colors.secondary,
     fontSize: 11,
     fontWeight: '500',
+  },
+  whatsappBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#86efac',
+  },
+  whatsappBadgeText: {
+    color: '#15803d',
+    fontSize: 10,
+    fontWeight: '700',
   },
   dotSeparator: {
     color: TOKENS.colors.border,

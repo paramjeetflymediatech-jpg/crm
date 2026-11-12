@@ -40,7 +40,10 @@ import {
   PhoneCall,
   Camera,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MessageCircle,
+  Globe,
+  ExternalLink
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
 import { showAlert, showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
@@ -51,6 +54,15 @@ export default function SettingsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedJd, setCopiedJd] = useState(false);
+  const [copiedWaWidget, setCopiedWaWidget] = useState(false);
+  const [copiedWaApi, setCopiedWaApi] = useState(false);
+
+  // WhatsApp Widget Settings
+  const [waPhone, setWaPhone] = useState('');
+  const [waBrandName, setWaBrandName] = useState('');
+  const [waWelcomeMsg, setWaWelcomeMsg] = useState('Hi there! 👋 How can we help you today?');
+  const [waPrefill, setWaPrefill] = useState('Hi, I visited your website and would like to know more about your services.');
+  const [waPosition, setWaPosition] = useState('bottom-right');
 
   // Team Members tab state
   const [teamMembers, setTeamMembers] = useState([]);
@@ -225,6 +237,12 @@ export default function SettingsPage() {
                   facebook_page_id: d.company.facebook_page_id || '',
                   facebook_access_token: d.company.facebook_access_token || ''
                 });
+                if (d.company.phone) {
+                  setWaPhone(prev => prev || d.company.phone);
+                }
+                if (d.company.company_name) {
+                  setWaBrandName(prev => prev || d.company.company_name);
+                }
               }
             }
           } catch (cErr) {
@@ -656,6 +674,11 @@ export default function SettingsPage() {
           {currentUser?.role !== 'staff' && (
             <TabsTrigger value="justdial" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
               <PhoneCall className="h-4 w-4 mr-1.5 text-orange-500" /> Justdial
+            </TabsTrigger>
+          )}
+          {currentUser?.role !== 'staff' && (
+            <TabsTrigger value="whatsapp" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
+              <MessageCircle className="h-4 w-4 mr-1.5 text-emerald-600" /> WhatsApp Widget
             </TabsTrigger>
           )}
           <TabsTrigger value="profile" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm px-4">
@@ -1442,6 +1465,248 @@ export default function SettingsPage() {
   "leadtype": "Hot"
 }`}
                   </pre>
+                </div>
+
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {/* WhatsApp Widget Integration Tab */}
+        {currentUser?.role !== 'staff' && (
+          <TabsContent value="whatsapp" className="space-y-6">
+            <Card className="border-slate-200 bg-white text-slate-700 max-w-4xl shadow-xs">
+              <CardHeader className="border-b border-slate-100 pb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 shadow-xs">
+                    <MessageCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      Website WhatsApp Lead Widget & API
+                      <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        Recommended
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500 mt-0.5">
+                      Capture visitor Name & WhatsApp Number into the CRM before redirecting them to WhatsApp chat
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-5">
+                
+                {/* Feature highlight banner */}
+                <div className="rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 border border-emerald-200 p-4 text-xs text-emerald-950 space-y-2 shadow-2xs">
+                  <p className="font-bold text-emerald-900 text-sm flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    How the Multi-Website WhatsApp Flow Works
+                  </p>
+                  <p className="text-emerald-800 leading-relaxed">
+                    Paste this lightweight script onto your client's website. A modern WhatsApp floating button will appear. When visitors click it, they enter their <strong>Name and WhatsApp Number</strong>. The lead is instantaneously saved to your CRM account and your sales team receives real-time alerts. The visitor is then seamlessly redirected to WhatsApp to chat with you!
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+                    <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-200/80">
+                      <p className="font-bold text-emerald-900">Zero Meta API Fees</p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">Works with any regular or WhatsApp Business number.</p>
+                    </div>
+                    <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-200/80">
+                      <p className="font-bold text-emerald-900">100% Lead Capture</p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">Captures the contact even if the visitor closes WhatsApp without hitting send.</p>
+                    </div>
+                    <div className="bg-white/90 p-2.5 rounded-lg border border-emerald-200/80">
+                      <p className="font-bold text-emerald-900">Isolated Multi-Tenant</p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">Linked directly to your company ID via your unique API Key.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Widget Customizer Inputs */}
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-4">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    1. Customize Your Widget Settings
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-slate-700">
+                        Your WhatsApp Business Number <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. 919876543210 (with country code)"
+                        value={waPhone}
+                        onChange={(e) => setWaPhone(e.target.value)}
+                        className="bg-white text-xs h-9 font-mono"
+                      />
+                      <p className="text-[11px] text-slate-400">Include country code without + or spaces (e.g. 91 for India).</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-slate-700">Brand / Company Display Name</label>
+                      <Input
+                        type="text"
+                        placeholder="e.g. Acme Customer Support"
+                        value={waBrandName}
+                        onChange={(e) => setWaBrandName(e.target.value)}
+                        className="bg-white text-xs h-9"
+                      />
+                      <p className="text-[11px] text-slate-400">Shown in the header of the chat popup widget.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-slate-700">Welcome Greeting</label>
+                      <Input
+                        type="text"
+                        placeholder="Hi there! 👋 How can we help you today?"
+                        value={waWelcomeMsg}
+                        onChange={(e) => setWaWelcomeMsg(e.target.value)}
+                        className="bg-white text-xs h-9"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-slate-700">Widget Button Position</label>
+                      <Select value={waPosition} onValueChange={setWaPosition}>
+                        <SelectTrigger className="bg-white text-xs h-9">
+                          <SelectValue placeholder="Select position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bottom-right">Bottom Right (Standard)</SelectItem>
+                          <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs">
+                    <label className="font-semibold text-slate-700">Pre-filled Message in WhatsApp</label>
+                    <Input
+                      type="text"
+                      placeholder="Hi, I visited your website and would like to know more about your services."
+                      value={waPrefill}
+                      onChange={(e) => setWaPrefill(e.target.value)}
+                      className="bg-white text-xs h-9"
+                    />
+                    <p className="text-[11px] text-slate-400">The message text automatically typed into the customer's WhatsApp chat screen.</p>
+                  </div>
+                </div>
+
+                {/* Generated Embed Script */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      2. Copy Your Ready-to-Use Website Embed Script
+                    </label>
+                    <span className="text-[11px] text-slate-500">Paste before &lt;/body&gt; on any website</span>
+                  </div>
+
+                  {(() => {
+                    const crmOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://demo.socialflymediatech.com';
+                    const embedSnippet = `<script\n  src="${crmOrigin}/widget.js"\n  data-company-key="${company?.api_key || 'YOUR_COMPANY_API_KEY'}"\n  data-whatsapp-number="${(waPhone || company?.phone || '919876543210').replace(/[^0-9]/g, '')}"\n  data-brand-name="${waBrandName || company?.company_name || 'Customer Support'}"\n  data-welcome-message="${waWelcomeMsg}"\n  data-prefill-text="${waPrefill}"\n  data-position="${waPosition}"\n  defer>\n</script>`;
+
+                    return (
+                      <div className="space-y-2">
+                        <div className="relative bg-slate-900 rounded-xl p-4 text-emerald-400 font-mono text-xs overflow-x-auto border border-slate-800 shadow-inner">
+                          <pre className="whitespace-pre-wrap leading-relaxed">{embedSnippet}</pre>
+                          <div className="absolute top-3 right-3">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(embedSnippet);
+                                setCopiedWaWidget(true);
+                                setTimeout(() => setCopiedWaWidget(false), 2000);
+                              }}
+                              className="h-8 px-3 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs"
+                            >
+                              {copiedWaWidget ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5 mr-1" /> Copied Code!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="h-3.5 w-3.5 mr-1" /> Copy Script
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Direct REST API / Webhook Endpoint */}
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    3. Direct REST API / Webhook Endpoint (For Custom Forms & Webhooks)
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    If you already have a custom contact form or external webhook, send a <code>POST</code> request directly to:
+                  </p>
+                  <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                    <span className="font-mono text-xs text-emerald-800 select-all break-all flex-1">
+                      {typeof window !== 'undefined'
+                        ? `${window.location.origin}/api/leads/whatsapp?apiKey=${company?.api_key || 'YOUR_API_KEY'}`
+                        : `https://demo.socialflymediatech.com/api/leads/whatsapp?apiKey=${company?.api_key || 'YOUR_API_KEY'}`}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = `${window.location.origin}/api/leads/whatsapp?apiKey=${company?.api_key || ''}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedWaApi(true);
+                        setTimeout(() => setCopiedWaApi(false), 2000);
+                      }}
+                      className="shrink-0 h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-slate-100"
+                    >
+                      {copiedWaApi ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-600 mr-1" /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 mr-1" /> Copy URL
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-800">Accepted JSON Payload Parameters:</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[11px] pt-1.5">
+                      <div className="bg-white p-1 rounded border border-slate-200"><code>name / full_name</code></div>
+                      <div className="bg-white p-1 rounded border border-slate-200"><code>phone / whatsapp</code></div>
+                      <div className="bg-white p-1 rounded border border-slate-200"><code>email (optional)</code></div>
+                      <div className="bg-white p-1 rounded border border-slate-200"><code>message / enquiry</code></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Installation Instructions */}
+                <div className="space-y-3 pt-2 border-t border-slate-100">
+                  <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
+                    4. Fast Setup Instructions for Client Websites
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3 rounded-lg border border-slate-200 bg-white space-y-1">
+                      <p className="font-bold text-slate-800">WordPress & WooCommerce</p>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Install the free <strong>WPCode</strong> or <strong>Insert Headers and Footers</strong> plugin, then paste the script into the <em>Footer</em> box.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border border-slate-200 bg-white space-y-1">
+                      <p className="font-bold text-slate-800">Shopify</p>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Go to <strong>Online Store &rarr; Themes &rarr; Edit Code</strong>. Open <code>theme.liquid</code> and paste the script right above the <code>&lt;/body&gt;</code> tag.
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg border border-slate-200 bg-white space-y-1">
+                      <p className="font-bold text-slate-800">HTML / React / Next.js / Wix</p>
+                      <p className="text-slate-500 text-[11px] leading-relaxed">
+                        Paste the <code>&lt;script&gt;</code> tag before the closing <code>&lt;/body&gt;</code> tag in your main layout or HTML page.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
               </CardContent>
