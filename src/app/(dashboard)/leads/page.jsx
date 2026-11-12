@@ -400,7 +400,7 @@ export default function LeadsPage() {
           </Button>
           <Button 
             onClick={() => setCreateOpen(true)} 
-            className="bg-indigo-650 hover:bg-indigo-600 text-white"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm"
           >
             <Plus className="h-4 w-4 mr-2" /> Create Lead
           </Button>
@@ -491,32 +491,44 @@ export default function LeadsPage() {
 
       {/* Bulk Actions Panel */}
       {selectedLeads.length > 0 && (
-        <div className="flex items-center gap-3 rounded-lg border border-indigo-200 bg-indigo-50/80 p-3 text-sm text-indigo-850 justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">{selectedLeads.length} leads selected</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-gradient-to-r from-indigo-50/95 via-blue-50/90 to-indigo-50/95 p-3.5 shadow-sm transition-all animate-in fade-in-50">
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center rounded-full bg-indigo-600 px-2.5 py-0.5 text-xs font-bold text-white shadow-sm">
+              {selectedLeads.length}
+            </span>
+            <span className="text-sm font-semibold text-slate-800">
+              {selectedLeads.length === 1 ? 'lead selected' : 'leads selected'}
+            </span>
+            <button 
+              type="button"
+              onClick={() => setSelectedLeads([])} 
+              className="text-xs text-slate-500 hover:text-slate-800 underline font-medium transition-colors ml-1 cursor-pointer"
+            >
+              Clear Selection
+            </button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button 
               size="sm" 
               onClick={() => setBulkAssignOpen(true)}
-              className="bg-slate-850 hover:bg-slate-800 text-xs text-white"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-sm transition-all px-3 py-1.5 cursor-pointer flex items-center"
             >
-              <UserCheck className="h-3.5 w-3.5 mr-1" /> Assign Rep
+              <UserCheck className="h-3.5 w-3.5 mr-1.5" /> Assign Rep
             </Button>
             <Button 
               size="sm" 
               onClick={() => setBulkStatusOpen(true)}
-              className="bg-slate-850 hover:bg-slate-800 text-xs text-white"
+              className="bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-semibold text-xs shadow-sm transition-all px-3 py-1.5 cursor-pointer flex items-center"
             >
-              <RefreshCw className="h-3.5 w-3.5 mr-1" /> Update Status
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5 text-slate-600" /> Update Status
             </Button>
             {currentUser?.role !== 'staff' && (
               <Button 
                 size="sm" 
                 onClick={handleBulkDelete}
-                className="bg-red-50 border border-red-200 hover:bg-red-100 text-xs text-red-700"
+                className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 font-semibold text-xs shadow-sm transition-all px-3 py-1.5 cursor-pointer flex items-center"
               >
-                <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete Selected
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete Selected
               </Button>
             )}
           </div>
@@ -542,9 +554,9 @@ export default function LeadsPage() {
                   <TableHead className="w-12 text-center">
                     <input 
                       type="checkbox" 
-                      checked={selectedLeads.length === leads.length} 
+                      checked={selectedLeads.length === leads.length && leads.length > 0} 
                       onChange={toggleSelectAll}
-                      className="rounded border-slate-350 bg-white text-indigo-650 cursor-pointer"
+                      className="rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500 cursor-pointer h-4 w-4"
                     />
                   </TableHead>
                   <TableHead className="text-slate-800 font-bold text-sm">Name</TableHead>
@@ -574,7 +586,7 @@ export default function LeadsPage() {
                         type="checkbox" 
                         checked={selectedLeads.includes(lead.id)} 
                         onChange={() => toggleSelectRow(lead.id)}
-                        className="rounded border-slate-350 bg-white text-indigo-650 cursor-pointer"
+                        className="rounded border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500 cursor-pointer h-4 w-4"
                       />
                     </TableCell>
                     <TableCell className="text-base font-bold text-black">
@@ -594,7 +606,7 @@ export default function LeadsPage() {
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
                         lead.priority === 'High' ? 'bg-red-50 text-red-700 border border-red-100' :
                         lead.priority === 'Medium' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                        'bg-slate-100 text-slate-600 border border-slate-150'
+                        'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}>
                         {lead.priority}
                       </span>
@@ -783,7 +795,7 @@ export default function LeadsPage() {
               <Button type="button" variant="ghost" onClick={() => setCreateOpen(false)} className="text-slate-500">
                 Cancel
               </Button>
-              <Button type="submit" className="bg-indigo-650 hover:bg-indigo-550 text-white">
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
                 Create Lead
               </Button>
             </DialogFooter>
@@ -816,7 +828,7 @@ export default function LeadsPage() {
             <Button variant="ghost" size="sm" onClick={() => setBulkAssignOpen(false)} className="text-slate-500">
               Cancel
             </Button>
-            <Button size="sm" onClick={handleBulkAssign} className="bg-indigo-650 text-white hover:bg-indigo-500">
+            <Button size="sm" onClick={handleBulkAssign} className="bg-indigo-600 text-white hover:bg-indigo-700 font-semibold shadow-sm">
               Assign Rep
             </Button>
           </DialogFooter>
@@ -848,7 +860,7 @@ export default function LeadsPage() {
             <Button variant="ghost" size="sm" onClick={() => setBulkStatusOpen(false)} className="text-slate-500">
               Cancel
             </Button>
-            <Button size="sm" onClick={handleBulkStatus} className="bg-indigo-650 text-white hover:bg-indigo-500">
+            <Button size="sm" onClick={handleBulkStatus} className="bg-indigo-600 text-white hover:bg-indigo-700 font-semibold shadow-sm">
               Update Status
             </Button>
           </DialogFooter>
