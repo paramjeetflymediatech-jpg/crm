@@ -73,11 +73,19 @@ async function authenticateRequest(request, bodyObj = {}) {
   if (metaPhoneId || metaDisplayPhone || wabaId) {
     const cleanDisplay = (metaDisplayPhone || '').replace(/[^0-9]/g, '');
     let company = null;
+    const activeCompanies = await Company.findAll({ where: { status: 'active' } });
+
+    console.log('[WhatsApp Webhook] Incoming Meta event:', {
+      receivingPhone: metaDisplayPhone,
+      cleanPhone: cleanDisplay,
+      metaPhoneId,
+      wabaId,
+      activeCompaniesCount: activeCompanies.length
+    });
 
     // Check 1: Match against each client company's phone number
     if (cleanDisplay) {
       const last10 = cleanDisplay.length >= 10 ? cleanDisplay.slice(-10) : cleanDisplay;
-      const activeCompanies = await Company.findAll({ where: { status: 'active' } });
 
       company = activeCompanies.find(c => {
         if (!c.phone) return false;
@@ -99,15 +107,17 @@ async function authenticateRequest(request, bodyObj = {}) {
     }
 
     // Fallback: If only 1 active company exists in CRM
-    if (!company) {
-      const activeCompanies = await Company.findAll({ where: { status: 'active' } });
-      if (activeCompanies.length === 1) {
-        company = activeCompanies[0];
-      }
+    if (!company && activeCompanies.length === 1) {
+      company = activeCompanies[0];
     }
 
     if (company && company.status === 'active') {
+      console.log(`[WhatsApp Webhook] Matched to Company ID: ${company.id} (${company.company_name})`);
       return { company };
+    } else {
+      console.warn(`[WhatsApp Webhook] No matching company found for receiving phone "${cleanDisplay}". Available company phones:`, 
+        activeCompanies.map(c => ({ id: c.id, name: c.company_name, phone: c.phone }))
+      );
     }
   }
 
