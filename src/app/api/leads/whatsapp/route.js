@@ -65,18 +65,22 @@ async function authenticateRequest(request, bodyObj = {}) {
     }
   }
 
-  // 4. Meta Cloud API multi-tenant resolution: match receiving phone number or phone_number_id
-  const metaPhoneId = bodyObj?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
+  // 4. Multi-tenant phone resolution:
+  // Can come from Meta Cloud API (display_phone_number) OR Website Widget (whatsapp_number / target_phone / business_phone)
+  const widgetBusinessPhone = bodyObj?.whatsapp_number || bodyObj?.business_phone || bodyObj?.target_phone || bodyObj?.to;
   const metaDisplayPhone = bodyObj?.entry?.[0]?.changes?.[0]?.value?.metadata?.display_phone_number;
+  const receivingPhone = widgetBusinessPhone || metaDisplayPhone;
+
+  const metaPhoneId = bodyObj?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
   const wabaId = bodyObj?.entry?.[0]?.id;
 
-  if (metaPhoneId || metaDisplayPhone || wabaId) {
-    const cleanDisplay = (metaDisplayPhone || '').replace(/[^0-9]/g, '');
+  if (receivingPhone || metaPhoneId || wabaId) {
+    const cleanDisplay = (receivingPhone || '').replace(/[^0-9]/g, '');
     let company = null;
     const activeCompanies = await Company.findAll({ where: { status: 'active' } });
 
-    console.log('[WhatsApp Webhook] Incoming Meta event:', {
-      receivingPhone: metaDisplayPhone,
+    console.log('[WhatsApp Webhook] Authenticating event by receiving phone:', {
+      receivingPhone,
       cleanPhone: cleanDisplay,
       metaPhoneId,
       wabaId,
@@ -119,6 +123,13 @@ async function authenticateRequest(request, bodyObj = {}) {
         activeCompanies.map(c => ({ id: c.id, name: c.company_name, phone: c.phone }))
       );
     }
+  }
+
+  // 5. Ultimate Fallback: If only 1 active company exists in CRM, assign to it automatically
+  const activeCompaniesFallback = await Company.findAll({ where: { status: 'active' } });
+  if (activeCompaniesFallback.length === 1) {
+    console.log(`[WhatsApp Webhook] Fallback: Assigned to sole active company ID: ${activeCompaniesFallback[0].id}`);
+    return { company: activeCompaniesFallback[0] };
   }
 
   return { 
@@ -442,9 +453,11 @@ export async function POST(request) {
         description: `Customer re-contacted via WhatsApp.${campaignName ? ` Campaign: "${campaignName}".` : ''}${adHeadline ? ` Ad: "${adHeadline}".` : ''}${pageUrl ? ` Page: ${pageUrl}.` : ''}${rawMessage ? ` Message: "${rawMessage}".` : ''}`
       });
 
-      // Update lead message to reflect latest inquiry
+      // Update lead message to reflect latest inquiry, reset status to New, and bump created_at so it appears at the top of the Leads list
       await existingLead.update({
-        message: `${existingLead.message ? existingLead.message + '\n\n---\n\n' : ''}${fullMessage}`
+        message: `${existingLead.message ? existingLead.message + '\n\n---\n\n' : ''}${fullMessage}`,
+        status: 'New',
+        created_at: new Date()
       });
     } else {
       // ─────────────────────────────────────────────

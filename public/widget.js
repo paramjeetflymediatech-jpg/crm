@@ -499,8 +499,8 @@
       window.open(waUrl, '_blank');
     }
 
-    // Fast safety fallback: If network is slow or blocked, open WhatsApp in 1.2s anyway!
-    const fallbackTimer = setTimeout(redirectToWhatsApp, 1200);
+    // Safety fallback: If network is slow, open WhatsApp in 2.5s anyway
+    const fallbackTimer = setTimeout(redirectToWhatsApp, 2500);
 
     // Extract campaign / UTM parameters from current page URL
     let utmCampaign = '';
@@ -527,11 +527,14 @@
 
     fetch(endpoint, {
       method: 'POST',
+      keepalive: true,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
       body: JSON.stringify({
+        apiKey: config.companyKey,
+        company_key: config.companyKey,
         name: name,
         phone: phone,
         message: customMessage || config.prefillMessage,
@@ -546,8 +549,13 @@
       })
     })
       .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          console.warn('[FlyMedia CRM Widget] Ingestion warning:', data);
+        }
+      })
       .catch((err) => {
-        console.warn('[FlyMedia CRM Widget] Ingestion warning:', err.message);
+        console.warn('[FlyMedia CRM Widget] Ingestion error:', err.message);
       })
       .finally(() => {
         clearTimeout(fallbackTimer);
