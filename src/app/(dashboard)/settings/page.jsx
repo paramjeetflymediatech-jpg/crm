@@ -31,7 +31,6 @@ import {
   Play,
   Trash2,
   Mail,
-  Facebook,
   Link2,
   Eye,
   EyeOff,
@@ -1718,7 +1717,9 @@ export default function SettingsPage() {
               <CardHeader className="border-b border-slate-100 pb-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 border border-blue-200 text-blue-600 shadow-xs">
-                    <Facebook className="h-6 w-6" />
+                    <svg className="h-5 w-5 fill-blue-600" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
                   </div>
                   <div>
                     <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
