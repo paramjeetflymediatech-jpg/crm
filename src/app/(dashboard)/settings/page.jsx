@@ -56,6 +56,7 @@ export default function SettingsPage() {
   const [copiedJd, setCopiedJd] = useState(false);
   const [copiedWaWidget, setCopiedWaWidget] = useState(false);
   const [copiedWaApi, setCopiedWaApi] = useState(false);
+  const [copiedWaWebhook, setCopiedWaWebhook] = useState(false);
 
   // WhatsApp Widget Settings
   const [waPhone, setWaPhone] = useState('');
@@ -1706,6 +1707,151 @@ export default function SettingsPage() {
                         Paste the <code>&lt;script&gt;</code> tag before the closing <code>&lt;/body&gt;</code> tag in your main layout or HTML page.
                       </p>
                     </div>
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* Meta Boosted Post & Click-to-WhatsApp (CTWA) Integration Card */}
+            <Card className="border-slate-200 bg-white text-slate-700 max-w-4xl shadow-xs">
+              <CardHeader className="border-b border-slate-100 pb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 border border-blue-200 text-blue-600 shadow-xs">
+                    <Facebook className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg text-slate-900 font-bold flex items-center gap-2">
+                      Meta Boosted Post & Click-to-WhatsApp Ads
+                      <span className="text-[11px] font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                        Ad Campaigns
+                      </span>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500 mt-0.5">
+                      Automatically capture incoming leads into CRM when users click WhatsApp from your Facebook or Instagram boosted posts
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-5">
+                
+                {/* How it works info */}
+                <div className="rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200 p-4 text-xs text-blue-950 space-y-2 shadow-2xs">
+                  <p className="font-bold text-blue-900 text-sm flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                    How Boosted Post to WhatsApp Redirection Works
+                  </p>
+                  <p className="text-blue-800 leading-relaxed">
+                    When you boost a post with a <strong>"Send WhatsApp Message"</strong> CTA button or redirect ad traffic to WhatsApp, the CRM can ingest the lead immediately with its <strong>Campaign Name, Ad Headline, Ad ID, and Customer Contact Details</strong>.
+                  </p>
+                </div>
+
+                {/* Scenario 1: Direct Meta Cloud API Webhook */}
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/60 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
+                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                        Official Meta WhatsApp Cloud API Webhook (Direct)
+                      </h4>
+                    </div>
+                    <span className="text-[11px] font-medium bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                      Auto-Extracts Ad ID & Headline
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    If your business WhatsApp number uses Meta WhatsApp Cloud API, configure this Webhook in your Meta App Dashboard under <strong>WhatsApp &rarr; Configuration &rarr; Webhook</strong>:
+                  </p>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3 bg-white border border-slate-200 rounded-lg p-2.5">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-400 block uppercase">Callback URL:</span>
+                        <span className="font-mono text-xs text-blue-800 select-all break-all">
+                          {typeof window !== 'undefined'
+                            ? `${window.location.origin}/api/leads/whatsapp?apiKey=${company?.api_key || 'YOUR_API_KEY'}`
+                            : `https://demo.socialflymediatech.com/api/leads/whatsapp?apiKey=${company?.api_key || 'YOUR_API_KEY'}`}
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const url = `${window.location.origin}/api/leads/whatsapp?apiKey=${company?.api_key || ''}`;
+                          navigator.clipboard.writeText(url);
+                          setCopiedWaWebhook(true);
+                          setTimeout(() => setCopiedWaWebhook(false), 2000);
+                        }}
+                        className="shrink-0 h-8 px-3 text-xs border-slate-200 text-slate-700 hover:bg-slate-100"
+                      >
+                        {copiedWaWebhook ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-blue-600 mr-1" /> Copied
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5 mr-1" /> Copy Webhook URL
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-slate-600">
+                      <div className="bg-white p-2 rounded border border-slate-200">
+                        <strong className="text-slate-800">Verify Token:</strong> <code>{company?.api_key || 'YOUR_API_KEY'}</code> (or any string)
+                      </div>
+                      <div className="bg-white p-2 rounded border border-slate-200">
+                        <strong className="text-slate-800">Webhook Fields:</strong> Subscribe to <code>messages</code>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scenario 2: WhatsApp Tools & No-Code Webhooks (WATI, Interakt, AiSensy, Twilio, Zapier, Make) */}
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/60 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-white text-xs font-bold">2</span>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Third-Party WhatsApp Platforms (WATI, Interakt, AiSensy, Twilio, Make / Zapier)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    If you use an official WhatsApp BSP tool (like WATI, Interakt, AiSensy, or Gupshup), set up an automated Webhook or Zapier workflow to trigger whenever a new inbound chat arrives from a Facebook Ad:
+                  </p>
+
+                  <div className="bg-white border border-slate-200 rounded-lg p-3 font-mono text-[11px] text-slate-700 space-y-1 overflow-x-auto">
+                    <p className="text-slate-500 font-sans font-semibold text-xs mb-1">Send a POST request with JSON:</p>
+                    <pre className="text-blue-800">{`POST ${typeof window !== 'undefined' ? window.location.origin : 'https://demo.socialflymediatech.com'}/api/leads/whatsapp?apiKey=${company?.api_key || 'YOUR_API_KEY'}
+Content-Type: application/json
+
+{
+  "name": "Customer Name",
+  "phone": "+919876543210",
+  "campaign": "Boosted Post - Summer Sale",
+  "ad_headline": "50% Off On All Services",
+  "ad_id": "1202029384829",
+  "message": "Hi, I saw your boosted post on Instagram"
+}`}</pre>
+                  </div>
+                </div>
+
+                {/* Scenario 3: Boost Post -> Landing Page -> WhatsApp Widget (100% Capture) */}
+                <div className="border border-slate-200 rounded-xl p-4 bg-slate-50/60 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">3</span>
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                      Boost Post Redirecting to Website / Landing Page (100% Capture Rate)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    If your boosted post links to a landing page (e.g. <code>https://yourdomain.com?utm_source=facebook&amp;utm_campaign=boost_post</code>), install the <strong>WhatsApp Lead Widget</strong> (from Section 1 above).
+                  </p>
+                  <div className="bg-white p-3 rounded-lg border border-slate-200 text-xs text-slate-600 space-y-1.5">
+                    <p className="font-semibold text-slate-800">Why this is recommended for Boosted Posts:</p>
+                    <ul className="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">
+                      <li>Captures the visitor's Name &amp; Phone <strong>before</strong> WhatsApp opens, guaranteeing you never lose a lead even if the user closes WhatsApp without hitting send.</li>
+                      <li>Automatically extracts UTM parameters (<code>utm_campaign</code>, <code>utm_source</code>) and tags the lead with the exact campaign name in your CRM!</li>
+                    </ul>
                   </div>
                 </div>
 

@@ -65,19 +65,45 @@ async function authenticateRequest(request, bodyObj = {}) {
     }
   }
 
-  // 4. Meta Cloud API fallback: check phone_number_id
+  // 4. Meta Cloud API multi-tenant resolution: match receiving phone number or phone_number_id
   const metaPhoneId = bodyObj?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id;
   const metaDisplayPhone = bodyObj?.entry?.[0]?.changes?.[0]?.value?.metadata?.display_phone_number;
+  const wabaId = bodyObj?.entry?.[0]?.id;
 
-  if (metaPhoneId || metaDisplayPhone) {
-    // Attempt lookup by facebook_page_id, or phone
+  if (metaPhoneId || metaDisplayPhone || wabaId) {
     const cleanDisplay = (metaDisplayPhone || '').replace(/[^0-9]/g, '');
     let company = null;
-    
+
+    // Check 1: Match against each client company's phone number
     if (cleanDisplay) {
-      company = await Company.findOne({
-        where: { phone: cleanDisplay }
+      const last10 = cleanDisplay.length >= 10 ? cleanDisplay.slice(-10) : cleanDisplay;
+      const activeCompanies = await Company.findAll({ where: { status: 'active' } });
+
+      company = activeCompanies.find(c => {
+        if (!c.phone) return false;
+        const cClean = String(c.phone).replace(/[^0-9]/g, '');
+        return cClean === cleanDisplay || cClean.endsWith(last10) || cleanDisplay.endsWith(cClean);
       });
+    }
+
+    // Check 2: Match against facebook_page_id if configured with phone_number_id or WABA ID
+    if (!company && metaPhoneId) {
+      company = await Company.findOne({
+        where: { facebook_page_id: String(metaPhoneId).trim(), status: 'active' }
+      });
+    }
+    if (!company && wabaId) {
+      company = await Company.findOne({
+        where: { facebook_page_id: String(wabaId).trim(), status: 'active' }
+      });
+    }
+
+    // Fallback: If only 1 active company exists in CRM
+    if (!company) {
+      const activeCompanies = await Company.findAll({ where: { status: 'active' } });
+      if (activeCompanies.length === 1) {
+        company = activeCompanies[0];
+      }
     }
 
     if (company && company.status === 'active') {
@@ -211,10 +237,19 @@ export async function POST(request) {
     let pageUrl = '';
     let pageTitle = '';
     let leadSource = 'WhatsApp';
+    let campaignName = '';
+    let adId = '';
+    let adHeadline = '';
+    let adBody = '';
+    let adSourceUrl = '';
+    let adMediaType = '';
+    let utmSource = '';
+    let utmMedium = '';
+    let utmCampaign = '';
 
     if (isMetaWebhook) {
       // ─────────────────────────────────────────────
-      // Meta Cloud API Webhook Format
+      // Meta Cloud API Webhook Format (Direct CTWA / Boosted Post)
       // ─────────────────────────────────────────────
       const contact = metaChange.contacts?.[0];
       const message = metaChange.messages?.[0];
@@ -228,9 +263,21 @@ export async function POST(request) {
       rawPhone = contact?.wa_id || message?.from || '';
       rawMessage = message?.text?.body || (message?.type ? `[Sent ${message.type}]` : 'WhatsApp message received');
       leadSource = 'WhatsApp (Cloud API)';
+
+      // Extract Meta Click-to-WhatsApp (CTWA) / Boosted Post Referral details
+      const referral = message?.referral || metaChange.referral;
+      if (referral) {
+        leadSource = referral.source_type === 'ad' ? 'Meta Click-to-WhatsApp Ad' : 'Meta Boosted Post (WhatsApp)';
+        adId = referral.source_id || '';
+        adHeadline = referral.headline || '';
+        adBody = referral.body || '';
+        adSourceUrl = referral.source_url || '';
+        adMediaType = referral.media_type || '';
+        campaignName = adHeadline || (adId ? `Ad #${adId}` : 'Boosted Post');
+      }
     } else {
       // ─────────────────────────────────────────────
-      // Website Widget / Direct API Format
+      // Website Widget / Direct API / Third-Party Webhook Format
       // ─────────────────────────────────────────────
       rawName = (
         payload.name ||
@@ -239,6 +286,8 @@ export async function POST(request) {
         payload.first_name ||
         payload.customer_name ||
         payload.client_name ||
+        payload.sender_name ||
+        payload.contact_name ||
         ''
       ).trim();
 
@@ -249,16 +298,52 @@ export async function POST(request) {
         payload.whatsapp_number ||
         payload.contact ||
         payload.phone_number ||
+        payload.wa_id ||
+        payload.sender ||
         ''
       ).toString().trim();
 
       rawEmail = (payload.email || payload.email_address || '').trim();
-      rawMessage = (payload.message || payload.enquiry || payload.requirement || payload.comment || '').trim();
+      rawMessage = (
+        payload.message || 
+        payload.enquiry || 
+        payload.requirement || 
+        payload.comment || 
+        payload.text ||
+        ''
+      ).trim();
+
       pageUrl = (payload.page_url || payload.pageUrl || payload.url || '').trim();
       pageTitle = (payload.page_title || payload.pageTitle || '').trim();
       
+      // Campaign & Ad metadata from payload (e.g. WATI, Interakt, AiSensy, Zapier, Make)
+      campaignName = payload.campaign || payload.campaign_name || payload.campaignName || '';
+      adId = payload.ad_id || payload.adId || payload.ad_number || '';
+      adHeadline = payload.ad_headline || payload.headline || payload.ad_name || '';
+      utmSource = payload.utm_source || payload.source_name || '';
+      utmMedium = payload.utm_medium || '';
+      utmCampaign = payload.utm_campaign || '';
+
+      // Extract UTM parameters if visitor clicked from Boosted Post link to landing page
+      if (pageUrl) {
+        try {
+          const parsedUrl = new URL(pageUrl, 'https://example.com');
+          if (!utmSource) utmSource = parsedUrl.searchParams.get('utm_source') || '';
+          if (!utmMedium) utmMedium = parsedUrl.searchParams.get('utm_medium') || '';
+          if (!utmCampaign) utmCampaign = parsedUrl.searchParams.get('utm_campaign') || '';
+          if (!campaignName && utmCampaign) campaignName = utmCampaign;
+          if (!adId) adId = parsedUrl.searchParams.get('ad_id') || parsedUrl.searchParams.get('fbclid') || '';
+        } catch (e) {
+          // ignore invalid url
+        }
+      }
+
       if (payload.source) {
         leadSource = payload.source;
+      } else if (utmSource && (utmSource.toLowerCase().includes('facebook') || utmSource.toLowerCase().includes('instagram') || utmSource.toLowerCase().includes('meta'))) {
+        leadSource = campaignName ? `WhatsApp (Meta: ${campaignName})` : 'WhatsApp (Meta Campaign)';
+      } else if (campaignName) {
+        leadSource = `WhatsApp (${campaignName})`;
       }
     }
 
@@ -309,11 +394,26 @@ export async function POST(request) {
     const detailLines = [];
     detailLines.push(`Lead Source: ${leadSource}`);
     detailLines.push(`Captured At: ${timestampStr}`);
+    if (campaignName) detailLines.push(`Campaign / Post: ${campaignName}`);
+    if (adHeadline) detailLines.push(`Ad Headline: ${adHeadline}`);
+    if (adId) detailLines.push(`Ad / Post ID: ${adId}`);
+    if (adBody) detailLines.push(`Ad Description: ${adBody}`);
+    if (adSourceUrl) detailLines.push(`Ad Post URL: ${adSourceUrl}`);
+    if (utmSource) detailLines.push(`UTM Source: ${utmSource}`);
+    if (utmMedium) detailLines.push(`UTM Medium: ${utmMedium}`);
     if (pageUrl) detailLines.push(`Landing Page URL: ${pageUrl}`);
     if (pageTitle) detailLines.push(`Page Title: ${pageTitle}`);
     if (rawMessage) detailLines.push(`Customer Message:\n"${rawMessage}"`);
 
     const fullMessage = detailLines.join('\n');
+
+    // Build smart subject
+    let leadSubject = `WhatsApp Inquiry: ${rawName || cleanPhone}`;
+    if (adHeadline) {
+      leadSubject = `WhatsApp Ad: ${adHeadline} (${rawName || cleanPhone})`;
+    } else if (campaignName) {
+      leadSubject = `WhatsApp [${campaignName}]: ${rawName || cleanPhone}`;
+    }
 
     let leadRecord;
     let isExisting = false;
@@ -329,7 +429,7 @@ export async function POST(request) {
         lead_id: existingLead.id,
         user_id: null,
         action: 'WhatsApp Inquiry',
-        description: `Customer re-contacted via WhatsApp widget on website.${pageUrl ? ` Page: ${pageUrl}` : ''}${rawMessage ? ` Message: "${rawMessage}"` : ''}`
+        description: `Customer re-contacted via WhatsApp.${campaignName ? ` Campaign: "${campaignName}".` : ''}${adHeadline ? ` Ad: "${adHeadline}".` : ''}${pageUrl ? ` Page: ${pageUrl}.` : ''}${rawMessage ? ` Message: "${rawMessage}".` : ''}`
       });
 
       // Update lead message to reflect latest inquiry
@@ -346,7 +446,7 @@ export async function POST(request) {
         last_name: lastName || null,
         email: rawEmail || null,
         phone: cleanPhone,
-        subject: `WhatsApp Inquiry: ${rawName || cleanPhone}`,
+        subject: leadSubject,
         message: fullMessage,
         source: leadSource,
         status: 'New',
@@ -359,7 +459,7 @@ export async function POST(request) {
         lead_id: leadRecord.id,
         user_id: null,
         action: 'Lead Created',
-        description: `Lead automatically captured via WhatsApp Website Widget from ${pageUrl || 'client website'}.`
+        description: `Lead automatically captured via WhatsApp${campaignName ? ` from Campaign "${campaignName}"` : ''}${adHeadline ? ` (Ad: "${adHeadline}")` : ''}${pageUrl ? ` from ${pageUrl}` : ''}.`
       });
     }
 
@@ -374,9 +474,9 @@ export async function POST(request) {
     });
 
     const notifTitle = isExisting 
-      ? `WhatsApp Re-Inquiry from ${rawName || cleanPhone}`
-      : `🔥 New WhatsApp Lead: ${rawName || cleanPhone}`;
-    const notifBody = `${cleanPhone} | ${rawMessage ? `"${rawMessage.substring(0, 60)}..."` : 'Website WhatsApp Inquiry'}`;
+      ? `WhatsApp Re-Inquiry: ${rawName || cleanPhone}`
+      : `🔥 New WhatsApp Lead: ${rawName || cleanPhone}${campaignName ? ` [${campaignName}]` : ''}`;
+    const notifBody = `${cleanPhone} | ${campaignName ? `Campaign: ${campaignName} | ` : ''}${rawMessage ? `"${rawMessage.substring(0, 50)}..."` : 'WhatsApp Inquiry'}`;
 
     // 1. In-App Notifications
     const notifPromises = users.map(u =>
@@ -447,7 +547,7 @@ export async function POST(request) {
           sendEmail({
             to: admin.email,
             subject: notifTitle,
-            text: `Hello ${admin.name},\n\nYou have received a new WhatsApp inquiry!\n\nName: ${rawName || 'Not provided'}\nPhone: ${cleanPhone}\nEmail: ${rawEmail || 'N/A'}\nMessage: ${rawMessage || 'N/A'}\nSource Page: ${pageUrl || 'N/A'}\n\nView details in your CRM dashboard.`
+            text: `Hello ${admin.name},\n\nYou have received a new WhatsApp lead!\n\nName: ${rawName || 'Not provided'}\nPhone: ${cleanPhone}\nEmail: ${rawEmail || 'N/A'}\nCampaign: ${campaignName || 'N/A'}\nAd Headline: ${adHeadline || 'N/A'}\nMessage: ${rawMessage || 'N/A'}\nSource Page: ${pageUrl || 'N/A'}\n\nView details in your CRM dashboard.`
           }).catch(err => console.error('[WhatsApp Email] Send error:', err.message));
         }
       }

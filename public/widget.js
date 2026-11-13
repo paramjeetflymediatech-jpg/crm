@@ -502,6 +502,26 @@
     // Fast safety fallback: If network is slow or blocked, open WhatsApp in 1.2s anyway!
     const fallbackTimer = setTimeout(redirectToWhatsApp, 1200);
 
+    // Extract campaign / UTM parameters from current page URL
+    let utmCampaign = '';
+    let utmSource = '';
+    let utmMedium = '';
+    let utmContent = '';
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      utmCampaign = urlParams.get('utm_campaign') || '';
+      utmSource = urlParams.get('utm_source') || '';
+      utmMedium = urlParams.get('utm_medium') || '';
+      utmContent = urlParams.get('utm_content') || '';
+    } catch (e) {}
+
+    let computedSource = 'WhatsApp';
+    if (utmSource && (utmSource.toLowerCase().includes('facebook') || utmSource.toLowerCase().includes('instagram') || utmSource.toLowerCase().includes('meta'))) {
+      computedSource = utmCampaign ? `WhatsApp (Meta: ${utmCampaign})` : 'WhatsApp (Meta Boosted Post)';
+    } else if (utmCampaign) {
+      computedSource = `WhatsApp (${utmCampaign})`;
+    }
+
     // Fire ingestion request to CRM Backend
     const endpoint = `${config.crmUrl}/api/leads/whatsapp?apiKey=${encodeURIComponent(config.companyKey)}`;
 
@@ -517,7 +537,11 @@
         message: customMessage || config.prefillMessage,
         page_url: window.location.href,
         page_title: document.title,
-        source: 'WhatsApp',
+        source: computedSource,
+        campaign: utmCampaign,
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_content: utmContent,
         whatsapp_number: targetPhone
       })
     })
