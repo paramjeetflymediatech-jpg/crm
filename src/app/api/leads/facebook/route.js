@@ -226,15 +226,24 @@ async function processLeadgenEvent(body) {
           console.error('[FCM] Push setup error:', fcmErr);
         }
 
-        // 8. Email admins
-        const admins = users.filter(u => u.role === 'company_admin');
-        for (const admin of admins) {
-          await sendEmail({
-            to: admin.email,
+        // 8. Email company admins, super admins, and company email
+        const recipientEmails = new Set();
+        if (company.email) recipientEmails.add(company.email);
+        users.filter(u => u.role === 'company_admin' || u.role === 'super_admin').forEach(u => {
+          if (u.email) recipientEmails.add(u.email);
+        });
+        if (recipientEmails.size === 0) {
+          const superAdmins = await User.findAll({ where: { role: 'super_admin', status: 'active' } });
+          superAdmins.forEach(sa => { if (sa.email) recipientEmails.add(sa.email); });
+        }
+
+        for (const targetEmail of recipientEmails) {
+          sendEmail({
+            to: targetEmail,
             subject: `[CRM] New Facebook Lead: ${firstName} ${lastName}`,
-            text: `Hello ${admin.name},\n\nA new lead was submitted from your Facebook Lead Ad.\n\nName: ${firstName} ${lastName}\nEmail: ${leadEmail || 'N/A'}\nPhone: ${fields['phone_number'] || 'N/A'}\nForm: ${leadData.form_name || 'N/A'}\n\nLog in to follow up.`,
+            text: `Hello,\n\nA new lead was submitted from your Facebook Lead Ad.\n\nName: ${firstName} ${lastName}\nEmail: ${leadEmail || 'N/A'}\nPhone: ${fields['phone_number'] || 'N/A'}\nForm: ${leadData.form_name || 'N/A'}\n\nLog in to follow up.`,
             html: `
-              <p>Hello <strong>${admin.name}</strong>,</p>
+              <p>Hello,</p>
               <p>A new lead has been submitted from your Facebook Lead Ad.</p>
               <table cellpadding="6" style="border-collapse:collapse; width:100%; font-size:14px;">
                 <tr><td style="font-weight:bold; color:#555;">Name</td><td>${firstName} ${lastName}</td></tr>
@@ -250,7 +259,7 @@ async function processLeadgenEvent(body) {
                 </a>
               </p>
             `
-          });
+          }).catch(err => console.error('[Facebook Email] Send error:', err.message));
         }
 
         results.push({ leadgen_id, status: 'created', lead_id: newLead.id });

@@ -576,17 +576,33 @@ export async function POST(request) {
       console.error('[WhatsApp FCM] FCM setup error:', fcmErr);
     }
 
-    // 4. Email notifications to company admins
+    // 4. Email notifications to company admins, super admins, and company email
     try {
-      const admins = users.filter(u => u.role === 'company_admin');
-      for (const admin of admins) {
-        if (admin.email) {
-          sendEmail({
-            to: admin.email,
-            subject: notifTitle,
-            text: `Hello ${admin.name},\n\nYou have received a new WhatsApp lead!\n\nName: ${rawName || 'Not provided'}\nPhone: ${cleanPhone}\nEmail: ${rawEmail || 'N/A'}\nCampaign: ${campaignName || 'N/A'}\nAd Headline: ${adHeadline || 'N/A'}\nMessage: ${rawMessage || 'N/A'}\nSource Page: ${pageUrl || 'N/A'}\n\nView details in your CRM dashboard.`
-          }).catch(err => console.error('[WhatsApp Email] Send error:', err.message));
+      const recipientEmails = new Set();
+
+      // Company email
+      if (company.email) recipientEmails.add(company.email);
+
+      // Company admins and super admins within the company
+      const adminUsers = users.filter(u => u.role === 'company_admin' || u.role === 'super_admin');
+      for (const u of adminUsers) {
+        if (u.email) recipientEmails.add(u.email);
+      }
+
+      // Fallback: If no company admin found, notify all active Super Admins
+      if (recipientEmails.size === 0) {
+        const superAdmins = await User.findAll({ where: { role: 'super_admin', status: 'active' } });
+        for (const sa of superAdmins) {
+          if (sa.email) recipientEmails.add(sa.email);
         }
+      }
+
+      for (const targetEmail of recipientEmails) {
+        sendEmail({
+          to: targetEmail,
+          subject: notifTitle,
+          text: `Hello,\n\nYou have received a new WhatsApp lead!\n\nName: ${rawName || 'Not provided'}\nPhone: ${cleanPhone}\nEmail: ${rawEmail || 'N/A'}\nCampaign: ${campaignName || 'N/A'}\nAd Headline: ${adHeadline || 'N/A'}\nMessage: ${rawMessage || 'N/A'}\nSource Page: ${pageUrl || 'N/A'}\n\nView details in your CRM dashboard.`
+        }).catch(err => console.error('[WhatsApp Email] Send error:', err.message));
       }
     } catch (emailErr) {
       console.error('[WhatsApp Email] Email dispatch error:', emailErr);

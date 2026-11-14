@@ -11,15 +11,17 @@ const smtpFrom = process.env.SMTP_FROM || 'no-reply@crmsaas.com';
 let transporter = null;
 
 if (smtpHost && smtpUser && smtpPass) {
+  const isSecure = parseInt(smtpPort, 10) === 465;
   transporter = nodemailer.createTransport({
     host: smtpHost,
     port: parseInt(smtpPort, 10),
+    secure: isSecure,
     auth: {
       user: smtpUser,
       pass: smtpPass
     }
   });
-  console.log(`Mailer configured with SMTP Host: ${smtpHost}:${smtpPort}`);
+  console.log(`Mailer configured with SMTP Host: ${smtpHost}:${smtpPort} (secure: ${isSecure})`);
 } else {
   console.log('Mailer running in development mock mode (no SMTP configs found in .env).');
 }
