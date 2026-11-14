@@ -308,7 +308,9 @@ export async function POST(request) {
         payload.customer_name ||
         payload.client_name ||
         payload.sender_name ||
+        payload.senderName ||
         payload.contact_name ||
+        payload.contactName ||
         ''
       ).trim();
 
@@ -320,6 +322,7 @@ export async function POST(request) {
         payload.contact ||
         payload.phone_number ||
         payload.wa_id ||
+        payload.waId ||
         payload.sender ||
         ''
       ).toString().trim();
@@ -344,6 +347,17 @@ export async function POST(request) {
       utmSource = payload.utm_source || payload.source_name || '';
       utmMedium = payload.utm_medium || '';
       utmCampaign = payload.utm_campaign || '';
+
+      // Extract WATI / BSP referral object if lead originated from Facebook/Instagram ad
+      const referral = payload.referral || (payload.message && payload.message.referral);
+      if (referral) {
+        if (!campaignName) campaignName = referral.headline || referral.source_id || 'Meta Boosted Post';
+        if (!adId) adId = referral.source_id || '';
+        if (!adHeadline) adHeadline = referral.headline || '';
+        if (!adBody) adBody = referral.body || '';
+        if (!adSourceUrl) adSourceUrl = referral.source_url || '';
+        leadSource = referral.source_type === 'ad' ? 'Meta Click-to-WhatsApp Ad (WATI)' : 'WhatsApp (WATI)';
+      }
 
       // Extract UTM parameters if visitor clicked from Boosted Post link to landing page
       if (pageUrl) {
