@@ -479,7 +479,7 @@
     if (customMessage) {
       waText = `${waText}\n\nNote: ${customMessage}`;
     }
-    waText = `${waText}\n\n(Sent by ${name}, Phone: ${phone})`;
+    waText = `${waText}\n\n[Website WhatsApp Widget inquiry from ${name}, Phone: ${phone}]`;
 
     const encodedText = encodeURIComponent(waText);
     const waUrl = targetPhone 
@@ -515,11 +515,11 @@
       utmContent = urlParams.get('utm_content') || '';
     } catch (e) {}
 
-    let computedSource = 'WhatsApp';
+    let computedSource = 'WhatsApp Website Widget';
     if (utmSource && (utmSource.toLowerCase().includes('facebook') || utmSource.toLowerCase().includes('instagram') || utmSource.toLowerCase().includes('meta'))) {
-      computedSource = utmCampaign ? `WhatsApp (Meta: ${utmCampaign})` : 'WhatsApp (Meta Boosted Post)';
+      computedSource = utmCampaign ? `WhatsApp Widget (Meta: ${utmCampaign})` : 'WhatsApp Widget (Meta Boosted Post)';
     } else if (utmCampaign) {
-      computedSource = `WhatsApp (${utmCampaign})`;
+      computedSource = `WhatsApp Widget (${utmCampaign})`;
     }
 
     // Fire ingestion request to CRM Backend

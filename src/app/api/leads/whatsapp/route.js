@@ -375,10 +375,16 @@ export async function POST(request) {
 
       if (payload.source) {
         leadSource = payload.source;
+      } else if (pageUrl) {
+        leadSource = utmSource && (utmSource.toLowerCase().includes('facebook') || utmSource.toLowerCase().includes('instagram') || utmSource.toLowerCase().includes('meta'))
+          ? (campaignName ? `WhatsApp Widget (Meta: ${campaignName})` : 'WhatsApp Widget (Meta Boosted Post)')
+          : (campaignName ? `WhatsApp Widget (${campaignName})` : 'WhatsApp Website Widget');
       } else if (utmSource && (utmSource.toLowerCase().includes('facebook') || utmSource.toLowerCase().includes('instagram') || utmSource.toLowerCase().includes('meta'))) {
         leadSource = campaignName ? `WhatsApp (Meta: ${campaignName})` : 'WhatsApp (Meta Campaign)';
       } else if (campaignName) {
         leadSource = `WhatsApp (${campaignName})`;
+      } else {
+        leadSource = 'WhatsApp Website Widget';
       }
     }
 
@@ -443,11 +449,13 @@ export async function POST(request) {
     const fullMessage = detailLines.join('\n');
 
     // Build smart subject
-    let leadSubject = `WhatsApp Inquiry: ${rawName || cleanPhone}`;
+    let leadSubject = pageUrl ? `WhatsApp Widget: ${rawName || cleanPhone}` : `WhatsApp Inquiry: ${rawName || cleanPhone}`;
     if (adHeadline) {
       leadSubject = `WhatsApp Ad: ${adHeadline} (${rawName || cleanPhone})`;
     } else if (campaignName) {
       leadSubject = `WhatsApp [${campaignName}]: ${rawName || cleanPhone}`;
+    } else if (pageTitle) {
+      leadSubject = `WhatsApp Widget [${pageTitle.substring(0, 30)}]: ${rawName || cleanPhone}`;
     }
 
     let leadRecord;
