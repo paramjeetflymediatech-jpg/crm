@@ -81,21 +81,31 @@ async function processLeadgenEvent(body) {
     const pageId = entry.id;
 
     // Find which company this page belongs to
-    let company = await Company.findOne({
-      where: { facebook_page_id: String(pageId).trim(), status: 'active' }
-    });
+    const activeCompanies = await Company.findAll({ where: { status: 'active' } });
+    let company = null;
+
+    if (pageId) {
+      company = activeCompanies.find(c => c.facebook_page_id && String(c.facebook_page_id).trim() === String(pageId).trim());
+    }
 
     if (!company) {
-      // Fallback: If only 1 active company exists in CRM, assign to it
-      const activeCompanies = await Company.findAll({ where: { status: 'active' } });
-      if (activeCompanies.length === 1) {
-        company = activeCompanies[0];
+      // Check if only 1 company has Facebook integration configured
+      const fbConfigured = activeCompanies.filter(c => c.facebook_page_id || c.facebook_access_token);
+      if (fbConfigured.length === 1) {
+        company = fbConfigured[0];
+        console.log(`[Facebook Webhook] Matched to sole Facebook-configured company: ${company.company_name} (ID: ${company.id})`);
       }
+    }
+
+    if (!company && activeCompanies.length > 0) {
+      // Fallback to first active company to prevent dropping valuable leads
+      company = activeCompanies[0];
+      console.warn(`[Facebook Webhook] Page ID "${pageId}" not explicitly mapped. Assigned to primary company: ${company.company_name} (ID: ${company.id}) to prevent lead loss.`);
     }
 
     if (!company) {
       console.warn(`[Facebook Webhook] No active company found for page_id: ${pageId}`);
-      results.push({ pageId, status: 'skipped', reason: 'No company matched' });
+      results.push({ pageId, status: 'skipped', reason: 'No company found in database' });
       continue;
     }
 
@@ -105,8 +115,9 @@ async function processLeadgenEvent(body) {
       const { leadgen_id, form_id, page_id, adgroup_id, ad_id } = change.value;
 
       try {
-        // 2. Fetch lead field data from Graph API
-        const leadData = await fetchFacebookLead(leadgen_id, company.facebook_access_token);
+        // 2. Fetch lead field data from Graph API (using company token or env fallback)
+        const effectiveToken = company.facebook_access_token || process.env.FACEBOOK_ACCESS_TOKEN || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+        const leadData = await fetchFacebookLead(leadgen_id, effectiveToken);
 
         if (!leadData) {
           results.push({ leadgen_id, status: 'error', reason: 'Failed to fetch lead from Graph API' });
@@ -277,15 +288,16 @@ async function processLeadgenEvent(body) {
  * Fetches a single lead's field data from Facebook Graph API
  */
 async function fetchFacebookLead(leadgenId, accessToken) {
-  if (accessToken) {
+  const token = accessToken || process.env.FACEBOOK_ACCESS_TOKEN || process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
+  if (token) {
     try {
-      const url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${leadgenId}?fields=field_data,form_id,created_time,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&access_token=${accessToken}`;
+      const url = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${leadgenId}?fields=field_data,form_id,created_time,ad_id,ad_name,adset_id,adset_name,campaign_id,campaign_name&access_token=${token}`;
       const response = await fetch(url);
       if (response.ok) {
         const lead = await response.json();
         if (lead.form_id) {
           try {
-            const formUrl = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${lead.form_id}?fields=name&access_token=${accessToken}`;
+            const formUrl = `https://graph.facebook.com/${FB_GRAPH_VERSION}/${lead.form_id}?fields=name&access_token=${token}`;
             const formRes = await fetch(formUrl);
             if (formRes.ok) {
               const formData = await formRes.json();
