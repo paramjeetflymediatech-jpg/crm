@@ -55,7 +55,25 @@ async function getHandler(request, { params }) {
       return NextResponse.json({ error: 'Lead not found or unauthorized.' }, { status: 404 });
     }
 
-    return NextResponse.json({ lead });
+    // Role-based security: Only super_admin and company_admin can access call audio recording URLs
+    const canListenRecordings = user.role === 'super_admin' || user.role === 'company_admin';
+    const plainLead = lead.toJSON ? lead.toJSON() : { ...lead };
+
+    if (!canListenRecordings && Array.isArray(plainLead.CallLogs)) {
+      plainLead.CallLogs = plainLead.CallLogs.map(call => {
+        const c = { ...call };
+        c.has_recording = Boolean(c.recording_url);
+        c.recording_url = null; // Strip audio file URL from staff
+        return c;
+      });
+    } else if (Array.isArray(plainLead.CallLogs)) {
+      plainLead.CallLogs = plainLead.CallLogs.map(call => ({
+        ...call,
+        has_recording: Boolean(call.recording_url)
+      }));
+    }
+
+    return NextResponse.json({ lead: plainLead });
   } catch (error) {
     console.error('GET Lead By ID Route Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

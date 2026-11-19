@@ -20,7 +20,9 @@ import {
   Headphones,
   Volume2,
   Upload,
-  FileAudio
+  FileAudio,
+  Lock,
+  Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -800,12 +802,12 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                             </div>
                           </div>
 
-                          {/* Audio Player if recording URL exists */}
-                          {call.recording_url ? (
+                          {/* Audio Player - Restricted exclusively to super_admin and company_admin */}
+                          {call.recording_url && (currentUser?.role === 'super_admin' || currentUser?.role === 'company_admin') ? (
                             <div className="pt-2 border-t border-slate-200/70">
                               <div className="flex items-center gap-2 mb-1.5">
                                 <Volume2 className="h-3.5 w-3.5 text-indigo-600" />
-                                <span className="text-[11px] font-medium text-slate-600">Recording Audio</span>
+                                <span className="text-[11px] font-medium text-slate-600">Recording Audio (Admin Access)</span>
                               </div>
                               <audio
                                 controls
@@ -816,9 +818,14 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                                 Your browser does not support the audio element.
                               </audio>
                             </div>
+                          ) : (call.recording_url || call.has_recording) ? (
+                            <div className="pt-2 border-t border-slate-200/70 flex items-center gap-2 text-[11px] text-slate-500 bg-slate-100/70 p-2 rounded-lg">
+                              <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                              <span>Audio recording secured &bull; Restricted to administrators only.</span>
+                            </div>
                           ) : isCompleted ? (
                             <div className="text-[11px] text-slate-400 italic pt-1">
-                              Recording is processing or unavailable.
+                              No audio recording attached to this call.
                             </div>
                           ) : null}
 

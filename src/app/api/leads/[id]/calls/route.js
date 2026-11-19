@@ -26,7 +26,19 @@ async function getHandler(request, { params }) {
       order: [['created_at', 'DESC']]
     });
 
-    return NextResponse.json({ calls });
+    // Enforce role-based access: Only super_admin and company_admin can access audio recordings
+    const canListenRecordings = user.role === 'super_admin' || user.role === 'company_admin';
+
+    const sanitizedCalls = calls.map(c => {
+      const plain = c.toJSON ? c.toJSON() : { ...c };
+      plain.has_recording = Boolean(plain.recording_url);
+      if (!canListenRecordings) {
+        plain.recording_url = null; // Strip audio file URL from staff
+      }
+      return plain;
+    });
+
+    return NextResponse.json({ calls: sanitizedCalls });
   } catch (error) {
     console.error('Fetch Lead Calls Error:', error);
     return NextResponse.json({ error: 'Failed to fetch call logs.' }, { status: 500 });
