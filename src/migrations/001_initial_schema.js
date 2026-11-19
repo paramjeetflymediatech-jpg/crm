@@ -274,6 +274,39 @@ async function runMigration() {
       try { await q(sql); } catch (e) { /* column already exists */ }
     }
 
+    // ─────────────────────────────────────────────
+    // TABLE: call_logs
+    // ─────────────────────────────────────────────
+    console.log('  → call_logs');
+    await q(`CREATE TABLE IF NOT EXISTS call_logs (
+      id            INT AUTO_INCREMENT PRIMARY KEY,
+      company_id    INT NOT NULL,
+      lead_id       INT,
+      user_id       INT,
+      call_sid      VARCHAR(255),
+      from_number   VARCHAR(255),
+      to_number     VARCHAR(255) NOT NULL,
+      direction     VARCHAR(50) NOT NULL DEFAULT 'outbound',
+      duration      INT NOT NULL DEFAULT 0,
+      status        VARCHAR(100) NOT NULL DEFAULT 'initiated',
+      recording_url TEXT,
+      notes         TEXT,
+      created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`);
+
+    const callLogCols = [
+      `ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS call_sid VARCHAR(255)`,
+      `ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS recording_url TEXT`,
+      `ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS notes TEXT`,
+    ];
+    for (const sql of callLogCols) {
+      try { await q(sql); } catch (e) { /* column already exists */ }
+    }
+
     console.log('\n✅ Migration 001_initial_schema completed successfully!\n');
   } catch (error) {
     console.error('\n❌ Migration failed:', error.message, '\n');

@@ -109,3 +109,55 @@ export async function mobileApiFetch(endpoint: string, options: FetchOptions = {
 
   return response;
 }
+
+/**
+ * Upload a direct SIM call record and optional audio recording to CRM
+ */
+export async function uploadCallRecording(params: {
+  fileUri?: string;
+  fileName?: string;
+  fileType?: string;
+  leadId?: number;
+  phoneNumber?: string;
+  duration?: number;
+  direction?: string;
+  status?: string;
+  leadStatus?: string;
+  notes?: string;
+}) {
+  const baseUrl = getBaseUrl();
+  const token = await AsyncStorage.getItem('token');
+
+  const formData = new FormData();
+  if (params.fileUri) {
+    formData.append('file', {
+      uri: params.fileUri,
+      name: params.fileName || 'call_recording.m4a',
+      type: params.fileType || 'audio/m4a',
+    } as any);
+  }
+  if (params.leadId) formData.append('lead_id', String(params.leadId));
+  if (params.phoneNumber) formData.append('phone_number', params.phoneNumber);
+  if (params.duration !== undefined) formData.append('duration', String(params.duration));
+  if (params.direction) formData.append('direction', params.direction);
+  if (params.status) formData.append('status', params.status);
+  if (params.leadStatus) formData.append('lead_status', params.leadStatus);
+  if (params.notes) formData.append('notes', params.notes);
+
+  return fetch(`${baseUrl}/api/calls/upload`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+}
+
+/**
+ * Fetch all call logs and recordings for a specific lead
+ */
+export async function fetchLeadCalls(leadId: number) {
+  return mobileApiFetch(`/api/leads/${leadId}/calls`, {
+    method: 'GET'
+  });
+}

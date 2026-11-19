@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { mobileApiFetch } from '../api/client';
+import { mobileApiFetch, uploadCallRecording } from '../api/client';
 import { TOKENS } from '../theme/tokens';
 import { 
   Search, 
@@ -153,6 +153,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     subject: '',
     message: '',
   });
+
+  // Call Log Modal States (Approach B - Direct SIM Call)
+  const [callLogModalVisible, setCallLogModalVisible] = useState(false);
+  const [activeCallLead, setActiveCallLead] = useState<any>(null);
+  const [callLogDuration, setCallLogDuration] = useState('60');
+  const [callLogStatus, setCallLogStatus] = useState('completed');
+  const [callLogLeadStatus, setCallLogLeadStatus] = useState('');
+  const [callLogNotes, setCallLogNotes] = useState('');
+  const [callLogSubmitting, setCallLogSubmitting] = useState(false);
 
   useEffect(() => {
     if (openCreateModalDirectly) {
@@ -503,12 +512,61 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     }
   };
 
-  const handleDialNumber = (phoneStr?: string) => {
+  const handleDialNumber = (phoneStr?: string, lead?: any) => {
     if (!phoneStr) return;
     const cleanPhone = phoneStr.replace(/[^0-9+]/g, '');
-    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+
+    if (lead) {
+      setActiveCallLead(lead);
+      setCallLogDuration('60');
+      setCallLogStatus('completed');
+      setCallLogLeadStatus(lead.status || 'Contacted');
+      setCallLogNotes('');
+    }
+
+    Linking.openURL(`tel:${cleanPhone}`).then(() => {
+      if (lead) {
+        // Automatically prompt the Call Logger modal when returning from dialer
+        setTimeout(() => {
+          setCallLogModalVisible(true);
+        }, 1200);
+      }
+    }).catch(() => {
       Alert.alert('Dial Error', 'Unable to initiate phone call on this device.');
     });
+  };
+
+  const handleSaveCallLog = async () => {
+    if (!activeCallLead) return;
+
+    try {
+      setCallLogSubmitting(true);
+      const durationSec = parseInt(callLogDuration, 10) || 0;
+
+      const res = await uploadCallRecording({
+        leadId: activeCallLead.id,
+        phoneNumber: activeCallLead.phone,
+        duration: durationSec,
+        direction: 'outbound',
+        status: callLogStatus,
+        leadStatus: callLogLeadStatus,
+        notes: callLogNotes
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Call Recorded', 'Call log successfully saved to the CRM.');
+        setCallLogModalVisible(false);
+        setActiveCallLead(null);
+        fetchLeads(true);
+      } else {
+        Alert.alert('Upload Error', data.error || 'Failed to save call log.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'An error occurred while saving call log.');
+    } finally {
+      setCallLogSubmitting(false);
+    }
   };
 
   const handleSendEmail = (emailStr?: string) => {
@@ -591,7 +649,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <TouchableOpacity 
                 style={styles.contactItem}
-                onPress={() => handleDialNumber(item.phone)}
+                onPress={() => handleDialNumber(item.phone, item)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.contactIconCircle, { backgroundColor: '#ecfdf5' }]}>
@@ -1259,6 +1317,120 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         </KeyboardAvoidingView>
       </Modal>
 
+      {/* Post-Call Logger Modal (Approach B - SIM Call Log) */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={callLogModalVisible}
+        onRequestClose={() => setCallLogModalVisible(false)}
+      >
+        <View style={styles.callModalBackdrop}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+            style={styles.callModalContainer}
+          >
+            <View style={styles.callModalCard}>
+              {/* Header */}
+              <View style={styles.callModalHeader}>
+                <View style={styles.callModalIconCircle}>
+                  <PhoneCall size={18} color="#2563eb" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.callModalTitle}>Log Call Summary</Text>
+                  <Text style={styles.callModalSubtitle} numberOfLines={1}>
+                    {activeCallLead?.first_name} {activeCallLead?.last_name || ''} ({activeCallLead?.phone})
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setCallLogModalVisible(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <X size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+                {/* Duration */}
+                <Text style={styles.callFieldLabel}>Call Duration (Seconds)</Text>
+                <View style={styles.durationInputRow}>
+                  <TextInput
+                    style={styles.durationInput}
+                    keyboardType="numeric"
+                    value={callLogDuration}
+                    onChangeText={setCallLogDuration}
+                    placeholder="60"
+                  />
+                  <View style={styles.quickDurationButtons}>
+                    {['30', '60', '120', '300'].map((sec) => (
+                      <TouchableOpacity
+                        key={sec}
+                        style={[styles.quickDurBtn, callLogDuration === sec && styles.quickDurBtnActive]}
+                        onPress={() => setCallLogDuration(sec)}
+                      >
+                        <Text style={[styles.quickDurText, callLogDuration === sec && styles.quickDurTextActive]}>
+                          {sec === '30' ? '30s' : sec === '60' ? '1m' : sec === '120' ? '2m' : '5m'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Call Outcome Status */}
+                <Text style={[styles.callFieldLabel, { marginTop: 14 }]}>Call Outcome</Text>
+                <View style={styles.statusPillsRow}>
+                  {[
+                    { key: 'completed', label: 'Completed' },
+                    { key: 'busy', label: 'Busy' },
+                    { key: 'no-answer', label: 'No Answer' },
+                    { key: 'follow-up', label: 'Follow Up' }
+                  ].map((s) => (
+                    <TouchableOpacity
+                      key={s.key}
+                      style={[styles.statusPill, callLogStatus === s.key && styles.statusPillActive]}
+                      onPress={() => setCallLogStatus(s.key)}
+                    >
+                      <Text style={[styles.statusPillText, callLogStatus === s.key && styles.statusPillTextActive]}>
+                        {s.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Notes */}
+                <Text style={[styles.callFieldLabel, { marginTop: 14 }]}>Call Notes & Action Items</Text>
+                <TextInput
+                  style={styles.callNotesInput}
+                  multiline
+                  numberOfLines={3}
+                  value={callLogNotes}
+                  onChangeText={setCallLogNotes}
+                  placeholder="Summary of discussion with client, requirements, next steps..."
+                  placeholderTextColor="#94a3b8"
+                />
+              </ScrollView>
+
+              {/* Actions */}
+              <View style={styles.callModalActions}>
+                <TouchableOpacity
+                  style={styles.callCancelBtn}
+                  onPress={() => setCallLogModalVisible(false)}
+                >
+                  <Text style={styles.callCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.callSaveBtn}
+                  onPress={handleSaveCallLog}
+                  disabled={callLogSubmitting}
+                >
+                  {callLogSubmitting ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <Text style={styles.callSaveText}>Save to CRM</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
       {/* Lead Details Full-Screen Modal */}
       <Modal
         animationType="slide"
@@ -1326,7 +1498,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                 <View style={styles.quickContactsBar}>
                   <TouchableOpacity 
                     style={[styles.quickContactBtn, !selectedLead?.phone && styles.quickContactDisabled]}
-                    onPress={() => handleDialNumber(selectedLead?.phone)}
+                    onPress={() => handleDialNumber(selectedLead?.phone, selectedLead)}
                     disabled={!selectedLead?.phone}
                   >
                     <Phone size={16} color={selectedLead?.phone ? '#059669' : '#94a3b8'} />
@@ -2753,5 +2925,175 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginTop: 16,
+  },
+  callModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  callModalContainer: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  callModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  callModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  callModalIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callModalTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  callModalSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  callFieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  durationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationInput: {
+    width: 70,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  quickDurationButtons: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  quickDurBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickDurBtnActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  quickDurText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  quickDurTextActive: {
+    color: '#ffffff',
+  },
+  statusPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  statusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  statusPillActive: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#10b981',
+  },
+  statusPillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  statusPillTextActive: {
+    color: '#059669',
+  },
+  callNotesInput: {
+    minHeight: 70,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    fontSize: 12,
+    color: '#0f172a',
+    textAlignVertical: 'top',
+  },
+  callModalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  callCancelBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callCancelText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  callSaveBtn: {
+    flex: 2,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#2563eb',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callSaveText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });

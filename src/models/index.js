@@ -11,6 +11,7 @@ const LeadActivity = require('./leadActivity');
 const Notification = require('./notification');
 const Task = require('./task');
 const AuditLog = require('./auditLog');
+const CallLog = require('./callLog');
 
 // 1. Company Relationships
 Company.hasMany(User, { foreignKey: 'company_id', onDelete: 'CASCADE' });
@@ -34,6 +35,9 @@ Task.belongsTo(Company, { foreignKey: 'company_id' });
 Company.hasMany(AuditLog, { foreignKey: 'company_id', onDelete: 'CASCADE' });
 AuditLog.belongsTo(Company, { foreignKey: 'company_id' });
 
+Company.hasMany(CallLog, { foreignKey: 'company_id', onDelete: 'CASCADE' });
+CallLog.belongsTo(Company, { foreignKey: 'company_id' });
+
 // 2. User Relationships
 User.hasMany(Lead, { foreignKey: 'assigned_to', as: 'AssignedLeads', onDelete: 'SET NULL' });
 Lead.belongsTo(User, { foreignKey: 'assigned_to', as: 'AssignedUser' });
@@ -53,6 +57,9 @@ Task.belongsTo(User, { foreignKey: 'assigned_to', as: 'AssignedUser' });
 User.hasMany(AuditLog, { foreignKey: 'user_id', onDelete: 'SET NULL' });
 AuditLog.belongsTo(User, { foreignKey: 'user_id' });
 
+User.hasMany(CallLog, { foreignKey: 'user_id', onDelete: 'SET NULL' });
+CallLog.belongsTo(User, { foreignKey: 'user_id' });
+
 // 3. Lead Relationships
 Lead.hasMany(LeadNote, { foreignKey: 'lead_id', as: 'Notes', onDelete: 'CASCADE' });
 LeadNote.belongsTo(Lead, { foreignKey: 'lead_id' });
@@ -65,6 +72,9 @@ Notification.belongsTo(Lead, { foreignKey: 'lead_id' });
 
 Lead.hasMany(Task, { foreignKey: 'lead_id', as: 'Tasks', onDelete: 'CASCADE' });
 Task.belongsTo(Lead, { foreignKey: 'lead_id' });
+
+Lead.hasMany(CallLog, { foreignKey: 'lead_id', as: 'CallLogs', onDelete: 'CASCADE' });
+CallLog.belongsTo(Lead, { foreignKey: 'lead_id' });
 
 
 // Sync database schema & Seed Defaults
@@ -259,5 +269,6 @@ module.exports = {
   Notification,
   Task,
   AuditLog,
+  CallLog,
   syncDatabase
 };

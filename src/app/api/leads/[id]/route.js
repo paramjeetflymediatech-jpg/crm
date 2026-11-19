@@ -1,5 +1,5 @@
 const { NextResponse } = require('next/server');
-const { Lead, User, LeadActivity, LeadNote, Task } = require('@/models');
+const { Lead, User, LeadActivity, LeadNote, Task, CallLog } = require('@/models');
 const { withApiAuth } = require('@/lib/apiGuard');
 const { updateLeadSchema } = require('@/validations/schemas');
 
@@ -22,7 +22,15 @@ async function getAuthorizedLead(leadId, currentUser, currentCompanyId) {
         model: Task, 
         as: 'Tasks',
         include: [{ model: User, as: 'AssignedUser', attributes: ['id', 'name'] }]
+      },
+      {
+        model: CallLog,
+        as: 'CallLogs',
+        include: [{ model: User, attributes: ['id', 'name', 'avatar'] }]
       }
+    ],
+    order: [
+      [{ model: CallLog, as: 'CallLogs' }, 'created_at', 'DESC']
     ]
   });
 

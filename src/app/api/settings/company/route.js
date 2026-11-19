@@ -84,7 +84,15 @@ async function putHandler(request) {
       return NextResponse.json({ error: errorMsg }, { status: 400 });
     }
 
-    const { company_name, website, email, phone, logo, facebook_page_id, facebook_access_token } = validation.data;
+    const { 
+      company_name, 
+      website, 
+      email, 
+      phone, 
+      logo, 
+      facebook_page_id, 
+      facebook_access_token
+    } = validation.data;
 
     // Update fields (preserve existing if omitted or empty during partial updates like logo)
     await company.update({

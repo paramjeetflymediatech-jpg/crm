@@ -15,12 +15,18 @@ import {
   Loader2,
   Trash2,
   Plus,
-  CalendarDays
+  CalendarDays,
+  PhoneCall,
+  Headphones,
+  Volume2,
+  Upload,
+  FileAudio
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiFetch as fetch } from '@/lib/clientApi';
 import { showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
@@ -46,6 +52,61 @@ export default function LeadDetailPage({ params: paramsPromise }) {
   });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  // Call Log Modal & Upload states
+  const [showCallModal, setShowCallModal] = useState(false);
+  const [callSubmitting, setCallSubmitting] = useState(false);
+  const [callForm, setCallForm] = useState({
+    direction: 'outbound',
+    duration: 60,
+    status: 'completed',
+    notes: '',
+    file: null
+  });
+
+  const handleCallSubmit = async (e) => {
+    e.preventDefault();
+    if (!lead) return;
+
+    try {
+      setCallSubmitting(true);
+      const formData = new FormData();
+      formData.append('lead_id', lead.id.toString());
+      formData.append('phone_number', lead.phone || '');
+      formData.append('direction', callForm.direction);
+      formData.append('duration', (parseInt(callForm.duration, 10) || 0).toString());
+      formData.append('status', callForm.status);
+      formData.append('notes', callForm.notes || '');
+
+      if (callForm.file) {
+        formData.append('file', callForm.file);
+      }
+
+      const res = await fetch('/api/calls/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showSuccess('Call Logged', 'Call record and audio recording successfully saved.');
+        setShowCallModal(false);
+        setCallForm({
+          direction: 'outbound',
+          duration: 60,
+          status: 'completed',
+          notes: '',
+          file: null
+        });
+        refreshLead();
+      } else {
+        showError('Upload Failed', data.error || 'Failed to save call log.');
+      }
+    } catch (err) {
+      showError('Error', err.message || 'An error occurred while saving call log.');
+    } finally {
+      setCallSubmitting(false);
+    }
+  };
 
   // Unwrap params using React.use() or a simple useEffect wrapper
   useEffect(() => {
@@ -293,6 +354,23 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                 <Calendar className="h-4 w-4 text-slate-500" />
                 <span>Sync Date: {lead.created_at || lead.createdAt ? new Date(lead.created_at || lead.createdAt).toLocaleDateString() : 'N/A'}</span>
               </div>
+              {lead.phone && (
+                <div className="flex gap-2 pt-1">
+                  <a
+                    href={`tel:${lead.phone.replace(/[^0-9+]/g, '')}`}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs h-9 flex items-center justify-center gap-1.5 shadow-xs rounded-lg transition"
+                  >
+                    <Phone className="h-3.5 w-3.5" /> Call Phone
+                  </a>
+                  <Button
+                    onClick={() => setShowCallModal(true)}
+                    variant="outline"
+                    className="flex-1 border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-xs h-9 flex items-center justify-center gap-1.5 shadow-xs rounded-lg"
+                  >
+                    <FileAudio className="h-3.5 w-3.5 text-indigo-600" /> Log Call
+                  </Button>
+                </div>
+              )}
             </div>
 
             <hr className="border-slate-100" />
@@ -369,9 +447,12 @@ export default function LeadDetailPage({ params: paramsPromise }) {
         {/* Right Tabbed Timeline Workspace */}
         <div className="md:col-span-2">
           <Tabs defaultValue="timeline" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 border border-slate-200 bg-slate-100 text-slate-500 rounded-lg h-10 p-0.5">
+            <TabsList className="grid w-full grid-cols-4 border border-slate-200 bg-slate-100 text-slate-500 rounded-lg h-10 p-0.5">
               <TabsTrigger value="timeline" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                 <Activity className="h-4 w-4 mr-1.5" /> Timeline
+              </TabsTrigger>
+              <TabsTrigger value="calls" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
+                <PhoneCall className="h-4 w-4 mr-1.5" /> Calls ({lead.CallLogs?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="notes" className="rounded-md data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm">
                 <MessageSquare className="h-4 w-4 mr-1.5" /> Notes
@@ -640,9 +721,235 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                 )}
               </div>
             </TabsContent>
+
+            {/* Calls & Recordings Area */}
+            <TabsContent value="calls" className="mt-4">
+              <Card className="border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <Headphones className="h-5 w-5 text-indigo-600" /> Call Logs & Audio Recordings
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Calls placed via Android SIM or logged with audio recordings.</p>
+                  </div>
+                  <Button
+                    onClick={() => setShowCallModal(true)}
+                    size="sm"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs flex items-center gap-1.5"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Log Call / Recording
+                  </Button>
+                </div>
+
+                {/* Call logs list */}
+                <div className="space-y-3">
+                  {(!lead.CallLogs || lead.CallLogs.length === 0) ? (
+                    <div className="py-12 text-center">
+                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+                        <PhoneCall className="h-6 w-6" />
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700">No calls recorded yet</p>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+                        Calls made and recorded from your Android app will automatically upload here. You can also manually log a call or upload a recording above.
+                      </p>
+                    </div>
+                  ) : (
+                    lead.CallLogs.map((call) => {
+                      const isCompleted = call.status === 'completed';
+                      const isBusyOrFailed = ['failed', 'busy', 'no-answer'].includes(call.status);
+                      const durationMinutes = Math.floor(call.duration / 60);
+                      const durationSeconds = call.duration % 60;
+
+                      return (
+                        <div
+                          key={call.id}
+                          className="p-4 rounded-xl border border-slate-200/90 bg-slate-50/50 hover:bg-slate-50 transition space-y-3"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                isCompleted ? 'bg-emerald-100 text-emerald-700' : isBusyOrFailed ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                <PhoneCall className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-slate-800 capitalize">
+                                    {call.direction || 'Outbound'} Call
+                                  </span>
+                                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
+                                    isCompleted
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : isBusyOrFailed
+                                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                  }`}>
+                                    {call.status}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 mt-0.5">
+                                  {new Date(call.created_at || call.createdAt).toLocaleString()} {call.User?.name ? `• Agent: ${call.User.name}` : ''}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-xs font-bold text-slate-700">
+                                {durationMinutes > 0 ? `${durationMinutes}m ` : ''}{durationSeconds}s
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Audio Player if recording URL exists */}
+                          {call.recording_url ? (
+                            <div className="pt-2 border-t border-slate-200/70">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <Volume2 className="h-3.5 w-3.5 text-indigo-600" />
+                                <span className="text-[11px] font-medium text-slate-600">Recording Audio</span>
+                              </div>
+                              <audio
+                                controls
+                                className="w-full h-8 rounded"
+                                src={call.recording_url}
+                                preload="none"
+                              >
+                                Your browser does not support the audio element.
+                              </audio>
+                            </div>
+                          ) : isCompleted ? (
+                            <div className="text-[11px] text-slate-400 italic pt-1">
+                              Recording is processing or unavailable.
+                            </div>
+                          ) : null}
+
+                          {call.notes && (
+                            <p className="text-[11px] text-slate-600 bg-white p-2 rounded border border-slate-100">
+                              {call.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      {/* Log Call & Audio Recording Dialog */}
+      <Dialog open={showCallModal} onOpenChange={setShowCallModal}>
+        <DialogContent className="sm:max-w-md bg-white text-slate-800">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Headphones className="h-5 w-5 text-indigo-600" /> Log Call & Upload Recording
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleCallSubmit} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">Call Direction</label>
+                <Select
+                  value={callForm.direction}
+                  onValueChange={(val) => setCallForm({ ...callForm, direction: val })}
+                >
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-900 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-slate-200">
+                    <SelectItem value="outbound">Outbound (Dialed)</SelectItem>
+                    <SelectItem value="inbound">Inbound (Received)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-500">Call Outcome</label>
+                <Select
+                  value={callForm.status}
+                  onValueChange={(val) => setCallForm({ ...callForm, status: val })}
+                >
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-900 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-slate-200">
+                    <SelectItem value="completed">Completed / Answered</SelectItem>
+                    <SelectItem value="busy">Busy</SelectItem>
+                    <SelectItem value="no-answer">No Answer</SelectItem>
+                    <SelectItem value="follow-up">Follow Up Required</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500">Call Duration (seconds)</label>
+              <Input
+                type="number"
+                min="0"
+                value={callForm.duration}
+                onChange={(e) => setCallForm({ ...callForm, duration: e.target.value })}
+                placeholder="e.g. 90"
+                className="border-slate-200 bg-slate-50 text-slate-900 text-xs"
+              />
+              <p className="text-[10px] text-slate-400">
+                {Math.floor((parseInt(callForm.duration, 10) || 0) / 60)} minutes {(parseInt(callForm.duration, 10) || 0) % 60} seconds
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500">Audio Recording File (.mp3, .m4a, .wav)</label>
+              <Input
+                type="file"
+                accept="audio/*,.mp3,.m4a,.wav,.aac,.3gp,.amr,.ogg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  setCallForm({ ...callForm, file: f });
+                }}
+                className="border-slate-200 bg-slate-50 text-slate-900 text-xs file:mr-3 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-700"
+              />
+              <p className="text-[10px] text-slate-400">Attach the audio file recorded on Android or call dialer.</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-500">Call Notes / Discussion Summary</label>
+              <textarea
+                rows={3}
+                value={callForm.notes}
+                onChange={(e) => setCallForm({ ...callForm, notes: e.target.value })}
+                placeholder="Key points discussed, next steps, customer requirements..."
+                className="w-full rounded-md border border-slate-200 bg-slate-50 p-2 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowCallModal(false)}
+                className="text-xs text-slate-500 hover:text-slate-700"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={callSubmitting}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium"
+              >
+                {callSubmitting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Saving...
+                  </>
+                ) : (
+                  'Save Call Record'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
