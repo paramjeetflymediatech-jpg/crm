@@ -58,6 +58,19 @@ export default function CallRecordsPage() {
   const [agents, setAgents] = useState([]);
   const [companies, setCompanies] = useState([]);
 
+  const getAudioUrl = (url) => {
+    if (!url) return '';
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && !url.includes('token=')) {
+        return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      }
+    } catch {
+      // ignore
+    }
+    return url;
+  };
+
   // Fetch team & companies for filter dropdowns
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -374,13 +387,13 @@ export default function CallRecordsPage() {
                             <audio
                               controls
                               className="h-8 max-w-[240px] rounded"
-                              src={call.recording_url}
+                              src={getAudioUrl(call.recording_url)}
                               preload="none"
                             >
                               Your browser does not support the audio element.
                             </audio>
                             <a
-                              href={call.recording_url}
+                              href={getAudioUrl(call.recording_url)}
                               download
                               target="_blank"
                               rel="noopener noreferrer"

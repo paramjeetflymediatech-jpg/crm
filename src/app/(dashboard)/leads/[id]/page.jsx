@@ -110,6 +110,19 @@ export default function LeadDetailPage({ params: paramsPromise }) {
     }
   };
 
+  const getAudioUrl = (url) => {
+    if (!url) return '';
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (token && !url.includes('token=')) {
+        return `${url}${url.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+      }
+    } catch {
+      // ignore
+    }
+    return url;
+  };
+
   // Unwrap params using React.use() or a simple useEffect wrapper
   useEffect(() => {
     paramsPromise.then(resolved => setParams(resolved));
@@ -812,7 +825,7 @@ export default function LeadDetailPage({ params: paramsPromise }) {
                               <audio
                                 controls
                                 className="w-full h-8 rounded"
-                                src={call.recording_url}
+                                src={getAudioUrl(call.recording_url)}
                                 preload="none"
                               >
                                 Your browser does not support the audio element.

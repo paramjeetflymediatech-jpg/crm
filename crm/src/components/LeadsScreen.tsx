@@ -48,8 +48,21 @@ import {
   SlidersHorizontal,
   Check,
   RotateCcw,
-  MessageCircle
+  MessageCircle,
+  Mic,
+  MicOff,
+  FileAudio,
+  Headphones,
+  RefreshCw
 } from 'lucide-react-native';
+import {
+  pickAudioRecording,
+  findLatestCallRecording,
+  startVoiceRecording,
+  stopVoiceRecording,
+  cancelVoiceRecording,
+  AudioRecordingFile
+} from '../services/callRecording';
 
 interface LeadsScreenProps {
   initialLeadId?: number | null;
@@ -162,6 +175,13 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const [callLogLeadStatus, setCallLogLeadStatus] = useState('');
   const [callLogNotes, setCallLogNotes] = useState('');
   const [callLogSubmitting, setCallLogSubmitting] = useState(false);
+
+  // Recording Attachment States
+  const [attachedRecording, setAttachedRecording] = useState<AudioRecordingFile | null>(null);
+  const [isScanningRecording, setIsScanningRecording] = useState(false);
+  const [isMicRecording, setIsMicRecording] = useState(false);
+  const [scanNotification, setScanNotification] = useState<string | null>(null);
+  const callStartTimeRef = React.useRef<number>(0);
 
   useEffect(() => {
     if (openCreateModalDirectly) {
@@ -512,6 +532,59 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     }
   };
 
+  const handlePickRecording = async () => {
+    try {
+      const file = await pickAudioRecording();
+      if (file) {
+        setAttachedRecording(file);
+        setScanNotification(`Attached: ${file.name}`);
+      }
+    } catch (err: any) {
+      Alert.alert('File Picker Error', err.message || 'Failed to select recording.');
+    }
+  };
+
+  const handleScanRecentRecording = async (explicit = false) => {
+    try {
+      setIsScanningRecording(true);
+      setScanNotification(null);
+      const found = await findLatestCallRecording(callStartTimeRef.current);
+      if (found) {
+        setAttachedRecording(found);
+        setScanNotification(`Auto-detected: ${found.name}`);
+      } else if (explicit) {
+        Alert.alert(
+          'No Recording Found',
+          'No recent call recording was found in your device storage. Make sure "Auto Record Calls" is enabled in your Phone dialer app, or tap "Browse File" to select it manually.'
+        );
+      }
+    } catch (err: any) {
+      if (explicit) {
+        Alert.alert('Scan Failed', err.message || 'Unable to scan device storage.');
+      }
+    } finally {
+      setIsScanningRecording(false);
+    }
+  };
+
+  const handleToggleVoiceRecording = async () => {
+    try {
+      if (isMicRecording) {
+        const recorded = await stopVoiceRecording();
+        setIsMicRecording(false);
+        setAttachedRecording(recorded);
+        setScanNotification(`Recorded note: ${recorded.name}`);
+      } else {
+        await startVoiceRecording();
+        setIsMicRecording(true);
+        setScanNotification('Recording voice... Tap again to stop.');
+      }
+    } catch (err: any) {
+      setIsMicRecording(false);
+      Alert.alert('Microphone Error', err.message || 'Failed to record audio.');
+    }
+  };
+
   const handleDialNumber = (phoneStr?: string, lead?: any) => {
     if (!phoneStr) return;
     const cleanPhone = phoneStr.replace(/[^0-9+]/g, '');
@@ -522,6 +595,10 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
       setCallLogStatus('completed');
       setCallLogLeadStatus(lead.status || 'Contacted');
       setCallLogNotes('');
+      setAttachedRecording(null);
+      setScanNotification(null);
+      setIsMicRecording(false);
+      callStartTimeRef.current = Date.now();
     }
 
     Linking.openURL(`tel:${cleanPhone}`).then(() => {
@@ -529,6 +606,10 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         // Automatically prompt the Call Logger modal when returning from dialer
         setTimeout(() => {
           setCallLogModalVisible(true);
+          // Auto-scan for recording in the background
+          setTimeout(() => {
+            handleScanRecentRecording(false);
+          }, 800);
         }, 1200);
       }
     }).catch(() => {
@@ -544,6 +625,9 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
       const durationSec = parseInt(callLogDuration, 10) || 0;
 
       const res = await uploadCallRecording({
+        fileUri: attachedRecording?.uri,
+        fileName: attachedRecording?.name,
+        fileType: attachedRecording?.type,
         leadId: activeCallLead.id,
         phoneNumber: activeCallLead.phone,
         duration: durationSec,
@@ -555,9 +639,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
 
       const data = await res.json();
       if (res.ok) {
-        Alert.alert('Call Recorded', 'Call log successfully saved to the CRM.');
+        const msg = attachedRecording
+          ? 'Call log and audio recording successfully saved to CRM.'
+          : 'Call log successfully saved to CRM.';
+        Alert.alert('Call Recorded', msg);
         setCallLogModalVisible(false);
         setActiveCallLead(null);
+        setAttachedRecording(null);
+        setScanNotification(null);
+        setIsMicRecording(false);
         fetchLeads(true);
       } else {
         Alert.alert('Upload Error', data.error || 'Failed to save call log.');
@@ -1346,7 +1436,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                 </TouchableOpacity>
               </View>
 
-              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              <ScrollView style={{ maxHeight: 450 }} showsVerticalScrollIndicator={false}>
                 {/* Duration */}
                 <Text style={styles.callFieldLabel}>Call Duration (Seconds)</Text>
                 <View style={styles.durationInputRow}>
@@ -1393,6 +1483,89 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                   ))}
                 </View>
 
+                {/* Call Audio Recording */}
+                <Text style={[styles.callFieldLabel, { marginTop: 14 }]}>Call Audio Recording</Text>
+                {attachedRecording ? (
+                  <View style={styles.recAttachedCard}>
+                    <View style={styles.recAttachedIconBox}>
+                      <Headphones size={18} color="#2563eb" />
+                    </View>
+                    <View style={{ flex: 1, marginHorizontal: 10 }}>
+                      <Text style={styles.recAttachedName} numberOfLines={1}>
+                        {attachedRecording.name}
+                      </Text>
+                      <Text style={styles.recAttachedMeta}>
+                        {(attachedRecording.size / (1024 * 1024)).toFixed(2)} MB &bull; Audio attached
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.recRemoveBtn}
+                      onPress={() => {
+                        setAttachedRecording(null);
+                        setScanNotification(null);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <X size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.recEmptyCard}>
+                    <Text style={styles.recEmptyTitle}>Attach or scan call audio recording</Text>
+                    <Text style={styles.recEmptySub}>
+                      Save your call recording into the CRM for admin review.
+                    </Text>
+
+                    <View style={styles.recActionsRow}>
+                      <TouchableOpacity 
+                        style={styles.recActionBtn}
+                        onPress={() => handleScanRecentRecording(true)}
+                        disabled={isScanningRecording}
+                      >
+                        {isScanningRecording ? (
+                          <ActivityIndicator size="small" color="#2563eb" />
+                        ) : (
+                          <RefreshCw size={14} color="#2563eb" />
+                        )}
+                        <Text style={styles.recActionBtnText}>Auto-Detect</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={styles.recActionBtn}
+                        onPress={handlePickRecording}
+                      >
+                        <FileAudio size={14} color="#059669" />
+                        <Text style={[styles.recActionBtnText, { color: '#059669' }]}>Browse File</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={[styles.recActionBtn, isMicRecording && styles.recActionBtnMicActive]}
+                        onPress={handleToggleVoiceRecording}
+                      >
+                        {isMicRecording ? (
+                          <MicOff size={14} color="#dc2626" />
+                        ) : (
+                          <Mic size={14} color="#7c3aed" />
+                        )}
+                        <Text style={[styles.recActionBtnText, isMicRecording ? { color: '#dc2626' } : { color: '#7c3aed' }]}>
+                          {isMicRecording ? 'Stop Mic' : 'Voice Note'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {scanNotification ? (
+                      <View style={styles.recNoticeBox}>
+                        <CheckCircle2 size={12} color="#16a34a" />
+                        <Text style={styles.recNoticeText}>{scanNotification}</Text>
+                      </View>
+                    ) : null}
+
+                    <Text style={styles.recTipText}>
+                      💡 Tip: Enable "Auto Record Calls" in your phone dialer app. Tapping Auto-Detect will locate and attach the recording automatically.
+                    </Text>
+                  </View>
+                )}
+
                 {/* Notes */}
                 <Text style={[styles.callFieldLabel, { marginTop: 14 }]}>Call Notes & Action Items</Text>
                 <TextInput
@@ -1422,7 +1595,9 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
                   {callLogSubmitting ? (
                     <ActivityIndicator size="small" color="#ffffff" />
                   ) : (
-                    <Text style={styles.callSaveText}>Save to CRM</Text>
+                    <Text style={styles.callSaveText}>
+                      {attachedRecording ? 'Upload Call & Audio' : 'Save to CRM'}
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -3095,5 +3270,103 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  recAttachedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 6,
+  },
+  recAttachedIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#dbeafe',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recAttachedName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e3a8a',
+  },
+  recAttachedMeta: {
+    fontSize: 10,
+    color: '#3b82f6',
+    marginTop: 1,
+  },
+  recRemoveBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#fee2e2',
+  },
+  recEmptyCard: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 6,
+  },
+  recEmptyTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 2,
+  },
+  recEmptySub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginBottom: 10,
+  },
+  recActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  recActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  recActionBtnMicActive: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+  },
+  recActionBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  recNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#f0fdf4',
+    padding: 6,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  recNoticeText: {
+    fontSize: 11,
+    color: '#15803d',
+    fontWeight: '600',
+  },
+  recTipText: {
+    fontSize: 10,
+    color: '#94a3b8',
+    lineHeight: 14,
   },
 });

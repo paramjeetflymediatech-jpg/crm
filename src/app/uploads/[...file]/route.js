@@ -40,8 +40,13 @@ async function GET(request, { params }) {
     if (safePath.startsWith('call-recordings')) {
       let token = null;
       const authHeader = request.headers.get('authorization');
+      const { searchParams } = new URL(request.url);
+      const queryToken = searchParams.get('token');
+
       if (authHeader && authHeader.startsWith('Bearer ')) {
         token = authHeader.substring(7);
+      } else if (queryToken) {
+        token = queryToken;
       } else {
         const cookieHeader = request.headers.get('cookie') || '';
         const cookies = parse(cookieHeader);
