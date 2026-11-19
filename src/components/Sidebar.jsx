@@ -11,6 +11,7 @@ import {
   Calendar,
   TrendingUp,
   ShieldAlert,
+  Headphones,
   LogOut,
   Layers,
   FileText
@@ -23,11 +24,19 @@ export default function Sidebar({ user, onLogout, open, onClose }) {
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Leads', href: '/leads', icon: Users },
+  ];
+
+  // Call Records strictly accessible to super_admin and company_admin
+  if (user && (user.role === 'super_admin' || user.role === 'company_admin')) {
+    menuItems.push({ name: 'Call Records', href: '/calls', icon: Headphones });
+  }
+
+  menuItems.push(
     { name: 'Follow-ups', href: '/calendar', icon: Calendar },
     { name: 'Reports', href: '/reports', icon: TrendingUp },
     { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
+    { name: 'Settings', href: '/settings', icon: Settings }
+  );
 
   // Add Admin Panel if super admin
   if (user && user.role === 'super_admin') {

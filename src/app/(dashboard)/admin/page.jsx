@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   Building2, 
   Plus, 
@@ -12,7 +13,8 @@ import {
   Globe,
   Mail,
   Lock,
-  Layers
+  Layers,
+  Headphones
 } from 'lucide-react';
 import { apiFetch as fetch } from '@/lib/clientApi';
 import { showSuccess, showError, showConfirm, Toast } from '@/lib/sweetalert';
@@ -223,9 +225,16 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Platform Control Panel</h1>
           <p className="text-sm text-slate-505 mt-1">Super Administrative view across all company tenants.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="bg-indigo-650 hover:bg-indigo-550 text-white">
-          <Plus className="h-4 w-4 mr-2" /> Provision Company
-        </Button>
+        <div className="flex items-center gap-2.5">
+          <Link href="/calls">
+            <Button variant="outline" className="border-slate-200 text-slate-700 hover:bg-slate-50">
+              <Headphones className="h-4 w-4 mr-2 text-indigo-600" /> View Call Records
+            </Button>
+          </Link>
+          <Button onClick={() => setCreateOpen(true)} className="bg-indigo-650 hover:bg-indigo-550 text-white">
+            <Plus className="h-4 w-4 mr-2" /> Provision Company
+          </Button>
+        </div>
       </div>
 
       {/* Companies List Table */}
