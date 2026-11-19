@@ -73,16 +73,16 @@ export async function pickAudioRecording(): Promise<AudioRecordingFile | null> {
 /**
  * Automatically scan device MediaStore and Call Recording folders for audio recorded during/after the call
  */
-export async function findLatestCallRecording(sinceTimestampMs?: number): Promise<AudioRecordingFile | null> {
+export async function findLatestCallRecording(sinceTimestampMs?: number, phoneNumber?: string): Promise<AudioRecordingFile | null> {
   if (Platform.OS !== 'android' || !CallRecordingModule) {
     return null;
   }
 
   try {
     await requestCallRecordingPermissions();
-    // Default search window: within the last 15 minutes
-    const sinceTime = sinceTimestampMs || Date.now() - 15 * 60 * 1000;
-    const result = await CallRecordingModule.findRecentRecording(sinceTime);
+    // Default search window: within the last 30 minutes
+    const sinceTime = sinceTimestampMs || Date.now() - 30 * 60 * 1000;
+    const result = await CallRecordingModule.findRecentRecording(sinceTime, phoneNumber || null);
     if (result && result.uri) {
       return {
         uri: result.uri,
@@ -96,6 +96,74 @@ export async function findLatestCallRecording(sinceTimestampMs?: number): Promis
   } catch (err) {
     console.warn('Error scanning for recent call recording:', err);
     return null;
+  }
+}
+
+/**
+ * Check and request All Files Access on Android 11+ (API 30+)
+ */
+export async function checkAndRequestAllFilesPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !CallRecordingModule) return true;
+  try {
+    const granted = await CallRecordingModule.isAllFilesAccessGranted();
+    if (!granted) {
+      await CallRecordingModule.requestAllFilesAccess();
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Automatically start background call recording service for a phone call
+ */
+export async function startAutoCallRecording(phoneNumber: string): Promise<boolean> {
+  if (Platform.OS !== 'android' || !CallRecordingModule) return false;
+
+  try {
+    await requestCallRecordingPermissions();
+    await CallRecordingModule.startAutoCallRecording(phoneNumber);
+    return true;
+  } catch (err) {
+    console.warn('Error starting auto call recording service:', err);
+    return false;
+  }
+}
+
+/**
+ * Automatically stop background call recording service and retrieve file
+ */
+export async function stopAutoCallRecording(): Promise<AudioRecordingFile | null> {
+  if (Platform.OS !== 'android' || !CallRecordingModule) return null;
+
+  try {
+    const result = await CallRecordingModule.stopAutoCallRecording();
+    if (result && result.uri) {
+      return {
+        uri: result.uri,
+        name: result.name || 'auto_call_recording.m4a',
+        size: result.size || 0,
+        type: result.type || 'audio/m4a',
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn('Error stopping auto call recording service:', err);
+    return null;
+  }
+}
+
+/**
+ * Check if auto call recording service is active
+ */
+export async function isAutoCallRecording(): Promise<boolean> {
+  if (Platform.OS !== 'android' || !CallRecordingModule) return false;
+  try {
+    return await CallRecordingModule.isAutoCallRecording();
+  } catch {
+    return false;
   }
 }
 

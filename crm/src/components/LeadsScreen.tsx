@@ -13,7 +13,8 @@ import {
   Alert,
   Linking,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  AppState
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
@@ -61,6 +62,9 @@ import {
   startVoiceRecording,
   stopVoiceRecording,
   cancelVoiceRecording,
+  checkAndRequestAllFilesPermission,
+  startAutoCallRecording,
+  stopAutoCallRecording,
   AudioRecordingFile
 } from '../services/callRecording';
 
@@ -182,6 +186,71 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const [isMicRecording, setIsMicRecording] = useState(false);
   const [scanNotification, setScanNotification] = useState<string | null>(null);
   const callStartTimeRef = React.useRef<number>(0);
+  const activeCallLeadRef = React.useRef<any>(null);
+  const isCallInProgressRef = React.useRef<boolean>(false);
+  const attachedRecordingRef = React.useRef<AudioRecordingFile | null>(null);
+
+  useEffect(() => {
+    attachedRecordingRef.current = attachedRecording;
+  }, [attachedRecording]);
+
+  // Listen for AppState changes: when returning from dialer, trigger call logger & auto-save!
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', async (nextAppState) => {
+      if (nextAppState === 'active' && isCallInProgressRef.current && activeCallLeadRef.current) {
+        isCallInProgressRef.current = false;
+        const currentLead = activeCallLeadRef.current;
+        const elapsedSec = Math.max(10, Math.round((Date.now() - callStartTimeRef.current) / 1000));
+        setCallLogDuration(String(elapsedSec));
+        setCallLogModalVisible(true);
+
+        // 1. Stop background auto-call recording service
+        let resolvedRecording: AudioRecordingFile | null = null;
+        try {
+          const autoRecorded = await stopAutoCallRecording();
+          if (autoRecorded) {
+            resolvedRecording = autoRecorded;
+          }
+        } catch (e) {
+          console.warn('Error stopping auto call recorder:', e);
+        }
+
+        // 2. Also check if device hardware dialer created a recording file
+        try {
+          const hardwareRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
+          if (hardwareRec) {
+            resolvedRecording = hardwareRec;
+          }
+        } catch (e) {}
+
+        if (resolvedRecording) {
+          setAttachedRecording(resolvedRecording);
+          attachedRecordingRef.current = resolvedRecording;
+          setScanNotification(`Recording captured: ${resolvedRecording.name}`);
+
+          // 3. AUTOMATICALLY UPLOAD TO CRM SERVER!
+          autoUploadCallAndRecording(currentLead, elapsedSec, resolvedRecording);
+        } else {
+          // Retry search after 2.5s in case phone dialer is still flushing file to disk
+          setTimeout(async () => {
+            if (!attachedRecordingRef.current) {
+              const retryRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
+              if (retryRec) {
+                setAttachedRecording(retryRec);
+                attachedRecordingRef.current = retryRec;
+                setScanNotification(`Auto-detected: ${retryRec.name}`);
+                autoUploadCallAndRecording(currentLead, elapsedSec, retryRec);
+              }
+            }
+          }, 2500);
+        }
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (openCreateModalDirectly) {
@@ -547,15 +616,17 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const handleScanRecentRecording = async (explicit = false) => {
     try {
       setIsScanningRecording(true);
-      setScanNotification(null);
-      const found = await findLatestCallRecording(callStartTimeRef.current);
+      if (explicit) setScanNotification('Scanning device storage for recording...');
+      const targetPhone = activeCallLeadRef.current?.phone || activeCallLead?.phone;
+      const found = await findLatestCallRecording(callStartTimeRef.current, targetPhone);
       if (found) {
         setAttachedRecording(found);
+        attachedRecordingRef.current = found;
         setScanNotification(`Auto-detected: ${found.name}`);
       } else if (explicit) {
         Alert.alert(
-          'No Recording Found',
-          'No recent call recording was found in your device storage. Make sure "Auto Record Calls" is enabled in your Phone dialer app, or tap "Browse File" to select it manually.'
+          'No Recording Found Automatically',
+          'No new audio file was found in your device recording folders.\n\n• If your phone saved it to a custom folder, tap "Browse File" to select it.\n• You can also tap "Voice Note" to record a quick audio summary via microphone.'
         );
       }
     } catch (err: any) {
@@ -573,6 +644,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         const recorded = await stopVoiceRecording();
         setIsMicRecording(false);
         setAttachedRecording(recorded);
+        attachedRecordingRef.current = recorded;
         setScanNotification(`Recorded note: ${recorded.name}`);
       } else {
         await startVoiceRecording();
@@ -585,34 +657,67 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     }
   };
 
-  const handleDialNumber = (phoneStr?: string, lead?: any) => {
+  const autoUploadCallAndRecording = async (lead: any, durationSec: number, recordingFile: AudioRecordingFile) => {
+    try {
+      setCallLogSubmitting(true);
+      const res = await uploadCallRecording({
+        fileUri: recordingFile.uri,
+        fileName: recordingFile.name,
+        fileType: recordingFile.type,
+        leadId: lead.id,
+        phoneNumber: lead.phone,
+        duration: durationSec,
+        direction: 'outbound',
+        status: 'completed',
+        leadStatus: lead.status || 'Contacted',
+        notes: 'Auto-recorded call'
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setScanNotification('✅ Call recording automatically saved to CRM!');
+        fetchLeads(true);
+      }
+    } catch (err) {
+      console.error('Auto upload error:', err);
+    } finally {
+      setCallLogSubmitting(false);
+    }
+  };
+
+  const handleDialNumber = async (phoneStr?: string, lead?: any) => {
     if (!phoneStr) return;
     const cleanPhone = phoneStr.replace(/[^0-9+]/g, '');
 
     if (lead) {
       setActiveCallLead(lead);
+      activeCallLeadRef.current = lead;
       setCallLogDuration('60');
       setCallLogStatus('completed');
       setCallLogLeadStatus(lead.status || 'Contacted');
       setCallLogNotes('');
       setAttachedRecording(null);
+      attachedRecordingRef.current = null;
       setScanNotification(null);
       setIsMicRecording(false);
       callStartTimeRef.current = Date.now();
+      isCallInProgressRef.current = true;
     }
 
-    Linking.openURL(`tel:${cleanPhone}`).then(() => {
-      if (lead) {
-        // Automatically prompt the Call Logger modal when returning from dialer
-        setTimeout(() => {
-          setCallLogModalVisible(true);
-          // Auto-scan for recording in the background
-          setTimeout(() => {
-            handleScanRecentRecording(false);
-          }, 800);
-        }, 1200);
-      }
-    }).catch(() => {
+    // 1. Proactively start background call recording service
+    try {
+      await startAutoCallRecording(cleanPhone);
+    } catch (e) {
+      console.warn('Auto call recording start err:', e);
+    }
+
+    // 2. Proactively check all files permission on Android 11+
+    checkAndRequestAllFilesPermission().catch(() => {});
+
+    // 3. Initiate dialer
+    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+      isCallInProgressRef.current = false;
+      stopAutoCallRecording().catch(() => {});
       Alert.alert('Dial Error', 'Unable to initiate phone call on this device.');
     });
   };
