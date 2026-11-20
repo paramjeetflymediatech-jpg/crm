@@ -205,44 +205,47 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         setCallLogModalVisible(true);
 
         // 1. Stop background auto-call recording service
-        let resolvedRecording: AudioRecordingFile | null = null;
+        let autoRecorded: AudioRecordingFile | null = null;
         try {
-          const autoRecorded = await stopAutoCallRecording();
-          if (autoRecorded) {
-            resolvedRecording = autoRecorded;
-          }
+          autoRecorded = await stopAutoCallRecording();
         } catch (e) {
           console.warn('Error stopping auto call recorder:', e);
         }
 
-        // 2. Also check if device hardware dialer created a recording file
+        // 2. Immediately check if device hardware dialer created a 2-way recording file
+        let hardwareRec: AudioRecordingFile | null = null;
         try {
-          const hardwareRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
-          if (hardwareRec) {
-            resolvedRecording = hardwareRec;
-          }
+          hardwareRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
         } catch (e) {}
 
-        if (resolvedRecording) {
-          setAttachedRecording(resolvedRecording);
-          attachedRecordingRef.current = resolvedRecording;
-          setScanNotification(`Recording captured: ${resolvedRecording.name}`);
-
-          // 3. AUTOMATICALLY UPLOAD TO CRM SERVER!
-          autoUploadCallAndRecording(currentLead, elapsedSec, resolvedRecording);
+        if (hardwareRec) {
+          // Hardware 2-way recording ready immediately!
+          setAttachedRecording(hardwareRec);
+          attachedRecordingRef.current = hardwareRec;
+          setScanNotification(`✅ 2-way recording captured: ${hardwareRec.name}`);
+          autoUploadCallAndRecording(currentLead, elapsedSec, hardwareRec);
         } else {
-          // Retry search after 2.5s in case phone dialer is still flushing file to disk
+          // Hardware recording not flushed yet. Wait 2.0s for phone system to finish writing 2-way audio file
+          setScanNotification('Finalizing call recording...');
+
           setTimeout(async () => {
-            if (!attachedRecordingRef.current) {
-              const retryRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
-              if (retryRec) {
-                setAttachedRecording(retryRec);
-                attachedRecordingRef.current = retryRec;
-                setScanNotification(`Auto-detected: ${retryRec.name}`);
-                autoUploadCallAndRecording(currentLead, elapsedSec, retryRec);
-              }
+            let retryHardwareRec: AudioRecordingFile | null = null;
+            try {
+              retryHardwareRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
+            } catch (e) {}
+
+            const finalRec = retryHardwareRec || autoRecorded;
+            if (finalRec) {
+              setAttachedRecording(finalRec);
+              attachedRecordingRef.current = finalRec;
+              const isTwoWay = !!retryHardwareRec;
+              setScanNotification(isTwoWay ? `✅ 2-way recording captured: ${finalRec.name}` : `Recording captured: ${finalRec.name}`);
+              autoUploadCallAndRecording(currentLead, elapsedSec, finalRec);
+            } else {
+              setScanNotification('Call logged to CRM.');
+              autoUploadCallAndRecording(currentLead, elapsedSec, null);
             }
-          }, 2500);
+          }, 2000);
         }
       }
     });
@@ -657,25 +660,25 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     }
   };
 
-  const autoUploadCallAndRecording = async (lead: any, durationSec: number, recordingFile: AudioRecordingFile) => {
+  const autoUploadCallAndRecording = async (lead: any, durationSec: number, recordingFile?: AudioRecordingFile | null) => {
     try {
       setCallLogSubmitting(true);
       const res = await uploadCallRecording({
-        fileUri: recordingFile.uri,
-        fileName: recordingFile.name,
-        fileType: recordingFile.type,
+        fileUri: recordingFile?.uri,
+        fileName: recordingFile?.name,
+        fileType: recordingFile?.type,
         leadId: lead.id,
         phoneNumber: lead.phone,
         duration: durationSec,
         direction: 'outbound',
         status: 'completed',
         leadStatus: lead.status || 'Contacted',
-        notes: 'Auto-recorded call'
+        notes: recordingFile ? 'Auto-recorded call' : 'Call completed'
       });
 
       const data = await res.json();
       if (res.ok) {
-        setScanNotification('✅ Call recording automatically saved to CRM!');
+        setScanNotification(recordingFile ? '✅ Call recording automatically saved to CRM!' : '✅ Call logged to CRM!');
         fetchLeads(true);
       }
     } catch (err) {
