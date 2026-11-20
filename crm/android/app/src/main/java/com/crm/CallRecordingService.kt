@@ -7,16 +7,21 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.MediaRecorder
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.io.File
 
 class CallRecordingService : Service() {
 
     companion object {
+        const val TAG = "CallRecordingService"
         const val CHANNEL_ID = "crm_call_recording_channel"
         const val NOTIFICATION_ID = 48219
 
@@ -47,6 +52,9 @@ class CallRecordingService : Service() {
 
         fun stop(context: Context): File? {
             val file = activeFile
+            instance?.stopSpeakerEnforcer()
+            disableSpeakerphone(context)
+
             try {
                 mediaRecorder?.apply {
                     try { stop() } catch (e: Exception) {}
@@ -64,6 +72,63 @@ class CallRecordingService : Service() {
 
             return if (file != null && file.exists() && file.length() > 512) file else null
         }
+
+        fun enableSpeakerphone(context: Context) {
+            try {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+                audioManager.mode = AudioManager.MODE_IN_COMMUNICATION
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val devices = audioManager.availableCommunicationDevices
+                    val speaker = devices.find { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                    if (speaker != null) {
+                        audioManager.setCommunicationDevice(speaker)
+                    }
+                }
+                @Suppress("DEPRECATION")
+                audioManager.isSpeakerphoneOn = true
+            } catch (e: Exception) {
+                Log.w(TAG, "enableSpeakerphone error: ${e.message}")
+            }
+        }
+
+        fun disableSpeakerphone(context: Context) {
+            try {
+                val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    audioManager.clearCommunicationDevice()
+                }
+                @Suppress("DEPRECATION")
+                audioManager.isSpeakerphoneOn = false
+                audioManager.mode = AudioManager.MODE_NORMAL
+            } catch (e: Exception) {
+                Log.w(TAG, "disableSpeakerphone error: ${e.message}")
+            }
+        }
+    }
+
+    private var speakerEnforcerHandler: Handler? = null
+    private var enforcerCount = 0
+
+    private fun startSpeakerEnforcer() {
+        stopSpeakerEnforcer()
+        enforcerCount = 0
+        speakerEnforcerHandler = Handler(Looper.getMainLooper())
+        val runnable = object : Runnable {
+            override fun run() {
+                if (isRecording && enforcerCount < 15) {
+                    enforcerCount++
+                    enableSpeakerphone(applicationContext)
+                    speakerEnforcerHandler?.postDelayed(this, 1000)
+                }
+            }
+        }
+        speakerEnforcerHandler?.post(runnable)
+    }
+
+    private fun stopSpeakerEnforcer() {
+        speakerEnforcerHandler?.removeCallbacksAndMessages(null)
+        speakerEnforcerHandler = null
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -80,6 +145,8 @@ class CallRecordingService : Service() {
             val phone = intent.getStringExtra("phone") ?: ""
             if (filePath != null) {
                 startForegroundNotification(phone)
+                enableSpeakerphone(applicationContext)
+                startSpeakerEnforcer()
                 startMediaRecorder(File(filePath))
             }
         } else if (intent?.action == "STOP") {
@@ -119,7 +186,7 @@ class CallRecordingService : Service() {
                 MediaRecorder()
             }
 
-            // Using standard MIC ensures the recorder never throws in prepare()/start() and captures both voices when speaker is active
+            // Standard MIC with speakerphone captures both speaker output (lead) and caller's voice
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC)
             recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -133,6 +200,7 @@ class CallRecordingService : Service() {
             isRecording = true
             activeFile = outputFile
         } catch (e: Exception) {
+            Log.e(TAG, "startMediaRecorder error: ${e.message}", e)
             isRecording = false
             mediaRecorder = null
             activeFile = null
@@ -155,6 +223,8 @@ class CallRecordingService : Service() {
     }
 
     override fun onDestroy() {
+        stopSpeakerEnforcer()
+        disableSpeakerphone(applicationContext)
         instance = null
         try {
             mediaRecorder?.apply {

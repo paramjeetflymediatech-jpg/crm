@@ -219,14 +219,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
           hardwareRec = await findLatestCallRecording(callStartTimeRef.current, currentLead.phone);
         } catch (e) {}
 
-        if (hardwareRec) {
-          // Hardware 2-way recording ready immediately!
-          setAttachedRecording(hardwareRec);
-          attachedRecordingRef.current = hardwareRec;
-          setScanNotification(`✅ 2-way recording captured: ${hardwareRec.name}`);
-          autoUploadCallAndRecording(currentLead, elapsedSec, hardwareRec);
+        if (hardwareRec || autoRecorded) {
+          // 2-way recording ready immediately!
+          const immediateRec = hardwareRec || autoRecorded;
+          setAttachedRecording(immediateRec);
+          attachedRecordingRef.current = immediateRec;
+          setScanNotification(`✅ 2-way recording captured: ${immediateRec.name}`);
+          autoUploadCallAndRecording(currentLead, elapsedSec, immediateRec);
         } else {
-          // Hardware recording not flushed yet. Wait 2.0s for phone system to finish writing 2-way audio file
+          // Hardware recording not flushed yet. Wait 1.5s for phone system to finish writing 2-way audio file
           setScanNotification('Finalizing call recording...');
 
           setTimeout(async () => {
@@ -239,14 +240,13 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
             if (finalRec) {
               setAttachedRecording(finalRec);
               attachedRecordingRef.current = finalRec;
-              const isTwoWay = !!retryHardwareRec;
-              setScanNotification(isTwoWay ? `✅ 2-way recording captured: ${finalRec.name}` : `Recording captured: ${finalRec.name}`);
+              setScanNotification(`✅ 2-way recording captured: ${finalRec.name}`);
               autoUploadCallAndRecording(currentLead, elapsedSec, finalRec);
             } else {
               setScanNotification('Call logged to CRM.');
               autoUploadCallAndRecording(currentLead, elapsedSec, null);
             }
-          }, 2000);
+          }, 1500);
         }
       }
     });
@@ -676,12 +676,12 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         direction: 'outbound',
         status: 'completed',
         leadStatus: lead.status || 'Contacted',
-        notes: recordingFile ? 'Auto-recorded call' : 'Call completed'
+        notes: recordingFile ? 'Auto-recorded 2-way call' : 'Call completed'
       });
 
       const data = await res.json();
       if (res.ok) {
-        setScanNotification(recordingFile ? '✅ Call recording automatically saved to CRM!' : '✅ Call logged to CRM!');
+        setScanNotification(recordingFile ? '✅ 2-way call recording automatically saved to CRM!' : '✅ Call logged to CRM!');
         fetchLeads(true);
         // Automatically close modal after 1.2s to prevent duplicate manual saves
         setTimeout(() => {
