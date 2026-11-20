@@ -189,6 +189,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const activeCallLeadRef = React.useRef<any>(null);
   const isCallInProgressRef = React.useRef<boolean>(false);
   const attachedRecordingRef = React.useRef<AudioRecordingFile | null>(null);
+  const isAutoUploadedRef = React.useRef<boolean>(false);
 
   useEffect(() => {
     attachedRecordingRef.current = attachedRecording;
@@ -661,6 +662,8 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   };
 
   const autoUploadCallAndRecording = async (lead: any, durationSec: number, recordingFile?: AudioRecordingFile | null) => {
+    if (isAutoUploadedRef.current) return;
+    isAutoUploadedRef.current = true;
     try {
       setCallLogSubmitting(true);
       const res = await uploadCallRecording({
@@ -680,9 +683,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
       if (res.ok) {
         setScanNotification(recordingFile ? '✅ Call recording automatically saved to CRM!' : '✅ Call logged to CRM!');
         fetchLeads(true);
+        // Automatically close modal after 1.2s to prevent duplicate manual saves
+        setTimeout(() => {
+          setCallLogModalVisible(false);
+          setActiveCallLead(null);
+        }, 1200);
       }
     } catch (err) {
       console.error('Auto upload error:', err);
+      isAutoUploadedRef.current = false;
     } finally {
       setCallLogSubmitting(false);
     }
@@ -695,6 +704,7 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
     if (lead) {
       setActiveCallLead(lead);
       activeCallLeadRef.current = lead;
+      isAutoUploadedRef.current = false;
       setCallLogDuration('60');
       setCallLogStatus('completed');
       setCallLogLeadStatus(lead.status || 'Contacted');
@@ -728,7 +738,15 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
   const handleSaveCallLog = async () => {
     if (!activeCallLead) return;
 
+    if (isAutoUploadedRef.current) {
+      Alert.alert('Already Saved', 'This call log and recording have already been automatically saved to the CRM.');
+      setCallLogModalVisible(false);
+      setActiveCallLead(null);
+      return;
+    }
+
     try {
+      isAutoUploadedRef.current = true;
       setCallLogSubmitting(true);
       const durationSec = parseInt(callLogDuration, 10) || 0;
 
@@ -758,9 +776,11 @@ export default function LeadsScreen({ initialLeadId, clearInitialLeadId, openCre
         setIsMicRecording(false);
         fetchLeads(true);
       } else {
+        isAutoUploadedRef.current = false;
         Alert.alert('Upload Error', data.error || 'Failed to save call log.');
       }
     } catch (err: any) {
+      isAutoUploadedRef.current = false;
       Alert.alert('Error', err.message || 'An error occurred while saving call log.');
     } finally {
       setCallLogSubmitting(false);
